@@ -1,0 +1,8 @@
+# statix lint configuration for /etc/nixos.
+# Format: https://github.com/nerdypepper/statix#configuration
+
+# W20 "repeated_keys" is disabled: this config uses flat-dotted notation
+# (services.foo = ...; services.bar = ...;) which is the idiomatic style for
+# NixOS modules — nesting under a single attrset adds visual noise and breaks
+# diff locality when adding an unrelated `services.*` line.
+disabled = ["repeated_keys"]

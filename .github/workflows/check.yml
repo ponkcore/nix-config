@@ -1,0 +1,103 @@
+name: check
+
+# Validate every push to main and every PR. Three checks:
+#   1. nix flake check — evaluation + fixed-output derivations are valid.
+#   2. alejandra --check — no formatting drift.
+#   3. statix check + deadnix --fail — no anti-patterns or dead code.
+#
+# Each job uses cachix/install-nix-action to provide a Nix daemon and
+# sets a magic-nix-cache step so derivations build once across PR runs.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel superseded runs on the same ref to save CI minutes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  flake-check:
+    name: nix flake check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v27
+        with:
+          nix_path: nixpkgs=channel:nixos-25.11
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            accept-flake-config = true
+      - uses: DeterminateSystems/magic-nix-cache-action@v8
+      - name: Evaluate flake
+        run: nix flake check --all-systems --show-trace --print-build-logs
+
+  format:
+    name: alejandra (format)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v27
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            accept-flake-config = true
+      - name: Check formatting
+        run: nix run nixpkgs#alejandra -- --check .
+
+  lint:
+    name: statix + deadnix
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v27
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            accept-flake-config = true
+      - name: statix
+        run: nix run nixpkgs#statix -- check --config statix.toml
+      - name: deadnix
+        run: nix run nixpkgs#deadnix -- --no-lambda-pattern-names --fail
+
+  secrets-scan:
+    name: gitleaks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # Run gitleaks directly via the binary instead of the v2 action.
+      # The action wraps a paid SaaS for org/private repos
+      # (GITLEAKS_LICENSE) and even with the licence in place it needs
+      # `pull-requests: read` permission to call the PR commits API,
+      # which the default GITHUB_TOKEN lacks. The CLI is offline,
+      # licence-free, and scans the full history.
+      - uses: cachix/install-nix-action@v27
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            accept-flake-config = true
+      - name: gitleaks
+        run: nix run nixpkgs#gitleaks -- git --no-banner --redact -v .
+
+  nixos-tests:
+    name: nixosTests (secrets + users)
+    runs-on: ubuntu-latest
+    needs: flake-check
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v27
+        with:
+          nix_path: nixpkgs=channel:nixos-25.11
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            accept-flake-config = true
+      - uses: DeterminateSystems/magic-nix-cache-action@v8
+      - name: secrets test
+        run: nix build .#checks.x86_64-linux.secrets -L
+      - name: users test
+        run: nix build .#checks.x86_64-linux.users -L

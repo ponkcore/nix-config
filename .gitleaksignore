@@ -1,0 +1,25 @@
+# gitleaks fingerprints to ignore.
+#
+# One <commit>:<file>:<rule>:<line> per line. Used by `gitleaks detect`
+# to skip known false positives. Add a comment above each entry so
+# future-me / future-talos remembers why it is here.
+#
+# Note: gitleaks scans this file like any other, so do not paste the
+# literal value being suppressed into a comment — describe it
+# instead. Otherwise the suppression entry causes a fresh finding on
+# itself.
+
+# A 40-char git revision hash inside a `rev = "..."` line of an
+# example fetchFromGitHub block in a markdown file that has since
+# been removed from the working tree (docs/changelogs/* was dropped
+# in Stage G of the talos rollout). gitleaks heuristic flags any
+# 40-char hex string next to a `rev` keyword as a possible
+# Sourcegraph access token; the value is just a charmbracelet/crush
+# repo revision.
+b2eb27154c0d39a12276a90a07269eaa62214a5a:docs/changelogs/2026-05-19-agent-platform-evaluation.md:sourcegraph-access-token:519
+
+# Same hex string echoed inside a now-cleaned-up comment of an
+# earlier version of THIS file. Suppressing the historical commit
+# directly because gitleaks scans full git history regardless of
+# the working-tree state of .gitleaksignore.
+cc9d7b8e7d8bf1f68fc1e06951458eb266f146ba:.gitleaksignore:sourcegraph-access-token:7

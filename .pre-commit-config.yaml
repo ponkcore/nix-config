@@ -1,0 +1,56 @@
+# Pre-commit hooks for /etc/nixos.
+# Install once after the new packages land in your profile:
+#   cd /etc/nixos && pre-commit install
+# Then every `git commit` runs these checks; failures abort the commit.
+#
+# All tools are installed via modules/packages.nix → language: system
+# means pre-commit invokes whatever's on $PATH (no hook-repo fetch).
+repos:
+  - repo: local
+    hooks:
+      - id: alejandra
+        name: alejandra (auto-format)
+        entry: alejandra
+        language: system
+        files: '\.nix$'
+
+      - id: statix
+        name: statix (lint)
+        entry: statix check --config statix.toml
+        language: system
+        files: '\.nix$'
+        pass_filenames: false
+
+      - id: deadnix
+        name: deadnix (dead-code)
+        # --no-lambda-pattern-names: ignore unused `{ config, pkgs, lib, ... }`
+        # function-arg patterns (idiomatic in NixOS modules); still catches
+        # unused let-bindings and other genuine dead code.
+        entry: deadnix --no-lambda-pattern-names --fail
+        language: system
+        files: '\.nix$'
+
+      - id: nil-diagnostics
+        name: nil diagnostics
+        # nil is the Nix LSP server. Its `diagnostics` subcommand runs
+        # one-shot per-file analysis: prints warnings/errors and exits
+        # non-zero on errors only (warnings still exit 0). This catches
+        # evaluation-time mistakes that alejandra/statix/deadnix miss
+        # — typoed attributes, unbound variables, malformed `with`
+        # scopes, etc. Editor-side LSP via home/neovim.nix is still the
+        # first line of defence; this hook is the commit-time safety net.
+        entry: nil diagnostics
+        language: system
+        files: '\.nix$'
+
+      - id: gitleaks
+        name: gitleaks (secret scan, staged)
+        # Mirror of CI .github/workflows/check.yml:secrets-scan.
+        # `--pre-commit --staged` makes gitleaks scan only what's
+        # currently in the index, not the full history — fast enough
+        # for every commit. SOUL §7 + ABOUT.md list this as a
+        # mandatory commit-time gate.
+        entry: gitleaks git --pre-commit --staged --no-banner --redact
+        language: system
+        pass_filenames: false
+        always_run: true

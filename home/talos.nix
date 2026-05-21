@@ -1,0 +1,220 @@
+# home/talos.nix — talos sysadmin agent (gptme runtime + brain workdir).
+#
+# Three responsibilities:
+#   1. Install pkgs.gptme into the user environment.
+#   2. Render ~/.config/gptme/config.toml at activation, substituting
+#      OMNIROUTE_API_KEY and OMNIROUTE_BASE_URL from /run/agenix/omniroute-key.
+#      Same pattern as home/opencode.nix (the secret never lands in
+#      /nix/store; only the template with placeholders does).
+#   3. Provide a fish function `talos` that opens gptme in the brain
+#      workdir (~/Documents/talos-brain) by default, with a few short
+#      subcommands for common workflows.
+#
+# Brain workdir is checked at run time, not at activation time. The
+# directory belongs to a separate repo (ponkcore/talos-brain) and
+# lives outside this flake on purpose: nix-config carries the
+# system declaration; the brain carries the agent's persistent
+# memory (lessons, runbooks, ADRs, journal). Different change
+# rhythms, different review surfaces.
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
+  brainDir = "${config.home.homeDirectory}/Documents/talos-brain";
+
+  # TOML template living in /nix/store — apiKey / baseUrl are
+  # placeholders, replaced at activation time using values read from
+  # /run/agenix/omniroute-key. The `.toml` literal itself is safe to
+  # commit because it contains no secret material.
+  configTemplate = pkgs.writeText "gptme-config.toml.template" ''
+    # gptme config — rendered by home/talos.nix activation script.
+    # Edit the source module, not this file (HM rewrites it on rebuild).
+
+    [env]
+    # Default model for talos sessions: Claude Haiku 4.5 via omniroute's
+    # Kiro proxy (kr/*). The omniroute deployment currently exposes only
+    # the Kiro family — see PROVIDERS.md in the brain. Override at run
+    # time with `gptme --model omniroute/<id>` or with the `MODEL`
+    # env var.
+    MODEL = "omniroute/kr/claude-haiku-4.5"
+
+    [[providers]]
+    name = "omniroute"
+    base_url = "@OMNIROUTE_BASE_URL@"
+    api_key = "@OMNIROUTE_API_KEY@"
+    default_model = "kr/claude-haiku-4.5"
+
+    # Direct Fireworks endpoint — bypasses omniroute, talks to Fireworks
+    # natively. The api_key is sourced from the same omniroute-key.age
+    # secret (it already carries FIREWORKS_API_KEY for the opencode
+    # provider catalogue), so no new agenix entry is required.
+    #
+    # Catalogue (mirrors home/opencode.nix:fireworksBase):
+    #
+    #   fireworks/accounts/fireworks/models/glm-5p1
+    #     fast, cheap, capable — first choice for general work
+    #   fireworks/accounts/fireworks/models/kimi-k2p6
+    #     web search + tool-use specialist
+    #   fireworks/accounts/fireworks/models/minimax-m2p7
+    #     cheapest scout — quick triage / exploration
+    #   fireworks/accounts/fireworks/models/deepseek-v4-pro
+    #     1M context, max reasoning — for autonomous deep work
+    #   fireworks/accounts/fireworks/models/qwen3p6-plus
+    #     all-rounder, balanced cost / quality
+    #
+    # Pick at session-launch with `gptme --model <id>` or inside a
+    # session with `/model <id>`. To make a Fireworks model the default,
+    # change MODEL above to the matching id and rebuild.
+    #
+    # As of 2026-05-20 the Fireworks account is suspended (billing);
+    # calls return 400 PRECONDITION_FAILED. The block stays wired so
+    # the moment the account is unblocked no nix-config change is
+    # needed.
+    [[providers]]
+    name = "fireworks"
+    base_url = "https://api.fireworks.ai/inference/v1"
+    api_key = "@FIREWORKS_API_KEY@"
+    default_model = "accounts/fireworks/models/glm-5p1"
+  '';
+
+  # Fish function — defined as a separate file so home-manager picks
+  # it up via programs.fish.functions cleanly. The function lives in
+  # XDG_CONFIG_HOME/fish/functions/talos.fish at activation.
+  #
+  # YOLO mode: every `command gptme` call passes `-y` (--no-confirm)
+  # so the runtime never blocks on patch / shell / save confirmations.
+  # The behavioural guardrails (SOUL §2 destructive-operation tiers,
+  # privacy zones) still live in the system prompt and apply
+  # regardless of -y; -y only disables the gptme-level confirmations,
+  # not the agent-level ones.
+  #
+  # Session prehook: before every `gptme` invocation that targets the
+  # brain workdir we run scripts/build-runtime-context.sh, which
+  # regenerates RUNTIME_CONTEXT.md (last 3 journal entries, hostname,
+  # the four INDEX.md files, pointer to MAP.md). gptme.toml [prompt]
+  # .files lists RUNTIME_CONTEXT.md last so a fresh copy is read at
+  # session start. A failure of the prehook never blocks talos: the
+  # function logs a warning to stderr and continues into gptme.
+  talosFish = ''
+    set -l brain "${brainDir}"
+    set -l prehook "$brain/scripts/build-runtime-context.sh"
+
+    # `help` works regardless of brain presence — it is a pure local
+    # message and the user may legitimately be running `talos help`
+    # before they have cloned the brain repo.
+    if test (count $argv) -ge 1
+      switch $argv[1]
+        case 'help' '--help' '-h'
+          echo "talos — sysadmin agent (gptme + brain workdir)"
+          echo ""
+          echo "Usage:"
+          echo "  talos                  Start TUI in $brain"
+          echo "  talos help             This message"
+          echo "  talos journal          Open today's journal entry"
+          echo "  talos system <prompt>  Run with workdir = /etc/nixos"
+          echo "  talos <prompt...>      Run in brain with prompt"
+          return 0
+      end
+    end
+
+    if not test -d "$brain"
+      echo "talos: brain directory $brain not found." >&2
+      echo "       Clone ponkcore/talos-brain to $brain before invoking talos." >&2
+      return 1
+    end
+
+    # Refresh RUNTIME_CONTEXT.md before launching gptme. Non-fatal:
+    # a broken prehook must never prevent talos from starting.
+    if test -x "$prehook"
+      bash "$prehook"; or echo "talos: prehook $prehook failed; continuing" >&2
+    end
+
+    # No args — open TUI in brain workdir.
+    if test (count $argv) -eq 0
+      cd "$brain"
+      command gptme -y
+      return $status
+    end
+
+    switch $argv[1]
+      case 'journal'
+        cd "$brain"
+        command gptme -y \
+          "Open journal/"(date +%Y-%m-%d)".md and summarise what I did today. If the file does not exist, create it with a short opening note. Reply to me in Russian."
+      case 'system'
+        cd /etc/nixos
+        if test (count $argv) -ge 2
+          command gptme -y $argv[2..]
+        else
+          command gptme -y
+        end
+      case '*'
+        cd "$brain"
+        command gptme -y $argv
+    end
+  '';
+in {
+  home.packages = [pkgs.gptme];
+
+  programs.fish.functions.talos = talosFish;
+
+  # Render ~/.config/gptme/config.toml from configTemplate, substituting
+  # the secrets read from /run/agenix/omniroute-key. Mirrors the
+  # opencode-config activation in home/opencode.nix.
+  home.activation.talos-config = lib.hm.dag.entryAfter ["writeBoundary"] ''
+    set -eu
+    SECRETS="/run/agenix/omniroute-key"
+    OUT="${config.xdg.configHome}/gptme/config.toml"
+    if [ ! -r "$SECRETS" ]; then
+      echo "ERROR: $SECRETS missing or unreadable." >&2
+      echo "       Check 'systemctl status agenix' and that the host's" >&2
+      echo "       SSH host key is listed in secrets/secrets.nix." >&2
+      exit 1
+    fi
+    # shellcheck disable=SC1090
+    . "$SECRETS"
+    if [ -z "''${OMNIROUTE_API_KEY:-}" ]; then
+      echo "ERROR: OMNIROUTE_API_KEY missing in $SECRETS" >&2
+      exit 1
+    fi
+    if [ -z "''${FIREWORKS_API_KEY:-}" ]; then
+      echo "ERROR: FIREWORKS_API_KEY missing in $SECRETS" >&2
+      exit 1
+    fi
+    # OMNIROUTE_BASE_URL is not part of omniroute-key.age yet (the
+    # opencode module hard-codes the URL); keep it overridable here in
+    # case a future host fronts a different proxy.
+    : "''${OMNIROUTE_BASE_URL:=https://omniroute.infinitycore.space:8443/v1}"
+
+    mkdir -p "${config.xdg.configHome}/gptme"
+    umask 077
+    ${pkgs.gnused}/bin/sed \
+      -e "s|@OMNIROUTE_BASE_URL@|$OMNIROUTE_BASE_URL|g" \
+      -e "s|@OMNIROUTE_API_KEY@|$OMNIROUTE_API_KEY|g" \
+      -e "s|@FIREWORKS_API_KEY@|$FIREWORKS_API_KEY|g" \
+      ${configTemplate} > "$OUT.tmp"
+    chmod 600 "$OUT.tmp"
+    mv -f "$OUT.tmp" "$OUT"
+  '';
+
+  # Regenerate ~/Documents/talos-brain/MAP.md after every nixos-rebuild
+  # switch, so the brain's flat index reflects the freshly switched
+  # /etc/nixos tree without the user having to run anything by hand.
+  #
+  # Non-fatal: if the brain workdir is missing or the script errors,
+  # we log to stderr and continue. A failed MAP regen must never block
+  # a system rebuild.
+  home.activation.talos-mapgen = lib.hm.dag.entryAfter ["writeBoundary"] ''
+    BRAIN="${brainDir}"
+    SCRIPT="$BRAIN/scripts/regen-map.sh"
+    if [ -x "$SCRIPT" ]; then
+      if ! "$SCRIPT" >/dev/null 2>&1; then
+        echo "WARN: talos-mapgen: $SCRIPT failed; continuing rebuild." >&2
+      fi
+    else
+      echo "INFO: talos-mapgen: $SCRIPT not found or not executable; skipping." >&2
+    fi
+  '';
+}

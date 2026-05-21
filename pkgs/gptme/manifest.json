@@ -1,0 +1,9 @@
+{
+  "version": "0.31.0",
+  "src": {
+    "owner": "gptme",
+    "repo": "gptme",
+    "rev": "v0.31.0",
+    "hash": "sha256-0r4AXsrZ6sodlfrviaucz8JSFJ5A2q4DoluAHLY3f2M="
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "version": "0.4.0",
+  "platforms": {
+    "x86_64-linux": {
+      "url": "https://github.com/LaVashikk/Lecoo-Control-Center/releases/download/v0.4.0/lecoo-0.4.0-linux.tar.gz",
+      "sha256": "ad90a957f4c0516d88c0c812c63fe98516800b29d191e8b58c7773872c82a897"
+    }
+  }
+}

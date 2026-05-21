@@ -1,0 +1,39 @@
+root = true
+
+# Universal — sensible defaults across all editors / IDEs.
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+max_line_length = 100
+
+# Markdown — preserve trailing whitespace (used for line breaks in some flavours)
+# and allow longer lines for prose.
+[*.md]
+trim_trailing_whitespace = false
+max_line_length = off
+
+# YAML / TOML — strict 2-space indent, no tabs.
+[*.{yaml,yml,toml}]
+indent_size = 2
+
+# Shell scripts — same defaults; explicit for greppability.
+[*.{sh,bash,fish}]
+indent_size = 2
+
+# Nix files — alejandra enforces formatting, but indent_size aligns
+# editors (nvim, vscode, etc.) before save.
+[*.nix]
+indent_size = 2
+
+# Makefiles require tabs.
+[Makefile]
+indent_style = tab
+
+# Generated / vendored — leave alone.
+[flake.lock]
+insert_final_newline = false
+trim_trailing_whitespace = false
