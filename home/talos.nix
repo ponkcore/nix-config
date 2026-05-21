@@ -33,18 +33,17 @@
     # Edit the source module, not this file (HM rewrites it on rebuild).
 
     [env]
-    # Default model for talos sessions: Claude Haiku 4.5 via omniroute's
-    # Kiro proxy (kr/*). The omniroute deployment currently exposes only
-    # the Kiro family — see PROVIDERS.md in the brain. Override at run
-    # time with `gptme --model omniroute/<id>` or with the `MODEL`
-    # env var.
-    MODEL = "omniroute/kr/claude-haiku-4.5"
+    # Default model for talos sessions: GLM-5 via omniroute. See
+    # PROVIDERS.md in the brain for the full catalogue. Override at
+    # run time with `gptme --model omniroute/<id>` or with the
+    # `MODEL` env var.
+    MODEL = "omniroute/kr/glm-5"
 
     [[providers]]
     name = "omniroute"
     base_url = "@OMNIROUTE_BASE_URL@"
     api_key = "@OMNIROUTE_API_KEY@"
-    default_model = "kr/claude-haiku-4.5"
+    default_model = "kr/glm-5"
 
     # Direct Fireworks endpoint — bypasses omniroute, talks to Fireworks
     # natively. The api_key is sourced from the same omniroute-key.age
