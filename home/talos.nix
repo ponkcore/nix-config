@@ -33,49 +33,36 @@
     # Edit the source module, not this file (HM rewrites it on rebuild).
 
     [env]
-    # Default model for talos sessions: GLM-5 via omniroute. See
-    # PROVIDERS.md in the brain for the full catalogue. Override at
-    # run time with `gptme --model omniroute/<id>` or with the
-    # `MODEL` env var.
-    MODEL = "omniroute/kr/glm-5"
+    # Default model for talos sessions: GLM-5.1 directly from
+    # Fireworks. See PROVIDERS.md in the brain for the full
+    # catalogue. Override at run time with
+    # `gptme --model <provider>/<id>` or with the `MODEL` env var.
+    MODEL = "fireworks/accounts/fireworks/models/glm-5p1"
 
-    [[providers]]
-    name = "omniroute"
-    base_url = "@OMNIROUTE_BASE_URL@"
-    api_key = "@OMNIROUTE_API_KEY@"
-    default_model = "kr/glm-5"
-
-    # Direct Fireworks endpoint — bypasses omniroute, talks to Fireworks
-    # natively. The api_key is sourced from the same omniroute-key.age
-    # secret (it already carries FIREWORKS_API_KEY for the opencode
-    # provider catalogue), so no new agenix entry is required.
+    # Direct Fireworks endpoint — fast path, no omniroute hop.
+    # FIREWORKS_API_KEY is sourced from the same omniroute-key.age
+    # secret (carries both keys), so no new agenix entry is needed.
     #
-    # Catalogue (mirrors home/opencode.nix:fireworksBase):
-    #
-    #   fireworks/accounts/fireworks/models/glm-5p1
-    #     fast, cheap, capable — first choice for general work
-    #   fireworks/accounts/fireworks/models/kimi-k2p6
-    #     web search + tool-use specialist
-    #   fireworks/accounts/fireworks/models/minimax-m2p7
-    #     cheapest scout — quick triage / exploration
+    # Catalogue:
+    #   fireworks/accounts/fireworks/models/glm-5p1         (default)
     #   fireworks/accounts/fireworks/models/deepseek-v4-pro
-    #     1M context, max reasoning — for autonomous deep work
+    #   fireworks/accounts/fireworks/models/kimi-k2p6
     #   fireworks/accounts/fireworks/models/qwen3p6-plus
-    #     all-rounder, balanced cost / quality
-    #
-    # Pick at session-launch with `gptme --model <id>` or inside a
-    # session with `/model <id>`. To make a Fireworks model the default,
-    # change MODEL above to the matching id and rebuild.
-    #
-    # As of 2026-05-20 the Fireworks account is suspended (billing);
-    # calls return 400 PRECONDITION_FAILED. The block stays wired so
-    # the moment the account is unblocked no nix-config change is
-    # needed.
+    #   fireworks/accounts/fireworks/models/minimax-m2p7
     [[providers]]
     name = "fireworks"
     base_url = "https://api.fireworks.ai/inference/v1"
     api_key = "@FIREWORKS_API_KEY@"
     default_model = "accounts/fireworks/models/glm-5p1"
+
+    # Omniroute proxy — Kiro Claude family only.
+    # See PROVIDERS.md for the catalogue (opus-4.7/4.6,
+    # sonnet-4.6/4.5, haiku-4.5).
+    [[providers]]
+    name = "omniroute"
+    base_url = "@OMNIROUTE_BASE_URL@"
+    api_key = "@OMNIROUTE_API_KEY@"
+    default_model = "kr/claude-opus-4.7"
   '';
 
   # Fish function — defined as a separate file so home-manager picks
