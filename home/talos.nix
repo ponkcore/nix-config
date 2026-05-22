@@ -83,7 +83,17 @@
     base_url = "@OMNIROUTE_BASE_URL@"
     api_key = "@OMNIROUTE_API_KEY@"
     default_model = "kr/claude-opus-4.7"
-    models = { "kr/claude-opus-4.7" = { context = 1_000_000, max_output = 128_000, supports_vision = true, supports_reasoning = true }, "kr/claude-opus-4.6" = { context = 1_000_000, max_output = 128_000, supports_vision = true, supports_reasoning = true }, "kr/claude-sonnet-4.6" = { context = 200_000, max_output = 64_000, supports_vision = true, supports_reasoning = true }, "kr/claude-sonnet-4.5" = { context = 200_000, max_output = 64_000, supports_vision = true, supports_reasoning = true }, "kr/claude-haiku-4.5" = { context = 200_000, max_output = 64_000, supports_vision = true, supports_reasoning = true } }
+    # NOTE: supports_vision = false on every Kiro Claude model even
+    # though the upstream models accept images. The omniroute proxy is
+    # fronted by Angie with `client_max_body_size 1m`, and gptme's
+    # `view_image` always sends base64-in-body — a typical 2880x1800
+    # PNG screenshot exceeds the cap and trips HTTP 413 mid-session.
+    # Marking the models as no-vision tells gptme to short-circuit
+    # `view_image` with a clean "Model does not support vision"
+    # warning instead. See decisions/0008-no-vision-on-omniroute.md
+    # in talos-brain. Flip back to true once Angie is loosened or
+    # gptme grows an image-URL flow.
+    models = { "kr/claude-opus-4.7" = { context = 1_000_000, max_output = 128_000, supports_vision = false, supports_reasoning = true }, "kr/claude-opus-4.6" = { context = 1_000_000, max_output = 128_000, supports_vision = false, supports_reasoning = true }, "kr/claude-sonnet-4.6" = { context = 200_000, max_output = 64_000, supports_vision = false, supports_reasoning = true }, "kr/claude-sonnet-4.5" = { context = 200_000, max_output = 64_000, supports_vision = false, supports_reasoning = true }, "kr/claude-haiku-4.5" = { context = 200_000, max_output = 64_000, supports_vision = false, supports_reasoning = true } }
   '';
 
   # Fish function — defined as a separate file so home-manager picks
