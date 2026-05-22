@@ -55,10 +55,13 @@ in {
     # cage -s: allow VT switching (needed for SysRq / TTY escape)
     cageArgs = ["-s"];
 
-    # Gruvbox-Dark GTK — consistent with HM gtk.theme
+    # Gruvbox-Dark GTK — consistent with HM gtk.theme.
+    # Use gruvbox-gtk-theme (has gtk-4.0 assets) over the older
+    # gruvbox-dark-gtk (gtk-2.0/3.0 only) so ReGreet renders without
+    # falling back to default Adwaita colours.
     theme = {
       name = "Gruvbox-Dark";
-      package = pkgs.gruvbox-dark-gtk;
+      package = pkgs.gruvbox-gtk-theme;
     };
     iconTheme = {
       name = "oomox-gruvbox-dark";
