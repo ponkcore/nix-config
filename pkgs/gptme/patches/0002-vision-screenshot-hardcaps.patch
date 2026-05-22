@@ -1,0 +1,136 @@
+Local hard caps for image payloads + grim/grimblast support in
+the screenshot tool.
+
+Why
+---
+
+omniroute is fronted by Angie with `client_max_body_size 1m`
+(verified by curl probe: <=1_048_464 B passes through; >=1_064_848 B
+returns 413). gptme as shipped:
+
+  - `view_image` only resizes when the *file* is bigger than 1 MB,
+    but the wire payload is base64-encoded JSON wrapping the image
+    — a 910 KB PNG explodes to ~1.21 MiB on the wire and trips the
+    gateway. We tighten the trigger to 384 KiB so the base64 image
+    content stays comfortably under ~512 KiB, leaving room for the
+    system prompt and chat history inside the 1 MiB envelope. The
+    resize loop now keeps shrinking (bounded to 5 attempts, 256 px
+    floor) so we cannot accidentally emit something too big.
+
+  - `screenshot.py` only knows `gnome-screenshot` (Wayland) and
+    `scrot` (X11). Under Hyprland we have `grim` (and optionally
+    `grimblast`); without one of these in the dispatch table the
+    tool raises `NotImplementedError`. We add both, preferring
+    grimblast (handles geometry/clipboard niceties) then grim,
+    keeping gnome-screenshot as a last Wayland fallback.
+
+Drop both hunks once gptme upstream addresses them.
+
+--- gptme/tools/vision.py
++++ gptme/tools/vision.py
+@@ -22,7 +22,12 @@
+         return Message("system", f"Image not found at `{image_path}`")
+ 
+     file_size = image_path.stat().st_size
+-    MAX_SIZE = 1024 * 1024  # 1MB in bytes
++    # Hard cap on the image payload sitting in the request body.
++    # Many proxies in front of LLM endpoints enforce a 1 MiB body
++    # limit (e.g. Angie's default `client_max_body_size 1m`); a
++    # base64-encoded image at this byte budget stays comfortably
++    # under that limit even with the system prompt + chat history.
++    MAX_SIZE = 384 * 1024
+ 
+     with Image.open(image_path) as img:
+         dimensions = img.size
+@@ -31,7 +36,7 @@
+         ]
+ 
+         if file_size <= MAX_SIZE:
+-            msg_parts.append("No scaling required (under 1MB)")
++            msg_parts.append(f"No scaling required (under {MAX_SIZE // 1024}KB)")
+             return Message(
+                 "system",
+                 f"Viewing image at `{image_path}`\n" + "\n".join(msg_parts),
+@@ -48,18 +53,31 @@
+             compressed_size = Path(tmp.name).stat().st_size
+             msg_parts.append(f"Compressed to: {compressed_size/1024:.1f}KB")
+ 
+-            # If compression alone wasn't enough, scale down and compress
+-            if compressed_size > MAX_SIZE:
+-                # Calculate scaling factor to get file size roughly under 1MB
++            # Iteratively scale + recompress until we are below
++            # MAX_SIZE. The single-shot scale_factor estimate from
++            # the upstream version was optimistic for screenshots
++            # (large flat areas compress well, so the linear model
++            # underestimates how much we need to shrink). Bound to
++            # 5 iterations and a 256px floor so we never spin
++            # forever or produce a useless thumbnail.
++            attempts = 0
++            while compressed_size > MAX_SIZE and attempts < 5:
++                attempts += 1
+                 scale_factor = (MAX_SIZE / compressed_size) ** 0.5
+-                new_size = tuple(int(dim * scale_factor) for dim in img.size)
+-                msg_parts.append(f"Scaling from {dimensions} to {new_size}")
+-
+-                # Create a scaled version
+-                scaled_img = img.resize(new_size, Image.Resampling.LANCZOS)
+-                scaled_img.save(tmp.name, "JPEG", quality=85)
+-                final_size = Path(tmp.name).stat().st_size
+-                msg_parts.append(f"Final size after scaling: {final_size/1024:.1f}KB")
++                new_size = tuple(
++                    max(256, int(dim * scale_factor)) for dim in img.size
++                )
++                if new_size == img.size:
++                    break
++                msg_parts.append(
++                    f"Scaling from {img.size} to {new_size} (attempt {attempts})"
++                )
++                img = img.resize(new_size, Image.Resampling.LANCZOS)
++                img.save(tmp.name, "JPEG", quality=85)
++                compressed_size = Path(tmp.name).stat().st_size
++                msg_parts.append(
++                    f"Size after attempt {attempts}: {compressed_size/1024:.1f}KB"
++                )
+                 dimensions = new_size
+ 
+             scaled_path = Path(tmp.name)
+--- gptme/tools/screenshot.py
++++ gptme/tools/screenshot.py
+@@ -41,14 +41,30 @@
+         return path
+     elif os.name == "posix":
+         # TODO: add support for specifying window/fullscreen?
+-        if shutil.which("gnome-screenshot"):
+-            subprocess.run(["gnome-screenshot", "-f", str(path)], check=True)
+-            return path
+-        elif not IS_WAYLAND and shutil.which("scrot"):
+-            subprocess.run(["scrot", "--overwrite", str(path)], check=True)
+-            return path
++        # Prefer Wayland-native tools when running under Wayland;
++        # gnome-screenshot needs the GNOME shell D-Bus portal,
++        # which is not available under Hyprland/sway. grimblast is
++        # the Hyprland-flavoured wrapper around grim+slurp; grim is
++        # the universal Wayland fallback (works on sway, Hyprland,
++        # river, etc.).
++        if IS_WAYLAND:
++            if shutil.which("grimblast"):
++                subprocess.run(["grimblast", "save", "screen", str(path)], check=True)
++                return path
++            if shutil.which("grim"):
++                subprocess.run(["grim", str(path)], check=True)
++                return path
++            if shutil.which("gnome-screenshot"):
++                subprocess.run(["gnome-screenshot", "-f", str(path)], check=True)
++                return path
+         else:
+-            raise NotImplementedError("No supported screenshot method available")
++            if shutil.which("gnome-screenshot"):
++                subprocess.run(["gnome-screenshot", "-f", str(path)], check=True)
++                return path
++            if shutil.which("scrot"):
++                subprocess.run(["scrot", "--overwrite", str(path)], check=True)
++                return path
++        raise NotImplementedError("No supported screenshot method available")
+     else:
+         raise NotImplementedError(
+             "Screenshot functionality is only available on macOS and Linux."
