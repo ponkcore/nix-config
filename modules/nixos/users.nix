@@ -8,13 +8,17 @@
 # Universal: applies to any host. The `docker` group is included even
 # when Docker isn't enabled — it's harmless if the daemon never starts.
 {
+  lib,
   pkgs,
   username,
   ...
 }: {
   users.users.${username} = {
     isNormalUser = true;
-    description = "Primary user";
+    # Host-agnostic default — host modules override with the real
+    # display name (e.g. hosts/lecoo/default.nix sets "Oonishi"). The
+    # GECOS field surfaces in greeters (ReGreet, gdm) and `finger`.
+    description = lib.mkDefault "Primary user";
     extraGroups = [
       "wheel"
       "networkmanager"
