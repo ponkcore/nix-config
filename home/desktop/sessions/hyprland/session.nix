@@ -297,21 +297,20 @@ in {
         "size 1024 720, class:^(spotify)$"
         "center, class:^(spotify)$"
 
-        # ── adw-bluetooth — popup panel style (toggled from waybar) ─────
-        # Native Wayland LibAdwaita applet. app_id is the reverse-DNS
-        # form com.ezratweaver.AdwBluetooth. Sized to match the
-        # adw-bluetooth screenshot canon (compact panel, vertically
-        # tall enough to list a handful of paired devices).
+        # ── adw-{bluetooth,network} — popup panel style ─────────────────
+        # Both libadwaita applets are toggled from waybar and share the
+        # same visual contract: floating, centred, identical size. 600
+        # is the smallest width that adw-network does not shrink below
+        # (its content has a real min-content of ~590 with text-labelled
+        # tabs); adw-bluetooth happily lives at the same width with a
+        # touch of extra breathing room. Keeping them in lockstep means
+        # the panels feel like a single coherent set in the panel UX.
         "float, class:^(com.ezratweaver.AdwBluetooth)$"
-        "size 480 640, class:^(com.ezratweaver.AdwBluetooth)$"
+        "size 600 640, class:^(com.ezratweaver.AdwBluetooth)$"
         "center, class:^(com.ezratweaver.AdwBluetooth)$"
 
-        # ── adw-network — popup panel style (toggled from waybar) ───────
-        # Same visual contract as adw-bluetooth: floating, centred,
-        # compact panel sized to fit the wifi list comfortably.
-        # app_id matches StartupWMClass from upstream .desktop.
         "float, class:^(com.github.adw-network)$"
-        "size 480 640, class:^(com.github.adw-network)$"
+        "size 600 640, class:^(com.github.adw-network)$"
         "center, class:^(com.github.adw-network)$"
 
         # ── Waybar popup terminals ──────────────────────────────────────
