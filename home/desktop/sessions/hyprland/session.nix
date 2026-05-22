@@ -324,7 +324,6 @@ in {
           "maximize, class:^(firefox)$"
           "maximize, class:^(chromium-browser)$"
           "maximize, class:^(windsurf)$"
-          "maximize, class:^(org.gnome.Nautilus)$"
           "maximize, class:^(virt-manager)$"
         ]
         # ── Categorised popup panels ──────────────────────────────────────
@@ -349,6 +348,10 @@ in {
         })
         ++ (mkPopup {
           class = "spotify";
+          category = popup.app;
+        })
+        ++ (mkPopup {
+          class = "org.gnome.Nautilus";
           category = popup.app;
         })
         # btop and friends are TUI: `tool` is sized to clear the 80×24
