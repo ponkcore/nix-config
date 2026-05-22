@@ -159,10 +159,23 @@ in {
         ", XF86MonBrightnessDown, exec, brightnessctl set 5%-"
         ", XF86MonBrightnessUp, exec, brightnessctl set +5%"
 
-        # Screenshots (hyprshot)
-        ", Print, exec, hyprshot -m output -o ~/Pictures/Screenshots"
-        "$mainMod, Print, exec, hyprshot -m region -o ~/Pictures/Screenshots"
-        "$mainMod SHIFT, Print, exec, hyprshot -m window -o ~/Pictures/Screenshots"
+        # Screenshots (hyprshot).
+        # Bound to Super+P chords instead of Print/PrtSc because the
+        # Lecoo Pro 14 ships PrtSc as Fn+F10 in firmware: holding any
+        # software modifier (Super) cancels Fn, and the underlying
+        # event reaches Wayland as plain F10 — not a Print keysym.
+        # Verified with wev (key: 76, sym: F10). Super+P is a chord
+        # under the left hand, conflict-free with our existing binds,
+        # and independent of any Fn-Lock state.
+        "$mainMod, P, exec, hyprshot -m output -o ~/Pictures/Screenshots"
+        "$mainMod SHIFT, P, exec, hyprshot -m region -o ~/Pictures/Screenshots"
+        "$mainMod CONTROL, P, exec, hyprshot -m window -o ~/Pictures/Screenshots"
+        # RU layout — keep the same chord (P → З); Hyprland matches by
+        # keycode within a layout, but we still register the cyrillic
+        # variant explicitly so it survives the active-layout switch.
+        "$mainMod, З, exec, hyprshot -m output -o ~/Pictures/Screenshots"
+        "$mainMod SHIFT, З, exec, hyprshot -m region -o ~/Pictures/Screenshots"
+        "$mainMod CONTROL, З, exec, hyprshot -m window -o ~/Pictures/Screenshots"
 
         # Window groups (tabbed layout)
         "$mainMod, G, togglegroup"
