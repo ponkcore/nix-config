@@ -306,6 +306,14 @@ in {
         "size 480 640, class:^(com.ezratweaver.AdwBluetooth)$"
         "center, class:^(com.ezratweaver.AdwBluetooth)$"
 
+        # ── adw-network — popup panel style (toggled from waybar) ───────
+        # Same visual contract as adw-bluetooth: floating, centred,
+        # compact panel sized to fit the wifi list comfortably.
+        # app_id matches StartupWMClass from upstream .desktop.
+        "float, class:^(com.github.adw-network)$"
+        "size 480 640, class:^(com.github.adw-network)$"
+        "center, class:^(com.github.adw-network)$"
+
         # ── Waybar popup terminals ──────────────────────────────────────
         # btop — popup monitor panel (toggled from waybar CPU icon)
         "float, class:^(com.mitchellh.ghostty-btop)$"
