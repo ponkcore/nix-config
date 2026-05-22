@@ -14,6 +14,64 @@
   # separator. Consumed by general.col.active_border, group borders,
   # groupbar, misc.background_color, and so on.
   rgba = c.hyprlandRGBA;
+
+  # ── Floating popup sizing policy ────────────────────────────────────
+  # Apps invoked from the waybar tray (chat clients, settings panels,
+  # media players, terminal tools) all share the same UX contract:
+  # float, given a fixed share of the workspace, centred. We codify
+  # that as five categories so adding a new popup is one line, not a
+  # three-line block scattered across the file.
+  #
+  # Sizes are expressed as percentages of the *logical* monitor size
+  # (Hyprland resolves `size N% M%` against the post-scale geometry,
+  # 1440×900 on this 14" 2.8K panel). Percentages move cleanly to a
+  # different display; absolute pixel values do not.
+  #
+  # Rules of the road:
+  #   - A category exists when ≥2 windows share the same visual
+  #     contract. One-off windows stay as hand-written rules below.
+  #   - `tool` is sized so a fullscreen TUI (btop, gptme, etc.) lands
+  #     above the 80×24-char minimum; do not shrink it without
+  #     re-checking that floor.
+  #   - Override is for "almost the same, but slightly off"
+  #     (e.g. one chat client wants a bit more height); use sparingly.
+  popup = {
+    chat = {
+      width = "50%";
+      height = "85%";
+    }; # ayugram, telegram-likes
+    tray = {
+      width = "45%";
+      height = "75%";
+    }; # adw-bluetooth, adw-network, clash-verge
+    app = {
+      width = "70%";
+      height = "80%";
+    }; # spotify and other client apps
+    tool = {
+      width = "80%";
+      height = "65%";
+    }; # btop, ghostty popups, anything TUI
+    media = {
+      width = "70%";
+      height = "70%";
+    }; # mpv, image viewers
+  };
+
+  # Render `{class, category, override?}` to the three Hyprland rules
+  # that every popup needs (float / size / center). Keeps callers
+  # one-line and class names from drifting between rules.
+  mkPopup = {
+    class,
+    category,
+    override ? {},
+  }: let
+    size = category // override;
+  in [
+    "float, class:^(${class})$"
+    "size ${size.width} ${size.height}, class:^(${class})$"
+    "center, class:^(${class})$"
+  ];
 in {
   # hyprshot — screenshot tool used in keybindings (no HM module, package only)
   home.packages = [pkgs.hyprshot];
@@ -256,116 +314,99 @@ in {
       };
 
       # ── Window rules ────────────────────────────────────────────────────
-      # On a 14" 1440×900 screen, most apps benefit from filling the workspace.
-      # Terminals are the exception — two side-by-side at ~711px works fine.
+      # On a 14" 1440×900 logical panel, big apps benefit from filling the
+      # workspace; popups (waybar-launched panels, TUI tools, media) follow
+      # the `popup` category contract defined at the top of this file.
       # Super+F toggles maximize off when you want an explicit split.
-      windowrulev2 = [
-        # ── Large apps: auto-maximize (fill workspace) ──────────────────
-        "maximize, class:^(firefox)$"
-        "maximize, class:^(chromium-browser)$"
-        "maximize, class:^(windsurf)$"
-        "maximize, class:^(org.gnome.Nautilus)$"
-        "maximize, class:^(virt-manager)$"
+      windowrulev2 =
+        [
+          # ── Large apps: auto-maximize (fill workspace) ──────────────────
+          "maximize, class:^(firefox)$"
+          "maximize, class:^(chromium-browser)$"
+          "maximize, class:^(windsurf)$"
+          "maximize, class:^(org.gnome.Nautilus)$"
+          "maximize, class:^(virt-manager)$"
+        ]
+        # ── Categorised popup panels ──────────────────────────────────────
+        # Each call expands to three rules (float / size / center). See the
+        # `popup` and `mkPopup` definitions at the top of this file for the
+        # category sizes and the override mechanism.
+        ++ (mkPopup {
+          class = "com.ayugram.desktop";
+          category = popup.chat;
+        })
+        ++ (mkPopup {
+          class = "clash-verge";
+          category = popup.tray;
+        })
+        ++ (mkPopup {
+          class = "com.ezratweaver.AdwBluetooth";
+          category = popup.tray;
+        })
+        ++ (mkPopup {
+          class = "com.github.adw-network";
+          category = popup.tray;
+        })
+        ++ (mkPopup {
+          class = "spotify";
+          category = popup.app;
+        })
+        # btop and friends are TUI: `tool` is sized to clear the 80×24
+        # character floor on this panel.
+        ++ (mkPopup {
+          class = "com.mitchellh.ghostty-btop";
+          category = popup.tool;
+        })
+        ++ (mkPopup {
+          class = "com.mitchellh.ghostty-rebuild";
+          category = popup.tool;
+        })
+        ++ (mkPopup {
+          class = "com.mitchellh.ghostty-term";
+          category = popup.tool;
+        })
+        ++ (mkPopup {
+          class = "mpv";
+          category = popup.media;
+        })
+        ++ [
+          # ── Utility/dialog apps: float (size left to the app) ───────────
+          "float, class:^(blueman-manager)$"
+          "float, class:^(blueman-adapters)$"
+          "float, class:^(.blueman-manager-wrapped)$"
+          "float, class:^(org.kde.kvantummanager)$"
+          "float, class:^(qt5ct)$"
+          "float, class:^(qt6ct)$"
+          "float, class:^(nm-connection-editor)$"
+          "float, class:^(pavucontrol)$"
+          "float, class:^(xdg-desktop-portal-gtk)$"
+          "float, class:^(org.gnome.Calculator)$"
 
-        # ── Ayugram — popup panel style (toggled from waybar icon) ──────
-        # Wayland app_id is com.ayugram.desktop (from .desktop file), not AyuGram.
-        # Absolute size (700x754) preserves the exact dimensions the user
-        # dialed in interactively on the 1440x900 logical panel; switching
-        # to a different display means re-tuning here.
-        "float, class:^(com.ayugram.desktop)$"
-        "size 700 754, class:^(com.ayugram.desktop)$"
-        "center, class:^(com.ayugram.desktop)$"
+          # ── Image viewers: float, native size ───────────────────────────
+          "float, class:^(imv)$"
+          "float, class:^(org.gnome.Loupe)$"
+          "float, class:^(eog)$"
 
-        # ── Clash Verge — popup panel style (toggled from waybar icon) ──
-        # Wayland app_id taken from StartupWMClass in clash-verge.desktop.
-        # Special workspace 'special:clash' is the hide target — same UX
-        # pattern as Ayugram. First click launches, subsequent clicks
-        # toggle visibility, never minimised to a system tray (Waybar has
-        # no tray module on this host).
-        "float, class:^(clash-verge)$"
-        "size 911 719, class:^(clash-verge)$"
-        "center, class:^(clash-verge)$"
+          # ── Browser picture-in-picture: float + pin to corner ───────────
+          # Unique geometry (pinned to bottom-right), not a category member.
+          "float, title:^(Picture-in-Picture)$"
+          "pin, title:^(Picture-in-Picture)$"
+          "size 25% 25%, title:^(Picture-in-Picture)$"
+          "move 73% 72%, title:^(Picture-in-Picture)$"
 
-        # ── Spotify — popup panel style (toggled from waybar icon) ──────
-        # Spotify 1.2.74+ is native Wayland and reports app_id=spotify
-        # (lowercase). Same hide/show contract as Telegram and Clash:
-        # special workspace 'special:spotify' is the hide target. Size
-        # tuned for the 14" 2.8K panel — slightly wider than the
-        # natural Spotify default so the right-side queue panel fits
-        # without horizontal scroll.
-        "float, class:^(spotify)$"
-        "size 1024 720, class:^(spotify)$"
-        "center, class:^(spotify)$"
-
-        # ── adw-{bluetooth,network} — popup panel style ─────────────────
-        # Both libadwaita applets are toggled from waybar and share the
-        # same visual contract: floating, centred, identical size. 600
-        # is the smallest width that adw-network does not shrink below
-        # (its content has a real min-content of ~590 with text-labelled
-        # tabs); adw-bluetooth happily lives at the same width with a
-        # touch of extra breathing room. Keeping them in lockstep means
-        # the panels feel like a single coherent set in the panel UX.
-        "float, class:^(com.ezratweaver.AdwBluetooth)$"
-        "size 600 640, class:^(com.ezratweaver.AdwBluetooth)$"
-        "center, class:^(com.ezratweaver.AdwBluetooth)$"
-
-        "float, class:^(com.github.adw-network)$"
-        "size 600 640, class:^(com.github.adw-network)$"
-        "center, class:^(com.github.adw-network)$"
-
-        # ── Waybar popup terminals ──────────────────────────────────────
-        # btop — popup monitor panel (toggled from waybar CPU icon)
-        "float, class:^(com.mitchellh.ghostty-btop)$"
-        "size 80% 25%, class:^(com.mitchellh.ghostty-btop)$"
-        "center, class:^(com.mitchellh.ghostty-btop)$"
-        # rebuild — popup terminal (toggled from waybar NixOS icon, LKM)
-        "float, class:^(com.mitchellh.ghostty-rebuild)$"
-        "size 60% 70%, class:^(com.mitchellh.ghostty-rebuild)$"
-        "center, class:^(com.mitchellh.ghostty-rebuild)$"
-        # term — popup terminal (toggled from waybar NixOS icon, PKM)
-        "float, class:^(com.mitchellh.ghostty-term)$"
-        "size 60% 70%, class:^(com.mitchellh.ghostty-term)$"
-        "center, class:^(com.mitchellh.ghostty-term)$"
-
-        # ── Utility/dialog apps: float ──────────────────────────────────
-        "float, class:^(blueman-manager)$"
-        "float, class:^(blueman-adapters)$"
-        "float, class:^(.blueman-manager-wrapped)$"
-        "float, class:^(org.kde.kvantummanager)$"
-        "float, class:^(qt5ct)$"
-        "float, class:^(qt6ct)$"
-        "float, class:^(nm-connection-editor)$"
-        "float, class:^(pavucontrol)$"
-        "float, class:^(xdg-desktop-portal-gtk)$"
-        "float, class:^(org.gnome.Calculator)$"
-
-        # ── Media: float + sensible size ────────────────────────────────
-        "float, class:^(mpv)$"
-        "size 70% 70%, class:^(mpv)$"
-        "center, class:^(mpv)$"
-        "float, class:^(imv)$"
-        "float, class:^(org.gnome.Loupe)$"
-        "float, class:^(eog)$"
-
-        # ── Browser picture-in-picture: float + pin to corner ───────────
-        "float, title:^(Picture-in-Picture)$"
-        "pin, title:^(Picture-in-Picture)$"
-        "size 25% 25%, title:^(Picture-in-Picture)$"
-        "move 73% 72%, title:^(Picture-in-Picture)$"
-
-        # ── File open/save dialogs: float + center ──────────────────────
-        "float, title:^(Open File)(.*)$"
-        "float, title:^(Save File)(.*)$"
-        "float, title:^(Open Folder)(.*)$"
-        "float, title:^(Save As)(.*)$"
-        "float, title:^(Select a File)(.*)$"
-        "float, title:^(Choose Files)(.*)$"
-        "float, title:^(Confirm to replace files)(.*)$"
-        "center, title:^(Open File)(.*)$"
-        "center, title:^(Save File)(.*)$"
-        "center, title:^(Open Folder)(.*)$"
-        "center, title:^(Save As)(.*)$"
-      ];
+          # ── File open/save dialogs: float + center ──────────────────────
+          "float, title:^(Open File)(.*)$"
+          "float, title:^(Save File)(.*)$"
+          "float, title:^(Open Folder)(.*)$"
+          "float, title:^(Save As)(.*)$"
+          "float, title:^(Select a File)(.*)$"
+          "float, title:^(Choose Files)(.*)$"
+          "float, title:^(Confirm to replace files)(.*)$"
+          "center, title:^(Open File)(.*)$"
+          "center, title:^(Save File)(.*)$"
+          "center, title:^(Open Folder)(.*)$"
+          "center, title:^(Save As)(.*)$"
+        ];
 
       env = [
         "XCURSOR_SIZE,24"
