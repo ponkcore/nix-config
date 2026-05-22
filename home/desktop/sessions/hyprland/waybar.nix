@@ -7,6 +7,7 @@
 #   - custom/spotify       (drives the spotify-toggle script)
 #   - custom/clash         (drives the clash-toggle script)
 #   - custom/bluetooth     (drives the bluetooth-toggle script)
+#   - network              (Hyprland on-click → network-toggle)
 #
 # Imported by home/desktop/sessions/hyprland/default.nix; never
 # imported on hosts that do not run Hyprland.
@@ -15,6 +16,7 @@
   clash-toggle,
   spotify-toggle,
   bluetooth-toggle,
+  network-toggle,
   ...
 }: {
   programs.waybar.settings.mainBar = {
@@ -68,6 +70,14 @@
       format = "<span weight='heavy'></span>";
       on-click = "${bluetooth-toggle}/bin/bluetooth-toggle";
       tooltip-format = "Bluetooth";
+    };
+
+    # Hyprland-aware override of the universal `network` slot:
+    # keep all formatting / icons from theme/waybar/default.nix and
+    # only attach a hide/show on-click via Hyprland special-workspace
+    # IPC (mirror of custom/bluetooth).
+    "network" = {
+      on-click = "${network-toggle}/bin/network-toggle";
     };
   };
 }

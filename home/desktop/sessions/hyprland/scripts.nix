@@ -119,6 +119,32 @@
       $HYPRCTL dispatch movetoworkspacesilent "special:bluetooth,address:$addr"
     fi
   '';
+
+  # ── adw-network toggle ──────────────────────────────────────────────
+  # Same hide/show contract as bluetooth-toggle. app_id comes from the
+  # upstream .desktop StartupWMClass=com.github.adw-network.
+  network-toggle = pkgs.writeShellScriptBin "network-toggle" ''
+    HYPRCTL="${pkgs.hyprland}/bin/hyprctl"
+    JQ="${pkgs.jq}/bin/jq"
+
+    win=$($HYPRCTL clients -j 2>/dev/null | $JQ -r '.[] | select(.class == "com.github.adw-network") | "\(.address) \(.workspace.name)"' 2>/dev/null | head -1)
+
+    ADW="${pkgs.adw-network}/bin/adwaita-network"
+
+    if [ -z "$win" ]; then
+      $ADW &
+      exit 0
+    fi
+
+    addr=$(echo "$win" | cut -d' ' -f1)
+    ws=$(echo "$win" | cut -d' ' -f2-)
+
+    if [ "$ws" = "special:network" ]; then
+      $HYPRCTL dispatch movetoworkspace "+0,address:$addr"
+    else
+      $HYPRCTL dispatch movetoworkspacesilent "special:network,address:$addr"
+    fi
+  '';
 in {
   _module.args = {
     inherit
@@ -126,6 +152,7 @@ in {
       clash-toggle
       spotify-toggle
       bluetooth-toggle
+      network-toggle
       ;
   };
 
@@ -134,5 +161,6 @@ in {
     clash-toggle
     spotify-toggle
     bluetooth-toggle
+    network-toggle
   ];
 }

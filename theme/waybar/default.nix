@@ -383,10 +383,11 @@ in {
         tooltip-format-disconnected = "Disconnected";
         interval = 3;
         spacing = 1;
-        # Left click → adw-network panel (libadwaita NetworkManager UI).
-        # Mirrors the bluetooth slot which launches adw-bluetooth the
-        # same way. PATH is provided by Home Manager session env.
-        on-click = "adwaita-network";
+        # on-click is set by the active session fragment so the click
+        # behaviour can hook into compositor IPC. The Hyprland fragment
+        # wires it to network-toggle (special-workspace hide/show
+        # mirror of custom/bluetooth). Sessions that do not override it
+        # leave the slot click-through.
       };
 
       "group/volume" = {
