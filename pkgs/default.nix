@@ -12,6 +12,7 @@
   (final: _prev: {
     donutbrowser = final.callPackage ./donutbrowser {};
     devin-cli = final.callPackage ./devin-cli {};
+    adw-network = final.callPackage ./adw-network {};
 
     # gptme — terminal-first AI agent built from the upstream Poetry
     # project. poetry2nix is constructed against the host pkgs set

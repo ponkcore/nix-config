@@ -61,6 +61,7 @@ in {
       ./ayugram.nix
       ./spotify.nix
       ./adw-bluetooth.nix
+      ./adw-network.nix
       # Desktop dispatcher — pulls in compositor-agnostic theme plus the
       # session modules selected by the host's `desktops` list.
       ./desktop
