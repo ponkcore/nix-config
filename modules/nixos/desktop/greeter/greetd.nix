@@ -68,10 +68,13 @@ in {
       name = "Capitaine Cursors (Gruvbox)";
       package = pkgs.capitaine-cursors-themed;
     };
+    # UI font — match the rest of the system (mako uses the same).
+    # 11pt Cantarell rendered tiny on the laptop's HiDPI panel; Noto
+    # Sans 14 is the canonical desktop UI font for this config.
     font = {
-      name = "Cantarell";
-      size = 11;
-      package = pkgs.cantarell-fonts;
+      name = "Noto Sans";
+      size = 14;
+      package = pkgs.noto-fonts-lgc-plus;
     };
 
     # regreet.toml — background + GTK settings
