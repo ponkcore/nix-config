@@ -43,17 +43,30 @@
     # FIREWORKS_API_KEY is sourced from the same omniroute-key.age
     # secret (carries both keys), so no new agenix entry is needed.
     #
-    # Catalogue:
-    #   fireworks/accounts/fireworks/models/glm-5p1         (default)
-    #   fireworks/accounts/fireworks/models/deepseek-v4-pro
-    #   fireworks/accounts/fireworks/models/kimi-k2p6
-    #   fireworks/accounts/fireworks/models/qwen3p6-plus
-    #   fireworks/accounts/fireworks/models/minimax-m2p7
+    # Catalogue (verified against fireworks /v1/models 2026-05-22):
+    #   fireworks/accounts/fireworks/models/glm-5p1         (default; ctx 202k)
+    #   fireworks/accounts/fireworks/models/deepseek-v4-pro (ctx 1M)
+    #   fireworks/accounts/fireworks/models/kimi-k2p6       (ctx 256k, vision)
+    # Per-model metadata is carried inline via the `models` table,
+    # consumed by the local custom-provider-model-metadata patch in
+    # pkgs/gptme/patches/. Keys are model ids relative to the
+    # provider (everything after `<provider>/`). Without these
+    # entries gptme assumes context = 128k and supports_vision =
+    # false for any model under a custom provider. Plain TOML
+    # `[providers.<name>.models."<id>"]` headers cannot follow a
+    # `[[providers]]` array element — they would create a top-level
+    # `providers.<name>` key that ProviderConfig.__init__ rejects.
     [[providers]]
     name = "fireworks"
     base_url = "https://api.fireworks.ai/inference/v1"
     api_key = "@FIREWORKS_API_KEY@"
     default_model = "accounts/fireworks/models/glm-5p1"
+    # Numbers come from the live Fireworks /v1/models endpoint
+    # (context_length, supports_image_input). reasoning support is
+    # marked true for all chat models in our roster — Fireworks tools
+    # routing handles it whether we set it or not, but vision support
+    # actually matters because it gates `view_image`.
+    models = { "accounts/fireworks/models/glm-5p1" = { context = 202_752, supports_vision = false, supports_reasoning = true }, "accounts/fireworks/models/deepseek-v4-pro" = { context = 1_048_576, supports_vision = false, supports_reasoning = true }, "accounts/fireworks/models/kimi-k2p6" = { context = 262_144, supports_vision = true, supports_reasoning = true } }
 
     # Omniroute proxy — Kiro Claude family only.
     # See PROVIDERS.md for the catalogue (opus-4.7/4.6,
@@ -63,6 +76,7 @@
     base_url = "@OMNIROUTE_BASE_URL@"
     api_key = "@OMNIROUTE_API_KEY@"
     default_model = "kr/claude-opus-4.7"
+    models = { "kr/claude-opus-4.7" = { context = 1_000_000, max_output = 128_000, supports_vision = true, supports_reasoning = true }, "kr/claude-opus-4.6" = { context = 1_000_000, max_output = 128_000, supports_vision = true, supports_reasoning = true }, "kr/claude-sonnet-4.6" = { context = 200_000, max_output = 64_000, supports_vision = true, supports_reasoning = true }, "kr/claude-sonnet-4.5" = { context = 200_000, max_output = 64_000, supports_vision = true, supports_reasoning = true }, "kr/claude-haiku-4.5" = { context = 200_000, max_output = 64_000, supports_vision = true, supports_reasoning = true } }
   '';
 
   # Fish function — defined as a separate file so home-manager picks

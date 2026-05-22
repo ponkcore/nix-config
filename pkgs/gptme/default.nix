@@ -52,6 +52,16 @@
     # purpose for the user. Drop this when gptme demotes it upstream.
     sed -i 's|log.info("Audio not available, skipping ding sound playback")|log.debug("Audio not available, skipping ding sound playback")|' \
       $out/gptme/util/sound.py
+
+    # Local patch series — applied with `patch -p1`. Each patch is a
+    # standalone unified diff vs. the upstream tree. See the header
+    # of each .patch for rationale. Drop a patch by deleting it; add
+    # a new one by dropping it under pkgs/gptme/patches/.
+    cd $out
+    for p in ${./patches}/*.patch; do
+      echo "applying $p"
+      patch -p0 < "$p"
+    done
   '';
 in
   mkPoetryApplication {
