@@ -383,6 +383,10 @@ in {
         tooltip-format-disconnected = "Disconnected";
         interval = 3;
         spacing = 1;
+        # Left click → adw-network panel (libadwaita NetworkManager UI).
+        # Mirrors the bluetooth slot which launches adw-bluetooth the
+        # same way. PATH is provided by Home Manager session env.
+        on-click = "adwaita-network";
       };
 
       "group/volume" = {
