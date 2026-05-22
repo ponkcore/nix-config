@@ -43,10 +43,17 @@
     # FIREWORKS_API_KEY is sourced from the same omniroute-key.age
     # secret (carries both keys), so no new agenix entry is needed.
     #
-    # Catalogue (verified against fireworks /v1/models 2026-05-22):
+    # Catalogue (Fireworks model cards / /v1/models, 2026-05-22):
     #   fireworks/accounts/fireworks/models/glm-5p1         (default; ctx 202k)
     #   fireworks/accounts/fireworks/models/deepseek-v4-pro (ctx 1M)
-    #   fireworks/accounts/fireworks/models/kimi-k2p6       (ctx 256k, vision)
+    #   fireworks/accounts/fireworks/models/kimi-k2p6       (ctx 262k, vision)
+    #   fireworks/accounts/fireworks/models/qwen3p6-plus    (ctx 256k)
+    #   fireworks/accounts/fireworks/models/minimax-m2p7    (ctx 200k)
+    #
+    # /v1/models only lists models enabled on serverless tier for the
+    # current key; on-demand / build-tier models are reachable via
+    # chat/completions even when absent from /v1/models. Do NOT trust
+    # /v1/models as a complete catalogue.
     # Per-model metadata is carried inline via the `models` table,
     # consumed by the local custom-provider-model-metadata patch in
     # pkgs/gptme/patches/. Keys are model ids relative to the
@@ -66,7 +73,7 @@
     # marked true for all chat models in our roster — Fireworks tools
     # routing handles it whether we set it or not, but vision support
     # actually matters because it gates `view_image`.
-    models = { "accounts/fireworks/models/glm-5p1" = { context = 202_752, supports_vision = false, supports_reasoning = true }, "accounts/fireworks/models/deepseek-v4-pro" = { context = 1_048_576, supports_vision = false, supports_reasoning = true }, "accounts/fireworks/models/kimi-k2p6" = { context = 262_144, supports_vision = true, supports_reasoning = true } }
+    models = { "accounts/fireworks/models/glm-5p1" = { context = 202_752, supports_vision = false, supports_reasoning = true }, "accounts/fireworks/models/deepseek-v4-pro" = { context = 1_048_576, supports_vision = false, supports_reasoning = true }, "accounts/fireworks/models/kimi-k2p6" = { context = 262_144, supports_vision = true, supports_reasoning = true }, "accounts/fireworks/models/qwen3p6-plus" = { context = 256_000, supports_vision = false, supports_reasoning = true }, "accounts/fireworks/models/minimax-m2p7" = { context = 200_000, supports_vision = false, supports_reasoning = true } }
 
     # Omniroute proxy — Kiro Claude family only.
     # See PROVIDERS.md for the catalogue (opus-4.7/4.6,
