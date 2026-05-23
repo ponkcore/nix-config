@@ -23,7 +23,7 @@
         full = ["󰁹"];
       };
       on-click-right = "${lecoo-toggle}/bin/lecoo-toggle";
-      tooltip = false;
+      tooltip = true;
     };
   };
 }

@@ -93,12 +93,11 @@
       on-click = "${pwvucontrol-toggle}/bin/pwvucontrol-toggle";
     };
 
-    # Hyprland-aware override of the universal `cpu` slot: keep the
-    # icon and 10s interval and replace the launch-only on-click with
-    # a hide/show toggle on special:btop. Mirror of the other tray-
-    # style panels. mkForce because theme/waybar already sets
-    # on-click to a plain ghostty launcher.
-    "cpu" = {
+    # Hyprland-aware override of the universal `custom/cpu` slot:
+    # replace the launch-only on-click with the special-workspace
+    # hide/show toggle on special:btop. mkForce because the universal
+    # theme/waybar already sets on-click to a plain ghostty launcher.
+    "custom/cpu" = {
       on-click = lib.mkForce "${btop-toggle}/bin/btop-toggle";
     };
   };

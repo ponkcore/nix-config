@@ -62,7 +62,7 @@
       *)           ALT="discharging" ;;
     esac
 
-    TOOLTIP="Capacity: $CAP%%\nStatus: $STATUS\nCharge mode: $LECOO_MODE"
+    TOOLTIP=" $CAP% $STATUS \n $LECOO_MODE "
     printf '{"text":"%s","alt":"%s","percentage":%s,"tooltip":"%s"}\n' \
       "$CAP" "$ALT" "$CAP" "$TOOLTIP"
   '';

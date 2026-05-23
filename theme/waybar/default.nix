@@ -23,6 +23,7 @@
   lib,
   pkgs,
   p,
+  cpu-mem,
   desktops ? [],
   hostname ? "",
   ...
@@ -61,7 +62,7 @@
       "group/volume"
       "custom/bluetooth"
       "network"
-      "cpu"
+      "custom/cpu"
     ]
     ++ lib.optionals isLecoo ["custom/battery"]
     ++ lib.optionals (!isLecoo) ["battery"]
@@ -295,9 +296,8 @@ in {
       }
 
       tooltip {
-        padding: 4px 4px;
+        padding: 6px 10px;
         background: @bg;
-        font-size: 18px;
         border-radius: 4px;
         border: 1px solid rgba(255, 255, 255, 0.25);
       }
@@ -346,11 +346,15 @@ in {
         tooltip = false;
       };
 
-      "cpu" = {
-        interval = 10;
+      # Custom CPU+RAM widget — built-in `cpu` exposes per-core
+      # data only inside `format`, not `tooltip-format`. We use the
+      # cpu-mem script to emit a JSON tooltip with avg CPU + RAM.
+      "custom/cpu" = {
         format = "<span weight='heavy'></span>";
+        exec = "${cpu-mem}/bin/cpu-mem";
+        return-type = "json";
+        interval = 5;
         on-click = "ghostty --class=com.mitchellh.ghostty-btop -e btop";
-        tooltip = false;
       };
 
       "clock" = {
@@ -376,7 +380,9 @@ in {
         format-ethernet = "󰈀";
         format-disconnected = "󰤮";
 
-        tooltip = false;
+        tooltip-format-wifi = " {essid} ";
+        tooltip-format-ethernet = " Ethernet ";
+        tooltip-format-disconnected = " Disconnected ";
         interval = 3;
         spacing = 1;
         # on-click is set by the active session fragment so the click

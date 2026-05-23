@@ -30,6 +30,55 @@
     fi
   '';
 
+  # ── CPU + memory waybar feed ────────────────────────────────────────
+  # Custom waybar module producing JSON with an empty `text` and a
+  # tooltip line carrying CPU avg usage and RAM used/total. State
+  # for the CPU delta lives in /tmp; first call returns 0%.
+  cpu-mem = pkgs.writeShellScriptBin "cpu-mem" ''
+    set -u
+    PREV="/tmp/waybar-cpumem-prev-''${USER}"
+
+    # /proc/stat first line: "cpu user nice system idle iowait irq softirq steal ..."
+    read_total_idle() {
+      ${pkgs.gawk}/bin/awk 'NR==1 {
+        idle = $5 + $6
+        total = 0
+        for (i = 2; i <= NF; i++) total += $i
+        printf "%d %d", total, idle
+        exit
+      }' /proc/stat
+    }
+
+    CUR=$(read_total_idle)
+    USAGE=0
+    if [ -f "$PREV" ]; then
+      P=$(cat "$PREV")
+      PT=$(printf "%s" "$P" | ${pkgs.gawk}/bin/awk '{print $1}')
+      PI=$(printf "%s" "$P" | ${pkgs.gawk}/bin/awk '{print $2}')
+      CT=$(printf "%s" "$CUR" | ${pkgs.gawk}/bin/awk '{print $1}')
+      CI=$(printf "%s" "$CUR" | ${pkgs.gawk}/bin/awk '{print $2}')
+      DT=$((CT - PT))
+      DI=$((CI - PI))
+      if [ "$DT" -gt 0 ]; then
+        USAGE=$(( (100 * (DT - DI)) / DT ))
+        if [ "$USAGE" -lt 0 ]; then USAGE=0; fi
+        if [ "$USAGE" -gt 100 ]; then USAGE=100; fi
+      fi
+    fi
+    printf "%s\n" "$CUR" > "$PREV"
+
+    # /proc/meminfo: MemTotal, MemAvailable in kB
+    MT=$(${pkgs.gawk}/bin/awk '/^MemTotal:/ {print $2; exit}' /proc/meminfo)
+    MA=$(${pkgs.gawk}/bin/awk '/^MemAvailable:/ {print $2; exit}' /proc/meminfo)
+    MU=$((MT - MA))
+    RAM_PCT=$(( 100 * MU / MT ))
+    RAM_USED=$(${pkgs.gawk}/bin/awk -v k=$MU 'BEGIN{ printf "%.1f", k/1048576 }')
+    RAM_TOT=$(${pkgs.gawk}/bin/awk -v k=$MT 'BEGIN{ printf "%.1f", k/1048576 }')
+
+    TOOLTIP=$(printf ' CPU %s%% \n RAM %s%% ' "''${USAGE}" "''${RAM_PCT}")
+    ${pkgs.jq}/bin/jq -cRn --arg t "$TOOLTIP" '{text:"", tooltip:$t}'
+  '';
+
   # ── NixOS update check ─────────────────────────────────────────────
   # Compares locked rev against latest nixpkgs remote.
   # Caches result for 1 hour to avoid expensive network calls on every
@@ -65,6 +114,7 @@ in {
       notification-toggle
       notification-status
       update-check
+      cpu-mem
       ;
   };
 
@@ -72,5 +122,6 @@ in {
     notification-toggle
     notification-status
     update-check
+    cpu-mem
   ];
 }
