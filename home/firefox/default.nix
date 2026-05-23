@@ -14,10 +14,11 @@
 }: let
   arkenfox = import ./arkenfox.nix {inherit config;};
 
-  # Firefox extensions from NUR (rycee's firefox-addons)
+  # Firefox extensions from NUR (rycee's firefox-addons).
+  # Sidebery removed in favour of Firefox 136+ native vertical tabs
+  # (about:preferences → Tabs → Tab orientation → Vertical).
   extensions = with pkgs.nur.repos.rycee.firefox-addons; [
     ublock-origin
-    sidebery
     vimium-c
   ];
 in {

@@ -60,11 +60,21 @@
   "pdfjs.disabled" = false;
 
   # ── Fingerprinting ──
-  "privacy.resistFingerprinting" = true;
-  # Letterboxing disabled — it forces viewport to fixed dimensions (e.g.
-  # 1600x900) causing grey/black margins around page content, making
-  # Firefox appear "not fullscreen". RFP still protects against
-  # fingerprinting without letterboxing.
+  # RFP (resistFingerprinting) is intentionally DISABLED. It standardises
+  # JS APIs (canvas, screen size, fonts, timezone, prefers-color-scheme)
+  # to a Tor-style baseline. Two reasons we keep it off:
+  #   1. It spoofs prefers-color-scheme to "light" for everyone, which
+  #      breaks every site's dark-theme adaptation (Google, GitHub …).
+  #   2. The threat model it addresses (someone fingerprinting *us* via
+  #      JS APIs on a first-party page) is largely covered by uBlock
+  #      Origin (cuts the trackers that would do the fingerprinting)
+  #      plus tracking protection + Total Cookie Protection below.
+  # If the threat model changes (Tor-style anonymity required), flip
+  # both flags back to true and apply the FPP overrides via
+  # `privacy.fingerprintingProtection.overrides` to keep the dark-theme
+  # signal exempt:
+  #     "+AllTargets,-CSSPrefersColorScheme"
+  "privacy.resistFingerprinting" = false;
   "privacy.resistFingerprinting.letterboxing" = false;
 
   # ── Privacy: Tracking ──
