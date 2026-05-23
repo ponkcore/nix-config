@@ -145,12 +145,8 @@ in {
         # Russian layout equivalents — Hyprland matches by keycode, not keysym,
         # so these work correctly (unlike kitty which matched by keysym)
         "$mainMod, И, exec, $browser"
-        "$mainMod, D, exec, $menu"
-        "$mainMod, В, exec, $menu"
         "$mainMod, Q, killactive"
         "$mainMod, Й, killactive"
-        "$mainMod, M, exit"
-        "$mainMod, Ь, exit"
         "$mainMod, V, togglefloating"
         "$mainMod, М, togglefloating"
         "$mainMod, F, fullscreen"
