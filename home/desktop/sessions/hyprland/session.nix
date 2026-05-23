@@ -103,7 +103,7 @@ in {
       # fixed cell size (125×35). The class suffix `-floating`
       # distinguishes them from the popup terminals (`-btop`,
       # `-rebuild`, `-term`) which have their own size policy.
-      "$terminal" = "ghostty --class=com.mitchellh.ghostty-floating --window-width=125 --window-height=35";
+      "$terminal" = "ghostty --class=com.mitchellh.ghostty-floating --window-width=138 --window-height=44";
       "$menu" = "rofi -show drun";
       "$browser" = "firefox";
 
