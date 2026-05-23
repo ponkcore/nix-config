@@ -360,6 +360,10 @@ in {
           category = popup.tray;
         })
         ++ (mkPopup {
+          class = "com.saivert.pwvucontrol";
+          category = popup.tray;
+        })
+        ++ (mkPopup {
           class = "spotify";
           category = popup.app;
         })

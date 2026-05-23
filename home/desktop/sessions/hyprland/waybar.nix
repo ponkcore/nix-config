@@ -17,6 +17,7 @@
   spotify-toggle,
   bluetooth-toggle,
   network-toggle,
+  pwvucontrol-toggle,
   ...
 }: {
   programs.waybar.settings.mainBar = {
@@ -78,6 +79,16 @@
     # IPC (mirror of custom/bluetooth).
     "network" = {
       on-click = "${network-toggle}/bin/network-toggle";
+    };
+
+    # Hyprland-aware override of the universal `pulseaudio#output`
+    # slot: keep formatting / icons / scroll behaviour from
+    # theme/waybar/default.nix and attach a hide/show on-click that
+    # toggles pwvucontrol via Hyprland special-workspace IPC.
+    # Right-click stays as `pamixer -t` (mute) from the universal
+    # config.
+    "pulseaudio#output" = {
+      on-click = "${pwvucontrol-toggle}/bin/pwvucontrol-toggle";
     };
   };
 }

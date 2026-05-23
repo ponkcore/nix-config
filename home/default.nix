@@ -38,6 +38,7 @@ in {
       ./keepassxc.nix
 
       ./fastfetch.nix
+      ./pwvucontrol.nix
       ./xdg.nix
       ./fish.nix
       ./firefox

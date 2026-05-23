@@ -145,6 +145,34 @@
       $HYPRCTL dispatch movetoworkspacesilent "special:network,address:$addr"
     fi
   '';
+
+  # ── pwvucontrol toggle ──────────────────────────────────────────────
+  # GTK4 / libadwaita PipeWire volume mixer. Same hide/show contract as
+  # the other tray-style toggles: special:audio is the hide target,
+  # first click launches, subsequent clicks toggle visibility.
+  # Native Wayland client; app_id is "com.saivert.pwvucontrol".
+  pwvucontrol-toggle = pkgs.writeShellScriptBin "pwvucontrol-toggle" ''
+    HYPRCTL="${pkgs.hyprland}/bin/hyprctl"
+    JQ="${pkgs.jq}/bin/jq"
+
+    win=$($HYPRCTL clients -j 2>/dev/null | $JQ -r '.[] | select(.class == "com.saivert.pwvucontrol") | "\(.address) \(.workspace.name)"' 2>/dev/null | head -1)
+
+    PWVU="${pkgs.pwvucontrol}/bin/pwvucontrol"
+
+    if [ -z "$win" ]; then
+      $PWVU &
+      exit 0
+    fi
+
+    addr=$(echo "$win" | cut -d' ' -f1)
+    ws=$(echo "$win" | cut -d' ' -f2-)
+
+    if [ "$ws" = "special:audio" ]; then
+      $HYPRCTL dispatch movetoworkspace "+0,address:$addr"
+    else
+      $HYPRCTL dispatch movetoworkspacesilent "special:audio,address:$addr"
+    fi
+  '';
 in {
   _module.args = {
     inherit
@@ -153,6 +181,7 @@ in {
       spotify-toggle
       bluetooth-toggle
       network-toggle
+      pwvucontrol-toggle
       ;
   };
 
@@ -162,5 +191,6 @@ in {
     spotify-toggle
     bluetooth-toggle
     network-toggle
+    pwvucontrol-toggle
   ];
 }
