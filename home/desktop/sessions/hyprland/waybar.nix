@@ -12,12 +12,14 @@
 # Imported by home/desktop/sessions/hyprland/default.nix; never
 # imported on hosts that do not run Hyprland.
 {
+  lib,
   telegram-toggle,
   clash-toggle,
   spotify-toggle,
   bluetooth-toggle,
   network-toggle,
   pwvucontrol-toggle,
+  btop-toggle,
   ...
 }: {
   programs.waybar.settings.mainBar = {
@@ -89,6 +91,15 @@
     # config.
     "pulseaudio#output" = {
       on-click = "${pwvucontrol-toggle}/bin/pwvucontrol-toggle";
+    };
+
+    # Hyprland-aware override of the universal `cpu` slot: keep the
+    # icon and 10s interval and replace the launch-only on-click with
+    # a hide/show toggle on special:btop. Mirror of the other tray-
+    # style panels. mkForce because theme/waybar already sets
+    # on-click to a plain ghostty launcher.
+    "cpu" = {
+      on-click = lib.mkForce "${btop-toggle}/bin/btop-toggle";
     };
   };
 }

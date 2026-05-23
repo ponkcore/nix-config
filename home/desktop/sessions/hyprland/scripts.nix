@@ -146,6 +146,35 @@
     fi
   '';
 
+  # ── btop toggle ─────────────────────────────────────────────────────
+  # Ghostty popup running btop. Same hide/show contract as the other
+  # tray-style toggles: special:btop is the hide target. The window
+  # class comes from `ghostty --class=com.mitchellh.ghostty-btop`,
+  # which the popup rule in session.nix already targets.
+  btop-toggle = pkgs.writeShellScriptBin "btop-toggle" ''
+    HYPRCTL="${pkgs.hyprland}/bin/hyprctl"
+    JQ="${pkgs.jq}/bin/jq"
+
+    win=$($HYPRCTL clients -j 2>/dev/null | $JQ -r '.[] | select(.class == "com.mitchellh.ghostty-btop") | "\(.address) \(.workspace.name)"' 2>/dev/null | head -1)
+
+    GHOSTTY="${pkgs.ghostty}/bin/ghostty"
+    BTOP="${pkgs.btop}/bin/btop"
+
+    if [ -z "$win" ]; then
+      $GHOSTTY --class=com.mitchellh.ghostty-btop -e $BTOP &
+      exit 0
+    fi
+
+    addr=$(echo "$win" | cut -d' ' -f1)
+    ws=$(echo "$win" | cut -d' ' -f2-)
+
+    if [ "$ws" = "special:btop" ]; then
+      $HYPRCTL dispatch movetoworkspace "+0,address:$addr"
+    else
+      $HYPRCTL dispatch movetoworkspacesilent "special:btop,address:$addr"
+    fi
+  '';
+
   # ── pwvucontrol toggle ──────────────────────────────────────────────
   # GTK4 / libadwaita PipeWire volume mixer. Same hide/show contract as
   # the other tray-style toggles: special:audio is the hide target,
@@ -182,6 +211,7 @@ in {
       bluetooth-toggle
       network-toggle
       pwvucontrol-toggle
+      btop-toggle
       ;
   };
 
@@ -192,5 +222,6 @@ in {
     bluetooth-toggle
     network-toggle
     pwvucontrol-toggle
+    btop-toggle
   ];
 }
