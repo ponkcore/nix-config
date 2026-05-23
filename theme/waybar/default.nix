@@ -350,6 +350,7 @@ in {
         interval = 10;
         format = "<span weight='heavy'></span>";
         on-click = "ghostty --class=com.mitchellh.ghostty-btop -e btop";
+        tooltip = false;
       };
 
       "clock" = {
