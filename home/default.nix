@@ -36,6 +36,7 @@ in {
       ./btop.nix
       ./cleanup.nix
       ./keepassxc.nix
+      ./mailspring.nix
 
       ./fastfetch.nix
       ./pwvucontrol.nix
