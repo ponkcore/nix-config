@@ -98,7 +98,12 @@ in {
         "systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP"
       ];
 
-      "$terminal" = "ghostty";
+      # Plain ghostty would tile under the dwindle layout. We want
+      # interactive terminals to come up floating and centred at a
+      # fixed cell size (125×35). The class suffix `-floating`
+      # distinguishes them from the popup terminals (`-btop`,
+      # `-rebuild`, `-term`) which have their own size policy.
+      "$terminal" = "ghostty --class=com.mitchellh.ghostty-floating --window-width=125 --window-height=35";
       "$menu" = "rofi -show drun";
       "$browser" = "firefox";
 
@@ -390,6 +395,13 @@ in {
           category = popup.media;
         })
         ++ [
+          # ── Floating terminal — Super+Return ──────────────────────────
+          # Size is set by ghostty itself (`--window-width 125 --window-
+          # height 35` in the bind), so we only declare float + center
+          # and let ghostty's geometry survive.
+          "float, class:^(com.mitchellh.ghostty-floating)$"
+          "center, class:^(com.mitchellh.ghostty-floating)$"
+
           # ── Utility/dialog apps: float (size left to the app) ───────────
           "float, class:^(blueman-manager)$"
           "float, class:^(blueman-adapters)$"
