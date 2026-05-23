@@ -298,19 +298,14 @@ in {
 
 
       tooltip {
-        padding: 6px 8px;
+        padding: 4px 4px;
         background: @bg;
-        font-family: 'JetBrainsMono Nerd Font Propo';
-        font-size: 12px;
+        font-size: 18px;
         border-radius: 4px;
         border: 1px solid rgba(255, 255, 255, 0.25);
       }
 
-      tooltip label {
-        color: @fg;
-        font-family: 'JetBrainsMono Nerd Font Propo';
-        font-size: 12px;
-      }
+      tooltip label { color: @fg; }
 
       .hidden { opacity: 0; }
 
@@ -356,25 +351,9 @@ in {
       };
 
       "cpu" = {
-        interval = 5;
+        interval = 10;
         format = "<span weight='heavy'></span>";
         on-click = "ghostty --class=com.mitchellh.ghostty-btop -e btop";
-        # Two-column per-core breakdown for the 16-thread CPU.
-        # libfmt right-aligns the numbers so the columns line up
-        # regardless of single- or double-digit values; the
-        # JetBrainsMono tooltip font (set in the global stylesheet)
-        # keeps the layout monospaced.
-        tooltip-format = lib.concatStringsSep "\n" [
-          "<span weight='bold'>CPU {usage:>3}%   load {load}</span>"
-          "C 1 {usage1:>3}%    C 9 {usage9:>3}%"
-          "C 2 {usage2:>3}%    C10 {usage10:>3}%"
-          "C 3 {usage3:>3}%    C11 {usage11:>3}%"
-          "C 4 {usage4:>3}%    C12 {usage12:>3}%"
-          "C 5 {usage5:>3}%    C13 {usage13:>3}%"
-          "C 6 {usage6:>3}%    C14 {usage14:>3}%"
-          "C 7 {usage7:>3}%    C15 {usage15:>3}%"
-          "C 8 {usage8:>3}%    C16 {usage16:>3}%"
-        ];
       };
 
       "clock" = {
