@@ -58,20 +58,35 @@
     }; # mpv, image viewers
   };
 
-  # Render `{class, category, override?}` to the three Hyprland rules
-  # that every popup needs (float / size / center). Keeps callers
-  # one-line and class names from drifting between rules.
-  mkPopup = {
-    class,
+  # Render `{match, category, override?}` to the three Hyprland rules
+  # that every popup needs (float / size / center). `match` is a raw
+  # Hyprland selector like `class:^(foo)$` or `title:^(foo)$` — both
+  # forms work in `windowrulev2`. We pass it through verbatim so a
+  # caller can match by title when class is shared (e.g. ghostty
+  # under gtk-single-instance, where every window inherits the same
+  # class from the host process).
+  mkPopupRaw = {
+    match,
     category,
     override ? {},
   }: let
     size = category // override;
   in [
-    "float, class:^(${class})$"
-    "size ${size.width} ${size.height}, class:^(${class})$"
-    "center, class:^(${class})$"
+    "float, ${match}"
+    "size ${size.width} ${size.height}, ${match}"
+    "center, ${match}"
   ];
+
+  # Convenience wrapper for the common case: match by class.
+  mkPopup = {
+    class,
+    category,
+    override ? {},
+  }:
+    mkPopupRaw {
+      match = "class:^(${class})$";
+      inherit category override;
+    };
 in {
   # hyprshot — screenshot tool used in keybindings (no HM module, package only)
   home.packages = [pkgs.hyprshot];
@@ -96,14 +111,29 @@ in {
         "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1"
         "dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP"
         "systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP"
+
+        # Pre-warm the floating-terminal ghostty process: starts the
+        # GTK4+OpenGL+fontconfig stack at login (~2.5 s) without
+        # showing a window (`--initial-window=false`), so the first
+        # Super+Return is a DBus-routed instant open instead of a
+        # cold start. Process stays alive for the session because of
+        # `quit-after-last-window-closed = false` in ghostty config.
+        "ghostty --class=com.mitchellh.ghostty-floating --initial-window=false"
       ];
 
       # Plain ghostty would tile under the dwindle layout. We want
-      # interactive terminals to come up floating and centred at a
-      # fixed cell size (125×35). The class suffix `-floating`
-      # distinguishes them from the popup terminals (`-btop`,
-      # `-rebuild`, `-term`) which have their own size policy.
-      "$terminal" = "ghostty --class=com.mitchellh.ghostty-floating --window-width=138 --window-height=44";
+      # interactive terminals to come up floating at a fixed share of
+      # the workspace.
+      #
+      # gtk-single-instance buckets ghostty processes by their app-id
+      # (= `--class` value). With a unique class, this terminal gets
+      # its own DBus-routed instance: first launch is a full GTK4
+      # cold start (~2.5 s), every launch after is a DBus message to
+      # the live process (~100 ms). The window inherits the class,
+      # so the standard `mkPopup` rule below matches it. The popup
+      # terminals (`-btop`, `-rebuild`, `-term`) follow the same
+      # pattern, each with their own class.
+      "$terminal" = "ghostty --class=com.mitchellh.ghostty-floating";
       "$menu" = "rofi -show drun";
       "$browser" = "firefox";
 
@@ -394,14 +424,16 @@ in {
           class = "mpv";
           category = popup.media;
         })
+        # Floating Super+Return terminal — same `app` size category
+        # as Spotify (70%×80%), so the two windows feel similar.
+        # Class-based match works because `$terminal` launches with a
+        # unique `--class` that opens its own gtk-single-instance
+        # bucket; see the `$terminal` definition for the rationale.
+        ++ (mkPopup {
+          class = "com.mitchellh.ghostty-floating";
+          category = popup.app;
+        })
         ++ [
-          # ── Floating terminal — Super+Return ──────────────────────────
-          # Size is set by ghostty itself (`--window-width 125 --window-
-          # height 35` in the bind), so we only declare float + center
-          # and let ghostty's geometry survive.
-          "float, class:^(com.mitchellh.ghostty-floating)$"
-          "center, class:^(com.mitchellh.ghostty-floating)$"
-
           # ── Utility/dialog apps: float (size left to the app) ───────────
           "float, class:^(blueman-manager)$"
           "float, class:^(blueman-adapters)$"
