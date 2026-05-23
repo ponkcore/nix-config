@@ -145,6 +145,18 @@ in {
         # Russian layout equivalents — Hyprland matches by keycode, not keysym,
         # so these work correctly (unlike kitty which matched by keysym)
         "$mainMod, И, exec, $browser"
+        # Application show/hide toggles — same scripts that drive the
+        # waybar buttons. Each script parks the window on its own
+        # special:<name> workspace; the toggle either pulls it onto
+        # the current workspace (where the existing mkPopup rule keeps
+        # it floating + sized + centred, so it sits above tiled
+        # windows) or shoves it back to special. Russian layout dups
+        # added by keycode (T→Е, S→Ы) so the chord survives a
+        # caps-toggle layout switch.
+        "$mainMod, T, exec, telegram-toggle"
+        "$mainMod, Е, exec, telegram-toggle"
+        "$mainMod, S, exec, spotify-toggle"
+        "$mainMod, Ы, exec, spotify-toggle"
         "$mainMod, Q, killactive"
         "$mainMod, Й, killactive"
         "$mainMod, V, togglefloating"
