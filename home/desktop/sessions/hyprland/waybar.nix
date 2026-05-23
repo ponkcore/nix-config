@@ -54,25 +54,25 @@
     "custom/telegram" = {
       format = "<span weight='heavy'></span>";
       on-click = "${telegram-toggle}/bin/telegram-toggle";
-      tooltip-format = "Telegram";
+      tooltip = false;
     };
 
     "custom/spotify" = {
       format = "<span weight='heavy'></span>";
       on-click = "${spotify-toggle}/bin/spotify-toggle";
-      tooltip-format = "Spotify";
+      tooltip = false;
     };
 
     "custom/clash" = {
       format = "<span weight='heavy'></span>";
       on-click = "${clash-toggle}/bin/clash-toggle";
-      tooltip-format = "Clash Verge";
+      tooltip = false;
     };
 
     "custom/bluetooth" = {
       format = "<span weight='heavy'></span>";
       on-click = "${bluetooth-toggle}/bin/bluetooth-toggle";
-      tooltip-format = "Bluetooth";
+      tooltip = false;
     };
 
     # Hyprland-aware override of the universal `network` slot:

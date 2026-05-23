@@ -294,9 +294,6 @@ in {
         color: @hover_fg;
       }
 
-
-
-
       tooltip {
         padding: 4px 4px;
         background: @bg;
@@ -308,7 +305,6 @@ in {
       tooltip label { color: @fg; }
 
       .hidden { opacity: 0; }
-
 
       #custom-separator {
         opacity: 0.2;
@@ -341,13 +337,13 @@ in {
         format = "<span weight='heavy'></span>";
         on-click = "ghostty --class=com.mitchellh.ghostty-rebuild -e fish -c 'sudo nixos-rebuild switch --show-trace &| nom; exec fish'";
         on-click-right = "ghostty --class=com.mitchellh.ghostty-term";
-        tooltip-format = "NixOS Rebuild";
+        tooltip = false;
       };
 
       "custom/power" = {
         format = "<span weight='heavy'></span>";
         on-click = "wlogout";
-        tooltip-format = "Power menu";
+        tooltip = false;
       };
 
       "cpu" = {
@@ -359,7 +355,7 @@ in {
       "clock" = {
         format = "{:%H:%M}";
         format-alt = "{:%H:%M - %d/%m/%Y}";
-        tooltip-format = "<span>{calendar}</span>";
+        tooltip = false;
         calendar = {
           mode = "month";
           mode-mon-col = 3;
@@ -378,9 +374,8 @@ in {
         format-wifi = "{icon}";
         format-ethernet = "󰈀";
         format-disconnected = "󰤮";
-        tooltip-format-wifi = "{essid} ({frequency} GHz)\nDown: {bandwidthDownBytes}  Up: {bandwidthUpBytes}";
-        tooltip-format-ethernet = "Down: {bandwidthDownBytes}  Up: {bandwidthUpBytes}";
-        tooltip-format-disconnected = "Disconnected";
+
+        tooltip = false;
         interval = 3;
         spacing = 1;
         # on-click is set by the active session fragment so the click
@@ -412,7 +407,7 @@ in {
         scroll-step = 2;
         smooth-scrolling-threshold = 1;
         on-click-right = "pamixer -t";
-        tooltip-format = "{volume}%";
+        tooltip = false;
       };
 
       "pulseaudio/slider" = {
@@ -435,7 +430,7 @@ in {
       "backlight" = {
         device = "amdgpu_bl1";
         format = "<span weight='heavy'>󰃟</span>";
-        tooltip-format = "{percent}%";
+        tooltip = false;
       };
 
       "backlight/slider" = {
