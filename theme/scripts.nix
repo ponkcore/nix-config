@@ -75,7 +75,11 @@
     RAM_USED=$(${pkgs.gawk}/bin/awk -v k=$MU 'BEGIN{ printf "%.1f", k/1048576 }')
     RAM_TOT=$(${pkgs.gawk}/bin/awk -v k=$MT 'BEGIN{ printf "%.1f", k/1048576 }')
 
-    TOOLTIP=$(printf ' CPU %s%% \n RAM %s%% ' "''${USAGE}" "''${RAM_PCT}")
+    # Tooltip uses Nerd Font glyphs and the same `N%glyph|N%glyph`
+    # layout as the battery widget (hosts/lecoo/home/scripts.nix):
+    #    nf-oct-cpu       (U+F4BC) — CPU avg usage
+    #    nf-fa-memory     (U+EFC5) — RAM usage
+    TOOLTIP=$(printf '%s%% \uf4bc | %s%% \uefc5' "''${USAGE}" "''${RAM_PCT}")
     ${pkgs.jq}/bin/jq -cRn --arg t "$TOOLTIP" '{text:"", tooltip:$t}'
   '';
 

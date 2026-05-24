@@ -44,16 +44,10 @@
 
     LECOO_OUTPUT=$(${pkgs.lecoo-ctrl}/bin/lecoo-ctrl charge 2>/dev/null)
     if echo "$LECOO_OUTPUT" | ${pkgs.gnugrep}/bin/grep -q "Full Capacity"; then
-      LECOO_MODE="Full (100%)"
+      LECOO_LIMIT="100"
     else
-      STOP=$(echo "$LECOO_OUTPUT" | ${pkgs.gnugrep}/bin/grep -oP 'Stop charging at:\s*\K\d+' 2>/dev/null)
-      case "$STOP" in
-        95) LECOO_MODE="High (90-95%)" ;;
-        80) LECOO_MODE="Balanced (70-80%)" ;;
-        60) LECOO_MODE="Lifespan (55-60%)" ;;
-        50) LECOO_MODE="Desk (40-50%)" ;;
-        *)  LECOO_MODE="Unknown" ;;
-      esac
+      LECOO_LIMIT=$(echo "$LECOO_OUTPUT" | ${pkgs.gnugrep}/bin/grep -oP 'Stop charging at:\s*\K\d+' 2>/dev/null)
+      [ -z "$LECOO_LIMIT" ] && LECOO_LIMIT="?"
     fi
 
     case "$STATUS" in
@@ -62,9 +56,21 @@
       *)           ALT="discharging" ;;
     esac
 
-    TOOLTIP=" $CAP% $STATUS \n $LECOO_MODE "
-    printf '{"text":"%s","alt":"%s","percentage":%s,"tooltip":"%s"}\n' \
-      "$CAP" "$ALT" "$CAP" "$TOOLTIP"
+    # Empty class string by default; flips to "low" when discharging
+    # below 20 % so the CSS `#custom-battery.low { color: red }`
+    # rule kicks in (waybar renders custom-module class strings as
+    # element classes via the `class` JSON field).
+    CLASS=""
+    if [ "$STATUS" = "Discharging" ] && [ "$CAP" -lt 20 ]; then
+      CLASS="low"
+    fi
+
+    # Tooltip uses Nerd Font glyphs:
+    #   󱊣  nf-md-battery_high (U+F12A3) — current charge level
+    #   󱞜  nf-md-battery_lock (U+F179C) — EC-enforced charge ceiling
+    TOOLTIP="$CAP% 󱊣 | $LECOO_LIMIT% 󱞜"
+    printf '{"text":"%s","alt":"%s","class":"%s","percentage":%s,"tooltip":"%s"}\n' \
+      "$CAP" "$ALT" "$CLASS" "$CAP" "$TOOLTIP"
   '';
 in {
   _module.args = {

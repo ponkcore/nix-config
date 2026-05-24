@@ -13,6 +13,7 @@
 # imported on hosts that do not run Hyprland.
 {
   lib,
+  app-status,
   telegram-toggle,
   clash-toggle,
   spotify-toggle,
@@ -53,18 +54,27 @@
 
     "custom/telegram" = {
       format = "<span weight='heavy'></span>";
+      exec = "${app-status}/bin/app-status com.ayugram.desktop";
+      return-type = "json";
+      interval = 2;
       on-click = "${telegram-toggle}/bin/telegram-toggle";
       tooltip = false;
     };
 
     "custom/spotify" = {
       format = "<span weight='heavy'></span>";
+      exec = "${app-status}/bin/app-status spotify";
+      return-type = "json";
+      interval = 2;
       on-click = "${spotify-toggle}/bin/spotify-toggle";
       tooltip = false;
     };
 
     "custom/clash" = {
       format = "<span weight='heavy'></span>";
+      exec = "${app-status}/bin/app-status clash-verge";
+      return-type = "json";
+      interval = 2;
       on-click = "${clash-toggle}/bin/clash-toggle";
       tooltip = false;
     };

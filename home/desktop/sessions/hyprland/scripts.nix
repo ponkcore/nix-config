@@ -8,6 +8,30 @@
 # than at the host level: they all rely on Hyprland's special-workspace
 # mechanism for the hide/show pattern.
 {pkgs, ...}: let
+  # ── App status probe ───────────────────────────────────────────────
+  # Generic waybar exec — emits {text, class} where class is
+  # "running" iff a Hyprland client with the given window-class is
+  # present (regular workspace OR special:*). Glyph stays in the
+  # waybar `format` field so this script just toggles the CSS hook.
+  #
+  # Background services do not count: clash-verge-service is always
+  # alive even when no GUI window exists, so probing the GUI class
+  # gives the right answer for "is the user-facing app open".
+  app-status = pkgs.writeShellScriptBin "app-status" ''
+    HYPRCTL="${pkgs.hyprland}/bin/hyprctl"
+    JQ="${pkgs.jq}/bin/jq"
+    if [ $# -lt 1 ]; then
+      echo '{"text":"","class":""}'
+      exit 0
+    fi
+    cls="$1"
+    if $HYPRCTL clients -j 2>/dev/null | $JQ -e --arg c "$cls" 'any(.[]; .class == $c)' >/dev/null; then
+      echo '{"text":"","class":"running"}'
+    else
+      echo '{"text":"","class":""}'
+    fi
+  '';
+
   # ── Telegram/Ayugram toggle ─────────────────────────────────────────
   # Uses Hyprland special:telegram workspace as hide/show target.
   # No "minimize" in Hyprland — movetoworkspacesilent is the pattern.
@@ -205,6 +229,7 @@
 in {
   _module.args = {
     inherit
+      app-status
       telegram-toggle
       clash-toggle
       spotify-toggle
@@ -216,6 +241,7 @@ in {
   };
 
   home.packages = [
+    app-status
     telegram-toggle
     clash-toggle
     spotify-toggle

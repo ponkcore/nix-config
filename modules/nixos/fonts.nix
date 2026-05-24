@@ -18,6 +18,22 @@
       nerd-fonts.bigblue-terminal
       nerd-fonts.monaspace
       noto-fonts-color-emoji
+
+      # Cozette — 6×13 bitmap font, designed for bars / status panels.
+      # Used in waybar tooltips for a pixel-art aesthetic that fits
+      # the small popup size better than CaskaydiaCove at 12 px.
+      cozette
+
+      # Inter — modern sans-serif designed for screen UI (Rasmus
+      # Andersson, 2016+). Available system-wide; not currently the
+      # waybar tooltip face but kept as a known UI sans option.
+      inter
+
+      # IBM Plex — corporate sans/serif/mono family, calm tone,
+      # excellent at small sizes. Currently used as the waybar
+      # tooltip face for the same "auxiliary, calmer" rationale as
+      # the bar runs in monospace + dark, the tooltips lean humanist.
+      ibm-plex
     ];
 
     fontconfig = {

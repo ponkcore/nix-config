@@ -186,7 +186,7 @@ in {
 
       #tray, #clock, #cpu, #memory, #backlight,
       #network, #bluetooth, #pulseaudio, #idle_inhibitor,
-      #custom-nix, #custom-telegram, #custom-spotify, #custom-clash, #custom-bluetooth, #custom-battery, #custom-power,
+      #custom-nix, #custom-telegram, #custom-spotify, #custom-clash, #custom-bluetooth, #custom-cpu, #custom-battery, #custom-power,
       #group-volume, #group-brightness {
         min-width: 13px;
         margin-top: 2px;
@@ -196,19 +196,30 @@ in {
 
       #custom-nix { font-size: 18px; }
 
-      #custom-telegram {
-        font-size: 18px;
-        color: @fg;
+      #custom-telegram { font-size: 18px; color: @fg; }
+      #custom-spotify  { font-size: 18px; color: @fg; }
+      #custom-clash    { font-size: 18px; color: @fg; }
+
+      /* App-toggle running indicator — exec script (app-status,
+         home/desktop/sessions/hyprland/scripts.nix) emits
+         `"class":"running"` when a Hyprland window of the matching
+         class exists. The glow pulses between 1 px and 4 px blur
+         radius — stays well inside the module's 4 px horizontal
+         padding so it never gets clipped. Glyph colour stays at
+         @fg; the animated shadow does the visual work. */
+      /* Animate the shadow's alpha channel, not its blur radius —
+         keeps the glyph itself rasterised without any halo when
+         the pulse is at its low point. fbf1c7 = @fg_bright. */
+      @keyframes app-glow-pulse {
+        0%   { text-shadow: 0 0 3px rgba(251, 241, 199, 0); }
+        50%  { text-shadow: 0 0 3px rgba(251, 241, 199, 1); }
+        100% { text-shadow: 0 0 3px rgba(251, 241, 199, 0); }
       }
 
-      #custom-spotify {
-        font-size: 18px;
-        color: @fg;
-      }
-
-      #custom-clash {
-        font-size: 18px;
-        color: @fg;
+      #custom-telegram.running,
+      #custom-spotify.running,
+      #custom-clash.running {
+        animation: app-glow-pulse 2s ease-in-out infinite;
       }
 
       #custom-bluetooth {
@@ -216,7 +227,14 @@ in {
         color: @fg;
       }
 
+      #custom-cpu { font-size: 18px; }
+
       #custom-battery { font-size: 18px; }
+
+      /* Battery low warning — exec script emits `"class":"low"`
+         when discharging below 20 %; waybar renders that as a CSS
+         class on the element, so this selector kicks in. */
+      #custom-battery.low { color: @red; }
 
       #custom-power {
         font-size: 18px;
@@ -244,8 +262,11 @@ in {
         border-radius: 2px;
       }
 
-      #pulseaudio-slider highlight {
-        background-color: @fg_bright;
+      #pulseaudio-slider highlight,
+      scale#pulseaudio-slider trough highlight,
+      scale#pulseaudio-slider highlight progress {
+        background-color: @accent;
+        background-image: none;
         border-radius: 2px;
       }
 
@@ -266,8 +287,11 @@ in {
         border-radius: 2px;
       }
 
-      #backlight-slider highlight {
-        background-color: @fg_bright;
+      #backlight-slider highlight,
+      scale#backlight-slider trough highlight,
+      scale#backlight-slider highlight progress {
+        background-color: @accent;
+        background-image: none;
         border-radius: 2px;
       }
 
@@ -295,14 +319,34 @@ in {
         color: @hover_fg;
       }
 
+      /* Tooltip popups — secondary surface lighter than the bar to
+         read as "auxiliary card on top of the bar". Hyprland does
+         not give popup-windows transparency to the compositor, so
+         CSS alpha just composites against an opaque base — values
+         below 1.0 visibly darken/lighten but never let through
+         what is below.
+         No corner radius: any rounding cuts into the opaque popup
+         window and the compositor's dark default fill leaks through
+         in the cut corners as 1-2 px black points. Square corners
+         are the only artefact-free option. */
       tooltip {
-        padding: 6px 10px;
-        background: @bg;
-        border-radius: 4px;
-        border: 1px solid rgba(255, 255, 255, 0.25);
+        background: rgba(120, 113, 108, 0.55);
+        border-radius: 0;
+        border: 2px solid rgba(255, 255, 255, 0.45);
+        padding: 0;
       }
 
-      tooltip label { color: @fg; }
+      tooltip label {
+        background: transparent;
+        color: @fg_bright;
+        padding: 6px 10px;
+        /* Same family as the bar itself for tonal consistency.
+           Bold + 12 px reads as "footnote-tier" auxiliary text
+           against the bar's 16-18 px. */
+        font-family: 'CaskaydiaCove Nerd Font Propo';
+        font-size: 12px;
+        font-weight: 700;
+      }
 
       .hidden { opacity: 0; }
 
@@ -350,7 +394,7 @@ in {
       # data only inside `format`, not `tooltip-format`. We use the
       # cpu-mem script to emit a JSON tooltip with avg CPU + RAM.
       "custom/cpu" = {
-        format = "<span weight='heavy'></span>";
+        format = "<span weight='heavy'>󰑹</span>";
         exec = "${cpu-mem}/bin/cpu-mem";
         return-type = "json";
         interval = 5;
@@ -380,9 +424,9 @@ in {
         format-ethernet = "󰈀";
         format-disconnected = "󰤮";
 
-        tooltip-format-wifi = " {essid} ";
-        tooltip-format-ethernet = " Ethernet ";
-        tooltip-format-disconnected = " Disconnected ";
+        tooltip-format-wifi = "{essid}";
+        tooltip-format-ethernet = "Ethernet";
+        tooltip-format-disconnected = "Disconnected";
         interval = 3;
         spacing = 1;
         # on-click is set by the active session fragment so the click
