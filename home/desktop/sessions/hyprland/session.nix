@@ -43,7 +43,7 @@
     tray = {
       width = "45%";
       height = "75%";
-    }; # adw-bluetooth, adw-network, clash-verge
+    }; # orbit, clash-verge
     app = {
       width = "70%";
       height = "80%";
@@ -440,14 +440,9 @@ in {
           class = "clash-verge";
           category = popup.tray;
         })
-        ++ (mkPopup {
-          class = "com.ezratweaver.AdwBluetooth";
-          category = popup.tray;
-        })
-        ++ (mkPopup {
-          class = "com.github.adw-network";
-          category = popup.tray;
-        })
+        # orbit (network + bluetooth) is a layer-shell applet, not a
+        # toplevel client — it does not appear in `hyprctl clients`,
+        # so no window-rule is needed for it.
         ++ (mkPopup {
           class = "com.saivert.pwvucontrol";
           category = popup.tray;

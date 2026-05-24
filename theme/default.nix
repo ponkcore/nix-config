@@ -78,7 +78,7 @@ in {
       # gruvbox-gtk-theme ships proper gtk-4.0/ assets; the older
       # gruvbox-dark-gtk only carries gtk-2.0/3.0 and produces a
       # "Failed to import gtk.css" warning on every gtk4 launch
-      # (mako, adw-bluetooth, adw-network, keepassxc, …).
+      # (mako, orbit, keepassxc, …).
       name = "Gruvbox-Dark";
       package = pkgs.gruvbox-gtk-theme;
     };

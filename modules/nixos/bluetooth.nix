@@ -1,9 +1,9 @@
 # bluetooth.nix — Bluetooth stack.
 #
 # Universal: every host with a BT controller benefits. The GUI manager
-# (adw-bluetooth) is opted in per-user via home/adw-bluetooth.nix
-# because it is a desktop-only concern; headless hosts with bluetoothd
-# and bluetoothctl available is enough.
+# is the unified Orbit popup (home/orbit.nix), which exposes a
+# Bluetooth tab next to Wi-Fi/VPN/Ethernet. Headless hosts get
+# bluetoothd + bluetoothctl on PATH and skip Orbit entirely.
 _: {
   hardware.bluetooth.enable = true;
 }

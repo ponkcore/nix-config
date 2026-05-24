@@ -116,58 +116,27 @@
     fi
   '';
 
-  # ── adw-bluetooth toggle ────────────────────────────────────────────
-  # GNOME-inspired GTK4 Bluetooth manager. Same hide/show contract as
-  # the other tray-style toggles: special:bluetooth is the hide target,
-  # first click launches, subsequent clicks toggle visibility.
-  # Native Wayland client; app_id is "com.ezratweaver.AdwBluetooth".
+  # ── orbit toggle (bluetooth tab) ────────────────────────────────────
+  # Bluetooth tile in Waybar shares the Orbit popup with the Wi-Fi
+  # tile — `--tab bluetooth` jumps straight to the Bluetooth panel.
   bluetooth-toggle = pkgs.writeShellScriptBin "bluetooth-toggle" ''
-    HYPRCTL="${pkgs.hyprland}/bin/hyprctl"
-    JQ="${pkgs.jq}/bin/jq"
-
-    win=$($HYPRCTL clients -j 2>/dev/null | $JQ -r '.[] | select(.class == "com.ezratweaver.AdwBluetooth") | "\(.address) \(.workspace.name)"' 2>/dev/null | head -1)
-
-    ADW="${pkgs.adw-bluetooth}/bin/adw-bluetooth"
-
-    if [ -z "$win" ]; then
-      $ADW &
-      exit 0
-    fi
-
-    addr=$(echo "$win" | cut -d' ' -f1)
-    ws=$(echo "$win" | cut -d' ' -f2-)
-
-    if [ "$ws" = "special:bluetooth" ]; then
-      $HYPRCTL dispatch movetoworkspace "+0,address:$addr"
-    else
-      $HYPRCTL dispatch movetoworkspacesilent "special:bluetooth,address:$addr"
-    fi
+    exec ${pkgs.orbit}/bin/orbit toggle --tab bluetooth
   '';
 
-  # ── adw-network toggle ──────────────────────────────────────────────
-  # Same hide/show contract as bluetooth-toggle. app_id comes from the
-  # upstream .desktop StartupWMClass=com.github.adw-network.
+  # ── orbit toggle (network + bluetooth) ──────────────────────────────
+  # Orbit is a layer-shell applet — it does not appear as a Hyprland
+  # client and so the special-workspace hide/show pattern other
+  # toggle scripts use does not apply. Orbit's own daemon owns the
+  # window state; `orbit toggle [--tab <name>]` flips visibility
+  # through D-Bus and exits. The HM systemd user service
+  # (home/orbit.nix) keeps the daemon alive across waybar reloads
+  # and session lifetime.
+  #
+  # Orbit covers Wi-Fi, Ethernet, Bluetooth, and VPN under the same
+  # popup, so both the Waybar wifi tile and the bluetooth tile open
+  # the same window with the matching tab pre-selected.
   network-toggle = pkgs.writeShellScriptBin "network-toggle" ''
-    HYPRCTL="${pkgs.hyprland}/bin/hyprctl"
-    JQ="${pkgs.jq}/bin/jq"
-
-    win=$($HYPRCTL clients -j 2>/dev/null | $JQ -r '.[] | select(.class == "com.github.adw-network") | "\(.address) \(.workspace.name)"' 2>/dev/null | head -1)
-
-    ADW="${pkgs.adw-network}/bin/adwaita-network"
-
-    if [ -z "$win" ]; then
-      $ADW &
-      exit 0
-    fi
-
-    addr=$(echo "$win" | cut -d' ' -f1)
-    ws=$(echo "$win" | cut -d' ' -f2-)
-
-    if [ "$ws" = "special:network" ]; then
-      $HYPRCTL dispatch movetoworkspace "+0,address:$addr"
-    else
-      $HYPRCTL dispatch movetoworkspacesilent "special:network,address:$addr"
-    fi
+    exec ${pkgs.orbit}/bin/orbit toggle --tab wifi
   '';
 
   # ── btop toggle ─────────────────────────────────────────────────────
