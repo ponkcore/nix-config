@@ -155,12 +155,25 @@ in {
         font-weight: bold;
       }
 
-      #workspaces button.active {
+      /* `.active` = visible on any monitor (waybar's per-monitor
+         pinning lights up two buttons at once on a dual-output
+         setup). `.focused` = the workspace the user's pointer/
+         keyboard focus is on right now. The visible style is
+         shared by both, but the focused button gets the brighter
+         border so the user can tell which screen they are on at a
+         glance. */
+      #workspaces button.active,
+      #workspaces button.focused,
+      #workspaces button.visible {
         color: @fg;
         border: 1px solid @border_act;
         opacity: 1.0;
         font-size: 18px;
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+      }
+
+      #workspaces button.focused {
+        border: 1px solid @fg_bright;
       }
 
       #workspaces button.empty {
@@ -170,7 +183,9 @@ in {
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
       }
 
-      #workspaces button.empty.active {
+      #workspaces button.empty.active,
+      #workspaces button.empty.focused,
+      #workspaces button.empty.visible {
         font-size: 18px;
         color: @fg;
         opacity: 1.0;
