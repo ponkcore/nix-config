@@ -8,6 +8,40 @@
 # Adding a new universal package: drop pkgs/<name>/default.nix, add a
 # line to the local-packages overlay below.
 {inputs}: [
+  # Cross-channel pulls — packages whose stable release in nixos-25.11
+  # is regressed or behind upstream. Each entry is a single-package
+  # rebind to nixos-unstable; the rest of the system stays on stable.
+  #
+  # throne (1.0.8-unstable-2025-10-29 on 25.11): the v1 NixOS patch
+  # injected by nixpkgs makes TUN mode unusable — the GUI shows
+  # "Unable to elevate privileges when installed with Nix" because
+  # the patched FindCoreRealPath redirect collides with upstream
+  # changes. nixpkgs commit d380eba (2026-01-25) bumped to 1.0.13
+  # and rewrote both NixOS patches as v2 against the new source
+  # tree; that fix lives on nixos-unstable, not on 25.11. Drop this
+  # rebind once 25.11 receives the backport.
+  #
+  # Throne 1.0.13 from unstable is built against qtbase-6.11.0
+  # whereas 25.11's gruvbox-kvantum and qt6ct ship qtbase-6.10.2,
+  # which makes Qt's plugin loader reject them at runtime
+  # (build-version mismatch). To keep the in-app Theme picker
+  # actually working, also pull qtstyleplugin-kvantum, qt6ct and
+  # gruvbox-kvantum from unstable so all three end up on the same
+  # qtbase ABI as Throne.
+  (final: _prev: let
+    pkgsUnstable = import inputs.nixpkgs-unstable {
+      inherit (final.stdenv.hostPlatform) system;
+      inherit (final) config;
+    };
+  in {
+    inherit (pkgsUnstable) throne gruvbox-kvantum;
+    qt6Packages =
+      _prev.qt6Packages
+      // {
+        inherit (pkgsUnstable.qt6Packages) qt6ct qtstyleplugin-kvantum;
+      };
+  })
+
   # Local package derivations.
   (final: _prev: {
     donutbrowser = final.callPackage ./donutbrowser {};

@@ -14,9 +14,10 @@
   # present (regular workspace OR special:*). Glyph stays in the
   # waybar `format` field so this script just toggles the CSS hook.
   #
-  # Background services do not count: clash-verge-service is always
-  # alive even when no GUI window exists, so probing the GUI class
-  # gives the right answer for "is the user-facing app open".
+  # Background services do not count: e.g. throne-core or telegram
+  # background fetchers may stay alive even when no GUI window
+  # exists, so probing the GUI class gives the right answer for
+  # "is the user-facing app open".
   app-status = pkgs.writeShellScriptBin "app-status" ''
     HYPRCTL="${pkgs.hyprland}/bin/hyprctl"
     JQ="${pkgs.jq}/bin/jq"
@@ -58,31 +59,33 @@
     fi
   '';
 
-  # ── Clash Verge toggle ──────────────────────────────────────────────
+  # ── Throne toggle ───────────────────────────────────────────────────
   # Same hide/show pattern as telegram-toggle but parked on
-  # special:clash. Mirrors the "minimize to tray" UX without a tray
+  # special:throne. Mirrors the "minimize to tray" UX without a tray
   # applet (Waybar has no tray module on this host). First click
-  # launches the GUI; subsequent clicks toggle visibility.
-  clash-toggle = pkgs.writeShellScriptBin "clash-toggle" ''
+  # launches the GUI through the throne-launch wrapper (sets
+  # QT_PLUGIN_PATH so Kvantum/qt6ct plugins from the user profile
+  # are visible to Throne 1.0.13's bundled qtbase-6.11); subsequent
+  # clicks toggle visibility. The window class is just `Throne`
+  # (capital T) — verified at runtime against `hyprctl clients`.
+  throne-toggle = pkgs.writeShellScriptBin "throne-toggle" ''
     HYPRCTL="${pkgs.hyprland}/bin/hyprctl"
     JQ="${pkgs.jq}/bin/jq"
 
-    win=$($HYPRCTL clients -j 2>/dev/null | $JQ -r '.[] | select(.class == "clash-verge") | "\(.address) \(.workspace.name)"' 2>/dev/null | head -1)
-
-    CLASH="${pkgs.clash-verge-rev}/bin/clash-verge"
+    win=$($HYPRCTL clients -j 2>/dev/null | $JQ -r '.[] | select(.class == "Throne") | "\(.address) \(.workspace.name)"' 2>/dev/null | head -1)
 
     if [ -z "$win" ]; then
-      $CLASH &
+      throne-launch &
       exit 0
     fi
 
     addr=$(echo "$win" | cut -d' ' -f1)
     ws=$(echo "$win" | cut -d' ' -f2-)
 
-    if [ "$ws" = "special:clash" ]; then
+    if [ "$ws" = "special:throne" ]; then
       $HYPRCTL dispatch movetoworkspace "+0,address:$addr"
     else
-      $HYPRCTL dispatch movetoworkspacesilent "special:clash,address:$addr"
+      $HYPRCTL dispatch movetoworkspacesilent "special:throne,address:$addr"
     fi
   '';
 
@@ -200,7 +203,7 @@ in {
     inherit
       app-status
       telegram-toggle
-      clash-toggle
+      throne-toggle
       spotify-toggle
       bluetooth-toggle
       network-toggle
@@ -212,7 +215,7 @@ in {
   home.packages = [
     app-status
     telegram-toggle
-    clash-toggle
+    throne-toggle
     spotify-toggle
     bluetooth-toggle
     network-toggle

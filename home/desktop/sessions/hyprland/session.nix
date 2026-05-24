@@ -43,11 +43,14 @@
     tray = {
       width = "45%";
       height = "75%";
-    }; # orbit, clash-verge
+    }; # orbit (legacy: was also used by clash-verge popup)
     app = {
-      width = "70%";
-      height = "80%";
-    }; # spotify and other client apps
+      # Roughly 1.5× smaller than the previous 70%×80% — Spotify
+      # and Throne both fit the calmer footprint without horizontal
+      # scrolling on their primary panes.
+      width = "50%";
+      height = "55%";
+    }; # spotify, throne, other client apps
     tool = {
       width = "80%";
       height = "65%";
@@ -436,9 +439,14 @@ in {
           class = "com.ayugram.desktop";
           category = popup.chat;
         })
+        # Throne (Xray/sing-box GUI) — popup.app sizing matches the
+        # spotify / pwvucontrol slot family (70%×80%). The class is
+        # bare `Throne` (capital T), verified at runtime against
+        # `hyprctl clients`. The toggle script (throne-toggle)
+        # parks the window on special:throne when hidden.
         ++ (mkPopup {
-          class = "clash-verge";
-          category = popup.tray;
+          class = "Throne";
+          category = popup.app;
         })
         # orbit (network + bluetooth) is a layer-shell applet, not a
         # toplevel client — it does not appear in `hyprctl clients`,

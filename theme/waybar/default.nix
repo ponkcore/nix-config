@@ -9,7 +9,7 @@
 # home/desktop/sessions/<name>/waybar.nix:
 #   - hyprland/workspaces  (Hyprland-only IPC source)
 #   - custom/telegram      (uses hyprctl special workspaces)
-#   - custom/clash         (uses hyprctl special workspaces)
+#   - custom/throne        (uses hyprctl special workspaces)
 #
 # Slots that depend on host hardware live in hosts/<name>/home/waybar.nix:
 #   - custom/battery       (Lecoo-aware: merges system battery with EC
@@ -44,7 +44,7 @@
     ++ lib.optionals hasHyprland [
       "custom/telegram"
       "custom/spotify"
-      "custom/clash"
+      "custom/throne"
       "custom/separator"
     ];
 
@@ -201,7 +201,7 @@ in {
 
       #tray, #clock, #cpu, #memory, #backlight,
       #network, #bluetooth, #pulseaudio, #idle_inhibitor,
-      #custom-nix, #custom-telegram, #custom-spotify, #custom-clash, #custom-bluetooth, #custom-cpu, #custom-battery, #custom-power,
+      #custom-nix, #custom-telegram, #custom-spotify, #custom-throne, #custom-bluetooth, #custom-cpu, #custom-battery, #custom-power,
       #group-volume, #group-brightness {
         min-width: 13px;
         margin-top: 2px;
@@ -213,7 +213,7 @@ in {
 
       #custom-telegram { font-size: 18px; color: @fg; }
       #custom-spotify  { font-size: 18px; color: @fg; }
-      #custom-clash    { font-size: 18px; color: @fg; }
+      #custom-throne   { font-size: 18px; color: @fg; }
 
       /* App-toggle running indicator — exec script (app-status,
          home/desktop/sessions/hyprland/scripts.nix) emits
@@ -233,7 +233,7 @@ in {
 
       #custom-telegram.running,
       #custom-spotify.running,
-      #custom-clash.running {
+      #custom-throne.running {
         animation: app-glow-pulse 2s ease-in-out infinite;
       }
 

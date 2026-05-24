@@ -6,6 +6,16 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-25.11";
 
+    # Cross-channel pull for individual packages whose stable
+    # release is regressed or behind upstream. Currently used for
+    # `throne`: nixos-25.11 ships 1.0.8-unstable-2025-10-29 with a
+    # broken v1 NixOS patch (TUN elevation does not actually work);
+    # nixos-unstable shipped 1.0.13 + corrected v2 patches in
+    # nixpkgs commit d380eba (2026-01-25). See ADR / journal entry
+    # for the rationale; remove this input once 25.11 receives the
+    # backport.
+    nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
+
     home-manager = {
       url = "github:nix-community/home-manager/release-25.11";
       inputs.nixpkgs.follows = "nixpkgs";

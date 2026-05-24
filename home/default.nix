@@ -63,6 +63,7 @@ in {
       ./ayugram.nix
       ./spotify.nix
       ./orbit.nix
+      ./throne.nix
       # Desktop dispatcher — pulls in compositor-agnostic theme plus the
       # session modules selected by the host's `desktops` list.
       ./desktop

@@ -54,14 +54,25 @@
     adwaita-icon-theme
   ];
 
-  # Clash Verge Rev — system-wide proxy with TUN. Not tied to a
-  # compositor; useful in any graphical session. Hosts that opt out
-  # of the desktop layer entirely (servers) won't import this file
-  # and so won't get clash-verge.
-  programs.clash-verge = {
+  # Throne (ex-Nekoray) — Qt6 sing-box GUI for the Xray protocol
+  # matrix (VLESS/Reality/VMess/Trojan/Hysteria/AnyTLS). Replaced
+  # clash-verge as the system proxy manager — Throne speaks more
+  # protocols out of the box and does not need a separate hardened
+  # systemd helper (its sing-box core runs as a child of the GUI
+  # under a security.wrappers binary).
+  #
+  # The TUN mode of Throne shells out to a `Core` binary that needs
+  # CAP_NET_ADMIN and CAP_NET_RAW; the setcap branch of
+  # `programs.throne` wraps it via security.wrappers (no SUID),
+  # matching the safer default. The polkit rule shipped by the
+  # NixOS module also auto-allows resolved DNS overrides for child
+  # processes carrying those caps, so DNS works without prompting.
+  #
+  # Throne 1.0.13 + matching qt6 plugins are pulled from
+  # nixos-unstable (see pkgs/default.nix) — the 25.11 channel
+  # ships 1.0.8 with a regressed v1 NixOS patch that breaks TUN.
+  programs.throne = {
     enable = true;
-    tunMode = true; # security.wrappers with cap_net_admin — TUN without sudo
-    serviceMode = true; # clash-verge-service as hardened systemd unit
-    autoStart = false; # manual launch only — user activates when needed
+    tunMode.enable = true; # setcap-based TUN; no sudo required at runtime
   };
 }

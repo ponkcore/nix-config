@@ -5,7 +5,7 @@
 #   - hyprland/workspaces  (Hyprland IPC workspaces module)
 #   - custom/telegram      (drives the telegram-toggle script)
 #   - custom/spotify       (drives the spotify-toggle script)
-#   - custom/clash         (drives the clash-toggle script)
+#   - custom/throne        (drives the throne-toggle script)
 #   - custom/bluetooth     (drives the bluetooth-toggle script)
 #   - network              (Hyprland on-click → network-toggle)
 #
@@ -15,7 +15,7 @@
   lib,
   app-status,
   telegram-toggle,
-  clash-toggle,
+  throne-toggle,
   spotify-toggle,
   bluetooth-toggle,
   network-toggle,
@@ -70,12 +70,19 @@
       tooltip = false;
     };
 
-    "custom/clash" = {
+    "custom/throne" = {
+      # Same glyph slot the previous custom/clash entry occupied —
+      # Font Awesome fa-key reads as a proxy / VPN signifier
+      # alongside the surrounding tray icons. The CSS hook
+      # `#custom-throne.running` handles active-state tint via the
+      # JSON class app-status returns. Throne reports its window
+      # class as `Throne` (capital T) — verified at runtime
+      # against `hyprctl clients`.
       format = "<span weight='heavy'></span>";
-      exec = "${app-status}/bin/app-status clash-verge";
+      exec = "${app-status}/bin/app-status Throne";
       return-type = "json";
       interval = 2;
-      on-click = "${clash-toggle}/bin/clash-toggle";
+      on-click = "${throne-toggle}/bin/throne-toggle";
       tooltip = false;
     };
 
