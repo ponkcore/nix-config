@@ -68,15 +68,30 @@
   # (parent: kr/*) and would just create duplicates in the model picker.
   #
   # Capability flags (verified live against
-  # GET https://omniroute.infinitycore.space:8443/v1/models on 2026-05-19):
+  # GET https://omniroute.infinitycore.space:8443/v1/models on 2026-05-19;
+  # context/output figures from kiro.dev official table, 2026-05-24):
   #
-  #   model            | vision | tool | reason | thinking | output |
-  #   ----------------- ------- ------ -------- ---------- --------
-  #   opus-4.7         |   ✓    |  ✓   |   ✓    |    ✓     |  128K  |
-  #   opus-4.6         |   ✓    |  ✓   |   ✓    |    —     |   8K   |
-  #   sonnet-4.6       |   ✓    |  ✓   |   ✓    |    —     |   8K   |
-  #   sonnet-4.5       |   ✓    |  ✓   |   ✓    |    —     |   8K   |
-  #   haiku-4.5        |   ✓    |  ✓   |   ✓    |    —     |   8K   |
+  #   model       | vision | tool | reason | thinking | context | output |
+  #   ----------- ------- ------ -------- ---------- --------- -------
+  #   opus-4.7    |   ✓    |  ✓   |   ✓    |    ✓     |    1M   |  128K  |
+  #   opus-4.6    |   ✓    |  ✓   |   ✓    |    —     |    1M   |  128K  |
+  #   sonnet-4.6  |   ✓    |  ✓   |   ✓    |    —     |    1M   |   64K  |
+  #   sonnet-4.5  |   ✓    |  ✓   |   ✓    |    —     |   200K  |   64K  |
+  #   haiku-4.5   |   ✓    |  ✓   |   ✓    |    —     |   200K  |   64K  |
+  #
+  # Why these values: OmniRoute's providerRegistry exposes a
+  # defaultContextLength of 200000 which @omniroute/opencode-provider
+  # propagates verbatim into opencode's per-model `limit.context` —
+  # but Kiro (the upstream proxy) accepts 1M for Opus and Sonnet 4.6/4.7
+  # via per-model overrides. Without raising the value here, opencode
+  # triggers compaction at ~87K (about 87% of 100K, opencode's prune
+  # threshold) instead of the expected 870K, and the user loses the
+  # entire benefit of the wider window.
+  #
+  # Output limits matter for compaction-induced regenerations: setting
+  # 8192 here forced the proxy to stream long replies in chunks even
+  # when Kiro itself supports 64K-128K. Aligning to the table above
+  # eliminates one source of fragmentation.
   #
   # opencode's per-model boolean flags map to: attachment (vision),
   # tool_call, reasoning, temperature. Extended thinking is a runtime
@@ -96,7 +111,7 @@
         id = "kr/claude-opus-4.7";
         name = "Claude Opus 4.7";
         limit = {
-          context = 200000;
+          context = 1000000;
           output = 128000;
         };
       };
@@ -106,8 +121,8 @@
         id = "kr/claude-opus-4.6";
         name = "Claude Opus 4.6";
         limit = {
-          context = 200000;
-          output = 8192;
+          context = 1000000;
+          output = 128000;
         };
       };
     "claude-sonnet-4.6" =
@@ -116,8 +131,8 @@
         id = "kr/claude-sonnet-4.6";
         name = "Claude Sonnet 4.6";
         limit = {
-          context = 200000;
-          output = 8192;
+          context = 1000000;
+          output = 64000;
         };
       };
     "claude-sonnet-4.5" =
@@ -127,7 +142,7 @@
         name = "Claude Sonnet 4.5";
         limit = {
           context = 200000;
-          output = 8192;
+          output = 64000;
         };
       };
     "claude-haiku-4.5" =
@@ -137,7 +152,7 @@
         name = "Claude Haiku 4.5";
         limit = {
           context = 200000;
-          output = 8192;
+          output = 64000;
         };
       };
   };
@@ -154,6 +169,20 @@
   opencodeJsonTemplate = builtins.toFile "opencode-template.json" (builtins.toJSON {
     "$schema" = "https://opencode.ai/config.json";
     autoupdate = false; # NixOS: updates only via flake lock + rebuild
+    # Compaction tuning — wider context windows above only help if
+    # opencode actually uses them before triggering automatic
+    # compaction. The default thresholds were calibrated for ~200K
+    # context; raising the per-model limits to 1M without these
+    # overrides leaves opencode prunning at ~87K (the default
+    # ~87% × 100K trigger). `reserved: 32000` also keeps a safety
+    # margin against Kiro's ~615KB payload hard-limit during the
+    # compaction request itself — without it, compaction can fail
+    # with "[400] Improperly formed request".
+    compaction = {
+      auto = true;
+      prune = true;
+      reserved = 32000;
+    };
     provider.omniroute = {
       npm = "@ai-sdk/openai-compatible";
       options = {
