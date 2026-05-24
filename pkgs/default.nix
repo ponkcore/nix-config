@@ -12,6 +12,37 @@
   # is regressed or behind upstream. Each entry is a single-package
   # rebind to nixos-unstable; the rest of the system stays on stable.
   #
+  # thunderbird 150 on Linux drops an empty `~/thunderbird/` directory
+  # at every cold start. This is upstream Bug 2007074 (REOPENED at
+  # time of writing): a regression from XDG basedir support landing
+  # (Bug 259356) where nsXREDirProvider::GetLegacyOrXDGHomePath calls
+  # EnsureDirectoryExists($HOME/thunderbird, 0700) in the XDG branch.
+  # Firefox is unaffected because it builds with gAppData->profile=NULL;
+  # Thunderbird sets MOZ_APP_PROFILE="thunderbird" on Linux and so
+  # hits the offending branch every cold start.
+  #
+  # The full upstream patch by mkmelin is in r=review on Phabricator
+  # (Bug 2007074 attachment 9588863, 2026-05-22) but has not landed
+  # in 150.0.x. The runtime opt-out MOZ_LEGACY_HOME=1 is also read by
+  # IsForceLegacyHome() and short-circuits the offending branch
+  # before EnsureDirectoryExists runs — profile resolution stays at
+  # ~/.thunderbird/<profile>/ exactly as today, and DBus IPC / mailto
+  # handlers / OAuth / extension installs are unaffected because they
+  # are not HOME-derived.
+  #
+  # Drop this overlay once Thunderbird 151 (with mkmelin's patch
+  # landed) reaches nixos-25.11 / nixos-unstable.
+  (_final: prev: {
+    thunderbird = prev.thunderbird.overrideAttrs (old: {
+      buildCommand =
+        (old.buildCommand or "")
+        + ''
+          wrapProgram "$out/bin/thunderbird" \
+            --set-default MOZ_LEGACY_HOME 1
+        '';
+    });
+  })
+
   # throne (1.0.8-unstable-2025-10-29 on 25.11): the v1 NixOS patch
   # injected by nixpkgs makes TUN mode unusable — the GUI shows
   # "Unable to elevate privileges when installed with Nix" because
