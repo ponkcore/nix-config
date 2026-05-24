@@ -101,8 +101,18 @@ in {
       # cold-boot paths — we hard-pin to avoid the drift. Fallback line
       # keeps any other monitor (HDMI dock, external DP) at preferred
       # mode and auto-position.
+      # `vrr` here applies globally as a default; per-monitor we
+      # override on the HDMI line below because the AOC 24G2W1G4
+      # over HDMI 1.4 advertises FreeSync but flickers / drops the
+      # signal when Hyprland actually drives VRR — disable it on
+      # that output specifically.
       monitor = [
         "eDP-1, 2880x1800@120, 0x0, 2"
+        # AOC 24G2W1G4: pin 1080p144 explicitly — `preferred` lands
+        # on 60 Hz from EDID's preferred timing block. `vrr, 0`
+        # disables FreeSync on this output (HDMI 1.4 + Hyprland VRR
+        # flickers / drops the signal on this panel).
+        "HDMI-A-1, 1920x1080@144, auto, 1, vrr, 0"
         ", preferred, auto, 1"
       ];
 
@@ -254,6 +264,19 @@ in {
         "$mainMod, mouse:273, resizewindow"
       ];
 
+      # Lid switch — DPMS-off the internal panel only. Going through
+      # `monitor disable` works but evacuates eDP-1's workspaces to
+      # HDMI and never moves them back; DPMS just blanks the panel
+      # while leaving the monitor object (and its workspaces) in
+      # place, so HDMI is untouched and reopening the lid restores
+      # everything exactly. logind already ignores lid events
+      # (HandleLidSwitch=ignore at the system level), so suspend
+      # never enters the picture either.
+      bindl = [
+        ", switch:on:Lid Switch, exec, hyprctl dispatch dpms off eDP-1"
+        ", switch:off:Lid Switch, exec, hyprctl dispatch dpms on eDP-1"
+      ];
+
       input = {
         kb_layout = "us,ru";
         kb_options = "grp:caps_toggle";
@@ -301,10 +324,33 @@ in {
         resize_on_border = true;
       };
 
-      # ── Smart gaps: no gaps/border when single tiled window ─────────────
-      # Maximizes usable area on a small 14" screen when focused on one app.
-      # w[tv1] = 1 tiled visible window; f[1] = 1 fullscreen window
+      # ── Workspace policy ───────────────────────────────────────────────
+      # Pin workspaces to monitors. The dominant use case is docked
+      # with the lid closed → HDMI is the primary surface and hosts
+      # ws 1-8 (`default:true` on ws1 makes it the boot landing
+      # workspace). eDP-1 hosts ws9 for ancillary tasks (chat,
+      # monitoring) when the lid is open. `persistent:true` keeps
+      # the workspaces alive even when empty so the per-monitor
+      # binding survives across re-plug events.
+      #
+      # When HDMI is absent (laptop on the move), Hyprland evacuates
+      # ws 1-8 to eDP-1 as fallback automatically; on re-plug the
+      # `persistent` flag pulls them back to HDMI.
+      #
+      # Smart-gaps rules (w[tv1], f[1]) below: no gaps/border when a
+      # single tiled or fullscreen window is visible — maximizes
+      # usable area on the 14" panel.
       workspace = [
+        "1, monitor:HDMI-A-1, default:true, persistent:true"
+        "2, monitor:HDMI-A-1, persistent:true"
+        "3, monitor:HDMI-A-1, persistent:true"
+        "4, monitor:HDMI-A-1, persistent:true"
+        "5, monitor:HDMI-A-1, persistent:true"
+        "6, monitor:HDMI-A-1, persistent:true"
+        "7, monitor:HDMI-A-1, persistent:true"
+        "8, monitor:HDMI-A-1, persistent:true"
+        "9, monitor:eDP-1, default:true, persistent:true"
+
         "w[tv1], gapsout:0, gapsin:0, border:false"
         "f[1], gapsout:0, gapsin:0, border:false"
       ];
