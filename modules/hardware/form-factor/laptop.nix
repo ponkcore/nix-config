@@ -49,9 +49,12 @@
     while sleep 1; do
       read -r _ state < "$LID" || continue
       if [ "$state" != "$prev" ]; then
+        # Target eDP-1 explicitly — bare `dpms off` blanks every
+        # output, which would also kill any external HDMI/DP screen
+        # the user is actively working on with the lid closed.
         case "$state" in
-          closed) "$HYPRCTL" dispatch dpms off || true ;;
-          open)   "$HYPRCTL" dispatch dpms on  || true ;;
+          closed) "$HYPRCTL" dispatch dpms off eDP-1 || true ;;
+          open)   "$HYPRCTL" dispatch dpms on  eDP-1 || true ;;
         esac
         prev="$state"
       fi
