@@ -59,6 +59,28 @@
   # actually working, also pull qtstyleplugin-kvantum, qt6ct and
   # gruvbox-kvantum from unstable so all three end up on the same
   # qtbase ABI as Throne.
+  #
+  # qtwayland is bound for the same ABI reason: 25.11 ships
+  # qtwayland 6.10.2, but Throne's qtbase is 6.11.0. We need
+  # an ABI-matched qtwayland on Throne's QT_PLUGIN_PATH so the
+  # Wayland QPA plugin finds its companion plugins (decoration
+  # client, graphics-integration-server) at runtime — without
+  # them Qt's Wayland init is not stable under Hyprland. The
+  # ABI-matched qtwayland is exposed under a dedicated attribute
+  # name (`throne-qtwayland`, NOT folded into qt6Packages —
+  # tainting that set with 6.11.0 qtwayland breaks sibling Qt
+  # apps like ayugram-desktop with "detected mismatched Qt
+  # dependencies"). home/throne.nix consumes it via runtime
+  # QT_PLUGIN_PATH and forces Throne onto Wayland with the
+  # `-platform wayland` argv (the env-var QT_QPA_PLATFORM is
+  # silently ignored by Throne 1.0.13 even when both plugins
+  # are present — see the comment in home/throne.nix).
+  # Getting Throne off XWayland was necessary to fix mixed-DPI
+  # popup sizing: on eDP-1 scale 2 + HDMI-A-1 scale 1, XWayland
+  # renders right-click context menus at the global X scale (=2)
+  # regardless of which monitor the window is on, producing
+  # popups that are bigger than the Throne window itself when
+  # the window sits on HDMI-A-1.
   (final: _prev: let
     pkgsUnstable = import inputs.nixpkgs-unstable {
       inherit (final.stdenv.hostPlatform) system;
@@ -71,6 +93,13 @@
       // {
         inherit (pkgsUnstable.qt6Packages) qt6ct qtstyleplugin-kvantum;
       };
+    # Throne-only: qtwayland-6.11.0 from unstable, exposed under
+    # a dedicated attribute so home/throne.nix can reach it without
+    # tainting the rest of the qt6Packages set (mixing 6.11.0
+    # qtwayland into 25.11's 6.10.2 Qt closure breaks builds — e.g.
+    # ayugram-desktop fails the qmake-finalize Qt-version sanity
+    # check with "detected mismatched Qt dependencies").
+    throne-qtwayland = pkgsUnstable.qt6Packages.qtwayland;
   })
 
   # Local package derivations.

@@ -8,8 +8,9 @@
 # What this module does:
 #
 # 1. Ships a small wrapper script `throne-launch` that launches the
-#    upstream `Throne` binary under native Wayland and with the
-#    user's qt-6 profile prepended to QT_PLUGIN_PATH.
+#    upstream `Throne` binary under native Wayland and with both the
+#    user's qt-6 profile and the unstable qtwayland-6.11.0 plugin
+#    tree prepended to QT_PLUGIN_PATH.
 #
 #    Why the QT_PLUGIN_PATH dance:
 #    The Throne binary in nixpkgs is wrapped with `makeCWrapper` to
@@ -23,6 +24,36 @@
 #    ~/.config/Kvantum/kvantum.kvconfig to the Gruvbox-Dark-Brown
 #    theme).
 #
+#    Why also prepend qtwayland's plugin tree:
+#    Throne is built against qtbase-6.11.0 (from unstable), but the
+#    upstream wrapper does not include qtwayland in its plugin path.
+#    Without an ABI-matched qtwayland's auxiliary plugins (decoration
+#    client, graphics-integration-server) Qt cannot stand up a full
+#    Wayland session reliably under Hyprland. So we prepend qtwayland
+#    explicitly. The unstable qtwayland-6.11.0 is exposed through
+#    pkgs/default.nix as `pkgs.throne-qtwayland` (a dedicated
+#    attribute, NOT folded into qt6Packages — that would mix 6.11.0
+#    qtwayland into 25.11's 6.10.2 Qt closure and break sibling Qt
+#    apps like ayugram-desktop via qmake-finalize's Qt-version sanity
+#    check). We surface it here as a runtime QT_PLUGIN_PATH addition
+#    for Throne only.
+#
+#    Why `-platform wayland` argv instead of QT_QPA_PLATFORM env:
+#    Setting `QT_QPA_PLATFORM=wayland;xcb` does not stick on Throne
+#    even when both plugins are visible — `QT_DEBUG_PLUGINS=1` shows
+#    Qt scanning libqxcb.so and libqwayland.so, then loading xcb
+#    without trying wayland at all. Other Qt6 apps in this profile
+#    (AyuGram, KeePassXC, Spotify) honour the env-var fallback chain
+#    fine; Throne 1.0.13 specifically does not. Passing the platform
+#    via the standard `-platform` Qt argument is parsed by the
+#    QGuiApplication constructor before app code can interfere, and
+#    works reliably. There is no xcb fallback, but on this box every
+#    session is Wayland anyway. On the mixed-DPI setup (eDP-1 scale
+#    2, HDMI-A-1 scale 1), getting Throne onto native Wayland was
+#    necessary to fix XWayland's "right-click menu rendered at the
+#    global X scale (=2) regardless of monitor" bug — context menus
+#    on HDMI-A-1 came out larger than the Throne window itself.
+#
 # 2. Overrides the .desktop entry to launch through this wrapper,
 #    so Hyprland's app launcher picks up the themed version.
 {
@@ -31,9 +62,8 @@
   ...
 }: let
   throne-launch = pkgs.writeShellScriptBin "throne-launch" ''
-    export QT_QPA_PLATFORM="wayland;xcb"
-    export QT_PLUGIN_PATH="${config.home.profileDirectory}/lib/qt-6/plugins''${QT_PLUGIN_PATH:+:$QT_PLUGIN_PATH}"
-    exec Throne "$@"
+    export QT_PLUGIN_PATH="${config.home.profileDirectory}/lib/qt-6/plugins:${pkgs.throne-qtwayland}/lib/qt-6/plugins''${QT_PLUGIN_PATH:+:$QT_PLUGIN_PATH}"
+    exec Throne -platform wayland "$@"
   '';
 in {
   home.packages = [throne-launch];
