@@ -1,9 +1,14 @@
 # idle.nix — Hyprland idle manager (hypridle).
-# Conditional timeouts depending on AC vs battery: longer screen-off
-# and suspend grace periods when plugged in. The on-battery helper is
-# supplied by the laptop form-factor profile (modules/hardware/
-# form-factor/laptop.nix) via _module.args so this session-level module
-# never reaches into /sys directly.
+# Conditional timeouts depending on AC vs battery. On battery we let
+# the box go to S3 to preserve charge. On AC we only blank the
+# screens — suspend on AC is intentionally disabled because Hyprland
+# 0.52.1 mis-recomputes floating-window coordinates and hyprlock
+# scale on resume from suspend in this multi-monitor setup
+# (eDP-1 @ scale 2, HDMI-A-1 @ scale 1), causing windows to fly
+# off-screen by ~one layout-width. The on-battery helper is supplied
+# by the laptop form-factor profile (modules/hardware/form-factor/
+# laptop.nix) via _module.args so this session-level module never
+# reaches into /sys directly.
 {on-battery, ...}: {
   services.hypridle = {
     enable = true;
@@ -26,16 +31,12 @@
           on-timeout = "hyprctl dispatch dpms off";
           on-resume = "hyprctl dispatch dpms on";
         }
-        # -- Battery: suspend at 25 min (10 min after screen off) --
+        # -- Battery: suspend at 30 min (15 min after screen off) --
         {
-          timeout = 1500;
+          timeout = 1800;
           on-timeout = "${on-battery}/bin/on-battery && systemctl suspend || true";
         }
-        # -- AC: suspend at 70 min (10 min after screen off) --
-        {
-          timeout = 4200;
-          on-timeout = "systemctl suspend";
-        }
+        # NOTE: AC suspend listener intentionally absent — see header.
       ];
     };
   };
