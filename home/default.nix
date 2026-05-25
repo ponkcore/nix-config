@@ -53,6 +53,7 @@ in {
       ./direnv.nix
       ./yazi.nix
       ./talos.nix
+      ./ssh.nix
     ]
     # ── Layer 2: Wayland-only modules — gated by desktops ───────────────
     ++ lib.optionals hasDesktop [
