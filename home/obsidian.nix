@@ -8,12 +8,14 @@
 # any per-app flag.
 #
 # Vault location:
-#   ~/Documents/notes/ — created on first activation, mode 0700 so
-#   the directory is owner-only. Syncthing picks it up by path
-#   (configured separately in modules/nixos/services.nix when needed).
-#   The first-launch wizard asks the user where to put the vault;
-#   pointing it at ~/Documents/notes/ keeps the layout symmetrical
-#   with KeePassXC's ~/Documents/secrets/vault.kdbx.
+#   ~/Documents/obsidian/ — container for multiple Obsidian vaults
+#   (one project per subdir). The first vault, "brain", lives at
+#   ~/Documents/obsidian/brain/ and is the one synced to the VPS via
+#   Syncthing (see modules/nixos/sync.nix folder "brain"). Both
+#   directories are created on first activation, mode 0700 so they
+#   are owner-only. The first-launch wizard asks where to put the
+#   vault; point it at ~/Documents/obsidian/brain. Layout is
+#   symmetrical with KeePassXC's ~/Documents/secrets/vault.kdbx.
 #
 # Settings — themes, community plugins, hotkeys — live INSIDE the
 # vault under <vault>/.obsidian/. That directory is the user's
@@ -34,10 +36,15 @@
 }: {
   home.packages = [pkgs.obsidian];
 
-  # Pre-create the notes directory so Syncthing has something to
-  # mount into on first activation. 700 — owner-only — same pattern
-  # as the secrets directory next to KeePassXC.
-  home.activation.ensureNotesDir = lib.hm.dag.entryAfter ["writeBoundary"] ''
-    install -d -m 700 "$HOME/Documents/notes"
+  # Pre-create the vault container and the first vault ("brain") so
+  # Syncthing has something to mount into on first activation. 700 —
+  # owner-only — same pattern as the secrets directory next to
+  # KeePassXC.
+  # install -d does not chmod existing directories; chmod runs after
+  # so manually-created directories get normalised to 0700 too.
+  home.activation.ensureObsidianDirs = lib.hm.dag.entryAfter ["writeBoundary"] ''
+    install -d -m 700 "$HOME/Documents/obsidian"
+    install -d -m 700 "$HOME/Documents/obsidian/brain"
+    chmod 700 "$HOME/Documents/obsidian" "$HOME/Documents/obsidian/brain"
   '';
 }
