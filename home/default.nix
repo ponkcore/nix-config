@@ -36,6 +36,7 @@ in {
       ./btop.nix
       ./cleanup.nix
       ./keepassxc.nix
+      ./obsidian.nix
       ./thunderbird.nix
 
       ./fastfetch.nix

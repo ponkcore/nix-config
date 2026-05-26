@@ -31,6 +31,9 @@
         # Terminal (for Terminal=true desktop entries like nvim)
         "x-scheme-handler/terminal" = "com.mitchellh.ghostty.desktop";
 
+        # Obsidian deep-links (obsidian://open?vault=… etc.)
+        "x-scheme-handler/obsidian" = "obsidian.desktop";
+
         # Text / code — all opened in Neovim
         "text/plain" = "nvim.desktop";
         "text/markdown" = "nvim.desktop";
