@@ -38,16 +38,6 @@ _: {
       # under 0.52.1; see journal/2026-05-25, journal/2026-05-26).
       rc = "recenter-floating";
       rca = "recenter-floating --all";
-
-      # Hyprland event-stream diagnostic logger. Manually toggled
-      # before stepping away from the box; correlates monitor /
-      # workspace events from .socket2.sock with floating-window
-      # snapshots written every 60s. Log goes to
-      # ~/.local/share/talos/hypr-events.log.
-      elog-on = "systemctl --user start talos-hypr-eventlog";
-      elog-off = "systemctl --user stop talos-hypr-eventlog";
-      elog-status = "systemctl --user status talos-hypr-eventlog";
-      elog-tail = "tail -f ~/.local/share/talos/hypr-events.log";
     };
 
     interactiveShellInit = ''

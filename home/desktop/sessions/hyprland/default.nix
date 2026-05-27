@@ -16,6 +16,5 @@
     ./paper.nix
     ./scripts.nix
     ./waybar.nix
-    ./event-logger.nix
   ];
 }
