@@ -81,6 +81,22 @@ _: {
       oc = ''
         cd /etc/nixos
       '';
+      # sshkey — print the three-line snippet for adding the local
+      # ed25519 public key to a remote host's ~/.ssh/authorized_keys.
+      # Optional argument: path to a different pubkey (defaults to
+      # ~/.ssh/id_ed25519.pub). Output is ready-to-paste into a
+      # remote shell over a fresh password session.
+      sshkey = ''
+        set -l pubfile (test -n "$argv[1]"; and echo $argv[1]; or echo "$HOME/.ssh/id_ed25519.pub")
+        if not test -f "$pubfile"
+          echo "ERROR: $pubfile not found" >&2
+          return 1
+        end
+        set -l pub (cat "$pubfile")
+        echo "install -d -m 700 ~/.ssh"
+        echo "echo '$pub' >> ~/.ssh/authorized_keys"
+        echo "chmod 600 ~/.ssh/authorized_keys"
+      '';
       # omo — launch opencode with oh-my-openagent plugin injected at runtime.
       # Reads ~/.config/opencode/opencode.json, adds the plugin to the array,
       # and passes the result via OPENCODE_CONFIG_CONTENT env var.
