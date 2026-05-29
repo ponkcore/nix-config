@@ -86,15 +86,32 @@
   #     On a single-user laptop running a Wayland session this is an
   #     acceptable trade for completely silent boot/shutdown.
   #
-  # Ordered after plymouth-quit-wait so Plymouth has finished its handoff
-  # before we tear down its underlying transport. multi-user.target gates
-  # the activation: the unbind never runs in emergency / rescue mode, so
-  # diagnostic shells stay readable.
+  # Ordered BEFORE plymouth-quit so the fbcon→VT transport is already
+  # severed by the time Plymouth releases the splash. The previous
+  # "after plymouth-quit-wait + multi-user.target" form left a ~220 ms
+  # window between Plymouth handoff and unbind during which the kernel
+  # console flushed any queued text frames to the panel — visible as a
+  # log flash before the greeter appeared. Plymouth paints exclusively
+  # via DRM, not vtcon (see plymouthd source / theme renderer), so
+  # detaching fbcon mid-splash does not affect the splash itself.
+  #
+  # ConditionKernelCommandLine guards keep the unbind from running on
+  # explicit rescue / emergency boots, preserving a usable diagnostic
+  # console in those modes. Runtime `systemctl rescue` is unaffected
+  # because the unit has already run and remains active (oneshot +
+  # RemainAfterExit); a re-isolated rescue.target does not retrigger it.
   systemd.services.silent-vt = {
     description = "Detach kernel console from framebuffer for silent boot";
-    after = ["plymouth-quit-wait.service" "multi-user.target"];
-    wantedBy = ["multi-user.target"];
-    unitConfig.ConditionPathExists = "/sys/class/vtconsole/vtcon1/bind";
+    after = ["plymouth-start.service"];
+    before = ["plymouth-quit.service"];
+    wantedBy = ["plymouth-quit.service"];
+    unitConfig = {
+      ConditionPathExists = "/sys/class/vtconsole/vtcon1/bind";
+      ConditionKernelCommandLine = [
+        "!systemd.unit=rescue.target"
+        "!systemd.unit=emergency.target"
+      ];
+    };
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
