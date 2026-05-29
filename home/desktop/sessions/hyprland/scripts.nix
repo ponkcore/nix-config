@@ -119,6 +119,35 @@
     fi
   '';
 
+  # ── Nautilus toggle ─────────────────────────────────────────────────
+  # Same special-workspace pattern as the other tray toggles. Nautilus
+  # on Wayland reports its app_id as `org.gnome.Nautilus` — verified
+  # at runtime against `hyprctl clients`. Parks on special:files when
+  # hidden. Subsequent launch invocations are DBus-routed to the
+  # existing instance by Nautilus itself, so re-launch is safe.
+  nautilus-toggle = pkgs.writeShellScriptBin "nautilus-toggle" ''
+    HYPRCTL="${pkgs.hyprland}/bin/hyprctl"
+    JQ="${pkgs.jq}/bin/jq"
+
+    win=$($HYPRCTL clients -j 2>/dev/null | $JQ -r '.[] | select(.class == "org.gnome.Nautilus") | "\(.address) \(.workspace.name)"' 2>/dev/null | head -1)
+
+    NAUTILUS="${pkgs.nautilus}/bin/nautilus"
+
+    if [ -z "$win" ]; then
+      $NAUTILUS &
+      exit 0
+    fi
+
+    addr=$(echo "$win" | cut -d' ' -f1)
+    ws=$(echo "$win" | cut -d' ' -f2-)
+
+    if [ "$ws" = "special:files" ]; then
+      $HYPRCTL dispatch movetoworkspace "+0,address:$addr"
+    else
+      $HYPRCTL dispatch movetoworkspacesilent "special:files,address:$addr"
+    fi
+  '';
+
   # ── KeePassXC toggle ────────────────────────────────────────────────
   # Same special-workspace pattern as throne-toggle / spotify-toggle.
   # KeePassXC's window class on Wayland is `org.keepassxc.KeePassXC`
@@ -336,6 +365,7 @@ in {
       throne-toggle
       spotify-toggle
       keepassxc-toggle
+      nautilus-toggle
       bluetooth-toggle
       network-toggle
       pwvucontrol-toggle
@@ -350,6 +380,7 @@ in {
     throne-toggle
     spotify-toggle
     keepassxc-toggle
+    nautilus-toggle
     bluetooth-toggle
     network-toggle
     pwvucontrol-toggle
