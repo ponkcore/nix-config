@@ -181,11 +181,13 @@ in {
         # the other tray toggles use.
         "$mainMod, E, exec, nautilus-open"
         "$mainMod, У, exec, nautilus-open"
-        # KeePassXC — K is taken by movefocus up (vim convention),
-        # so the password manager goes on Super+Shift+K. Mnemonic:
-        # K for Key / KeePass. RU dup keyed by L→Л.
-        "$mainMod SHIFT, K, exec, keepassxc-toggle"
-        "$mainMod SHIFT, Л, exec, keepassxc-toggle"
+        # KeePassXC — K (and shift+K, which Hyprland resolves to
+        # the same lowercase keycode) is already wired into the
+        # vim-style hjkl cluster (movefocus up / movewindow up),
+        # so any K-based combo collides at the keysym layer. Going
+        # with Super+Backslash instead — non-letter, isolated from
+        # both layouts, no conflict and no RU duplicate needed.
+        "$mainMod, backslash, exec, keepassxc-toggle"
         "$mainMod, Q, killactive"
         "$mainMod, Й, killactive"
         "$mainMod, V, togglefloating"
