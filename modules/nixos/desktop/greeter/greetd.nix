@@ -39,9 +39,26 @@ in {
   # ReGreet discovers sessions via XDG_DATA_DIRS.
   # The greetd systemd service does NOT source /etc/set-environment,
   # so we must inject XDG_DATA_DIRS explicitly.
+  #
+  # GTK_USE_PORTAL=0 + GDK_DEBUG=no-portals — suppress xdg-desktop-portal
+  # autostart inside the greeter session. xdg-desktop-portal-hyprland
+  # 1.3.11/1.3.12 reliably SEGVs in CCWlOutput::~CCWlOutput during atexit
+  # when cage exits: its global CPortalManager destructor sends Wayland
+  # destructor requests after wl_display_disconnect() has already poisoned
+  # the display object map (use-after-free hitting WL_ARRAY_POISON_PTR
+  # at 0x44). Upstream issue hyprwm/xdg-desktop-portal-hyprland#400 closed
+  # "not planned"; partial fix in v1.3.7 (commit fb9c8d6) covers only the
+  # toplevel proxy, not the broader teardown path. Regreet uses no portal
+  # services, so disabling GTK→portal IPC has no functional cost. Belt
+  # and braces: the two vars block GTK4's modern path (GTK_USE_PORTAL)
+  # and GDK's debug-controlled fallback (GDK_DEBUG=no-portals).
+  # Researched 2026-05-29 — see
+  # ~/Documents/talos-brain/researches/2026-05-29-xdg-desktop-portal-hyprland-segv-greeter-exit.result.md
   systemd.services.greetd = {
     environment = {
       XDG_DATA_DIRS = "${config.services.displayManager.sessionData.desktops}/share:/run/current-system/sw/share";
+      GTK_USE_PORTAL = "0";
+      GDK_DEBUG = "no-portals";
     };
     # Redirect greetd's stderr to journal instead of VT.
     # Prevents "waitpid: Holding login session N open" and similar
