@@ -93,7 +93,14 @@
     # warning instead. See decisions/0008-no-vision-on-omniroute.md
     # in talos-brain. Flip back to true once Angie is loosened or
     # gptme grows an image-URL flow.
-    models = { "kr/claude-opus-4.7" = { context = 1_000_000, max_output = 128_000, supports_vision = false, supports_reasoning = true }, "kr/claude-opus-4.6" = { context = 1_000_000, max_output = 128_000, supports_vision = false, supports_reasoning = true }, "kr/claude-sonnet-4.6" = { context = 200_000, max_output = 64_000, supports_vision = false, supports_reasoning = true }, "kr/claude-sonnet-4.5" = { context = 200_000, max_output = 64_000, supports_vision = false, supports_reasoning = true }, "kr/claude-haiku-4.5" = { context = 200_000, max_output = 64_000, supports_vision = false, supports_reasoning = true } }
+    # Combo router models (owned_by = "combo" in /v1/models). Omniroute
+    # picks the underlying model per request; per-tier limits mirror
+    # home/opencode.nix comboModels (operator-supplied tier table).
+    # Hermes/Talos combos intentionally omitted — not exposed to gptme.
+    # supports_vision is forced false on every combo for the same Angie
+    # 1 MiB cap reason as kr/claude-* — see decisions/0008-no-vision-
+    # on-omniroute.md. Flip when Angie loosens.
+    models = { "kr/claude-opus-4.7" = { context = 1_000_000, max_output = 128_000, supports_vision = false, supports_reasoning = true }, "kr/claude-opus-4.6" = { context = 1_000_000, max_output = 128_000, supports_vision = false, supports_reasoning = true }, "kr/claude-sonnet-4.6" = { context = 200_000, max_output = 64_000, supports_vision = false, supports_reasoning = true }, "kr/claude-sonnet-4.5" = { context = 200_000, max_output = 64_000, supports_vision = false, supports_reasoning = true }, "kr/claude-haiku-4.5" = { context = 200_000, max_output = 64_000, supports_vision = false, supports_reasoning = true }, "SSS-tier" = { context = 1_000_000, max_output = 64_000, supports_vision = false, supports_reasoning = true }, "SS-tier" = { context = 1_040_000, max_output = 100_000, supports_vision = false, supports_reasoning = true }, "S-tier" = { context = 200_000, max_output = 32_000, supports_vision = false, supports_reasoning = true }, "A-tier" = { context = 262_144, max_output = 32_000, supports_vision = false, supports_reasoning = true }, "B-tier" = { context = 128_000, max_output = 8_000, supports_vision = false, supports_reasoning = false } }
   '';
 
   # Fish function — defined as a separate file so home-manager picks

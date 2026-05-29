@@ -157,12 +157,80 @@
       };
   };
 
-  # Final omniroute model catalogue — Fireworks + Claude merged.
+  # Combo router models — omniroute picks the underlying model per
+  # request (owned_by = "combo" in /v1/models). Per-tier capability
+  # flags + window come from the operator-supplied tier table; no
+  # shared defaults because each tier has its own quirks (SS lacks
+  # temperature, B drops reasoning + attachment).
+  comboModels = {
+    "SSS-tier" = {
+      id = "SSS-tier";
+      name = "SSS — Premium Flagship";
+      limit = {
+        context = 1000000;
+        output = 64000;
+      };
+      reasoning = true;
+      attachment = true;
+      temperature = true;
+      tool_call = true;
+    };
+    "SS-tier" = {
+      id = "SS-tier";
+      name = "SS — GPT Reasoning";
+      limit = {
+        context = 1040000;
+        output = 100000;
+      };
+      reasoning = true;
+      attachment = true;
+      temperature = false;
+      tool_call = true;
+    };
+    "S-tier" = {
+      id = "S-tier";
+      name = "S — Mid Flagship";
+      limit = {
+        context = 200000;
+        output = 32000;
+      };
+      reasoning = true;
+      attachment = false;
+      temperature = true;
+      tool_call = true;
+    };
+    "A-tier" = {
+      id = "A-tier";
+      name = "A — Mixed (Opus + GPT + Kimi)";
+      limit = {
+        context = 262144;
+        output = 32000;
+      };
+      reasoning = true;
+      attachment = true;
+      temperature = true;
+      tool_call = true;
+    };
+    "B-tier" = {
+      id = "B-tier";
+      name = "B — Nano Fallback";
+      limit = {
+        context = 128000;
+        output = 8000;
+      };
+      reasoning = false;
+      attachment = false;
+      temperature = true;
+      tool_call = true;
+    };
+  };
+
+  # Final omniroute model catalogue — Fireworks + Claude + combo merged.
   # NOTE: this file is regenerated at every Home Manager activation.
   # Any models added manually to ~/.config/opencode/opencode.json will be
   # overwritten on the next rebuild. To add a model permanently, edit
   # this file and rebuild.
-  omnirouteModels = fireworksModels // claudeModels;
+  omnirouteModels = fireworksModels // claudeModels // comboModels;
 
   # JSON template stored in /nix/store. Contains placeholders, NOT real keys.
   # The activation script below substitutes apiKeys at runtime using jq.
@@ -214,93 +282,32 @@ in {
   xdg.configFile."opencode/oh-my-openagent.json" = {
     source = builtins.toFile "oh-my-openagent-config" (builtins.toJSON {
       "$schema" = "https://raw.githubusercontent.com/code-yeongyu/oh-my-openagent/dev/assets/oh-my-opencode.schema.json";
+      # All agents and categories temporarily routed to omniroute SSS-tier
+      # combo router. omniroute picks the underlying model per request,
+      # so per-agent variant/reasoningEffort knobs are dropped — the
+      # router owns those decisions. Re-stratify per-agent later.
       agents = {
-        # Sisyphus: GLM 5.1 — best agentic coder (Arena #18), stronger SWE-Pro,
-        # blind human-preference winner. Orchestrator context usually <200K.
-        sisyphus = {
-          model = "fireworks-ai/accounts/fireworks/models/glm-5p1";
-        };
-        # Hephaestus: DS V4 Pro — autonomous deep work needs reasoning plus
-        # long context (1M) and long output (164K).
-        hephaestus = {
-          model = "fireworks-ai/accounts/fireworks/models/deepseek-v4-pro";
-          variant = "max";
-          reasoningEffort = "high";
-          maxTokens = 32000;
-        };
-        # Atlas: GLM 5.1 — agentic coder + tool-use, fast orchestrator.
-        atlas = {
-          model = "fireworks-ai/accounts/fireworks/models/glm-5p1";
-        };
-        # Prometheus: DS V4 Pro — strategic planning = maximum reasoning.
-        prometheus = {
-          model = "fireworks-ai/accounts/fireworks/models/deepseek-v4-pro";
-          variant = "max";
-          reasoningEffort = "max";
-          maxTokens = 32000;
-        };
-        # Oracle: DS V4 Pro — architectural decisions need deep reasoning.
-        oracle = {
-          model = "fireworks-ai/accounts/fireworks/models/deepseek-v4-pro";
-          variant = "max";
-          reasoningEffort = "max";
-          maxTokens = 32000;
-        };
-        # Metis: GLM 5.1 — fast analytics, no need for heavy reasoning.
-        metis = {
-          model = "fireworks-ai/accounts/fireworks/models/glm-5p1";
-        };
-        # Momus: GLM 5.1 — plan critique, no need for heavy reasoning.
-        momus = {
-          model = "fireworks-ai/accounts/fireworks/models/glm-5p1";
-        };
-        # Explore: MiniMax M2.7 — cheapest scout.
-        explore = {
-          model = "fireworks-ai/accounts/fireworks/models/minimax-m2p7";
-          fallback_models = [
-            "fireworks-ai/accounts/fireworks/models/glm-5p1"
-            "fireworks-ai/accounts/fireworks/models/kimi-k2p6"
-          ];
-        };
-        # Librarian: Kimi K2.6 — web search + tool-use.
-        librarian = {
-          model = "fireworks-ai/accounts/fireworks/models/kimi-k2p6";
-          fallback_models = [
-            "fireworks-ai/accounts/fireworks/models/glm-5p1"
-            "fireworks-ai/accounts/fireworks/models/deepseek-v4-pro"
-          ];
-        };
-        sisyphus-junior = {
-          model = "fireworks-ai/accounts/fireworks/models/kimi-k2p6";
-        };
-        multimodal-looker = {
-          model = "fireworks-ai/accounts/fireworks/models/kimi-k2p6";
-        };
+        sisyphus.model = "omniroute/SSS-tier";
+        hephaestus.model = "omniroute/SSS-tier";
+        atlas.model = "omniroute/SSS-tier";
+        prometheus.model = "omniroute/SSS-tier";
+        oracle.model = "omniroute/SSS-tier";
+        metis.model = "omniroute/SSS-tier";
+        momus.model = "omniroute/SSS-tier";
+        explore.model = "omniroute/SSS-tier";
+        librarian.model = "omniroute/SSS-tier";
+        sisyphus-junior.model = "omniroute/SSS-tier";
+        multimodal-looker.model = "omniroute/SSS-tier";
       };
       categories = {
-        # ultrabrain: DS V4 Pro — complex logic needs maximum reasoning.
-        ultrabrain = {
-          model = "fireworks-ai/accounts/fireworks/models/deepseek-v4-pro";
-          variant = "max";
-          reasoningEffort = "max";
-        };
-        # deep: DS V4 Pro — autonomous deep solve.
-        deep = {
-          model = "fireworks-ai/accounts/fireworks/models/deepseek-v4-pro";
-          variant = "max";
-          reasoningEffort = "high";
-        };
-        visual-engineering.model = "fireworks-ai/accounts/fireworks/models/kimi-k2p6";
-        artistry.model = "fireworks-ai/accounts/fireworks/models/kimi-k2p6";
-        quick.model = "fireworks-ai/accounts/fireworks/models/minimax-m2p7";
-        # unspecified-high: DS V4 Pro — complex tasks without category.
-        unspecified-high = {
-          model = "fireworks-ai/accounts/fireworks/models/deepseek-v4-pro";
-          variant = "high";
-          reasoningEffort = "high";
-        };
-        unspecified-low.model = "fireworks-ai/accounts/fireworks/models/kimi-k2p6";
-        writing.model = "fireworks-ai/accounts/fireworks/models/glm-5p1";
+        ultrabrain.model = "omniroute/SSS-tier";
+        deep.model = "omniroute/SSS-tier";
+        visual-engineering.model = "omniroute/SSS-tier";
+        artistry.model = "omniroute/SSS-tier";
+        quick.model = "omniroute/SSS-tier";
+        unspecified-high.model = "omniroute/SSS-tier";
+        unspecified-low.model = "omniroute/SSS-tier";
+        writing.model = "omniroute/SSS-tier";
       };
       ralph_loop = {
         enabled = true;
