@@ -30,11 +30,36 @@ in {
   # cage's wlr_log_init() messages (libseat, DRM, EGL, GLES2) go to stderr
   # via greetd's terminal setup (NOT through systemd's StandardError).
   # This suppresses the ~0.5s VT flash between Plymouth quit and ReGreet render.
-  services.greetd.settings.default_session.command = lib.mkForce (
-    "${pkgs.bash}/bin/bash -c 'exec ${pkgs.dbus}/bin/dbus-run-session "
-    + "${lib.getExe pkgs.cage} ${lib.escapeShellArgs config.programs.regreet.cageArgs} "
-    + "-- ${lib.getExe config.programs.regreet.package} 2>/dev/null'"
-  );
+  #
+  # Multi-monitor handling: cage cannot mirror outputs nor restrict to a
+  # named output (cage 0.2.1 — see researches/2026-05-29-greetd-cage-
+  # multi-monitor-mirror.result.md). When a second display is attached at
+  # boot, cage spans the regreet window across the bounding box of every
+  # output, splitting the form. Workaround: a wrapper child of cage uses
+  # wlr-randr against the cage Wayland socket (cage advertises
+  # zwlr_output_manager_v1) to disable every output except eDP-1, then
+  # exec's regreet. Idempotent — non-existent outputs are no-ops with
+  # `|| true`. The brief (~100 ms) two-output flash before wlr-randr
+  # completes is acceptable; an architectural fix would be to swap cage
+  # for Hyprland-as-greeter (deferred — see decisions/ when filed).
+  services.greetd.settings.default_session.command = let
+    greeterWrapper = pkgs.writeShellScript "greeter-wrapper" ''
+      # Disable every connected output except the internal panel.
+      # Output names that do not exist on the current hardware are
+      # silently ignored — wlr-randr returns non-zero, suppressed by
+      # `|| true`. eDP-1 is the canonical internal panel name on
+      # AMD/Intel laptops; adjust if the host uses a different one.
+      for out in HDMI-A-1 HDMI-A-2 DP-1 DP-2 DP-3; do
+        ${lib.getExe pkgs.wlr-randr} --output "$out" --off 2>/dev/null || true
+      done
+      exec ${lib.getExe config.programs.regreet.package}
+    '';
+  in
+    lib.mkForce (
+      "${pkgs.bash}/bin/bash -c 'exec ${pkgs.dbus}/bin/dbus-run-session "
+      + "${lib.getExe pkgs.cage} ${lib.escapeShellArgs config.programs.regreet.cageArgs} "
+      + "-- ${greeterWrapper} 2>/dev/null'"
+    );
 
   # ReGreet discovers sessions via XDG_DATA_DIRS.
   # The greetd systemd service does NOT source /etc/set-environment,
