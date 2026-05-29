@@ -282,32 +282,49 @@ in {
   xdg.configFile."opencode/oh-my-openagent.json" = {
     source = builtins.toFile "oh-my-openagent-config" (builtins.toJSON {
       "$schema" = "https://raw.githubusercontent.com/code-yeongyu/oh-my-openagent/dev/assets/oh-my-opencode.schema.json";
-      # All agents and categories temporarily routed to omniroute SSS-tier
-      # combo router. omniroute picks the underlying model per request,
-      # so per-agent variant/reasoningEffort knobs are dropped — the
-      # router owns those decisions. Re-stratify per-agent later.
+      # Per-agent and per-category routing onto omniroute combo tiers.
+      # Tier table (operator-supplied) lives in comboModels above. The
+      # combo router picks the underlying model per request, so no
+      # per-agent variant/reasoningEffort knobs.
       agents = {
+        # Top tier — flagship reasoning + vision (when underlying allows).
         sisyphus.model = "omniroute/SSS-tier";
-        hephaestus.model = "omniroute/SSS-tier";
-        atlas.model = "omniroute/SSS-tier";
         prometheus.model = "omniroute/SSS-tier";
-        oracle.model = "omniroute/SSS-tier";
-        metis.model = "omniroute/SSS-tier";
-        momus.model = "omniroute/SSS-tier";
-        explore.model = "omniroute/SSS-tier";
-        librarian.model = "omniroute/SSS-tier";
-        sisyphus-junior.model = "omniroute/SSS-tier";
         multimodal-looker.model = "omniroute/SSS-tier";
+
+        # Second tier — heavy reasoning, GPT-flavoured.
+        hephaestus.model = "omniroute/SS-tier";
+        oracle.model = "omniroute/SS-tier";
+        momus.model = "omniroute/SS-tier";
+
+        # Mid flagship — fast, no attachments.
+        metis.model = "omniroute/S-tier";
+
+        # Mixed pool — Opus + GPT + Kimi rotation.
+        atlas.model = "omniroute/A-tier";
+        sisyphus-junior.model = "omniroute/A-tier";
+        librarian.model = "omniroute/A-tier";
+        explore.model = "omniroute/A-tier";
+
+        # Override agents (opencode built-ins overridden by oh-my-openagent).
+        build.model = "omniroute/SSS-tier";
+        OpenCode-Builder.model = "omniroute/SSS-tier";
+        plan.model = "omniroute/SS-tier";
       };
       categories = {
-        ultrabrain.model = "omniroute/SSS-tier";
-        deep.model = "omniroute/SSS-tier";
+        # Visual + creative + writing + unspecified-high → flagship.
         visual-engineering.model = "omniroute/SSS-tier";
         artistry.model = "omniroute/SSS-tier";
-        quick.model = "omniroute/SSS-tier";
         unspecified-high.model = "omniroute/SSS-tier";
-        unspecified-low.model = "omniroute/SSS-tier";
         writing.model = "omniroute/SSS-tier";
+
+        # Deep reasoning workloads → SS (GPT reasoning).
+        ultrabrain.model = "omniroute/SS-tier";
+        deep.model = "omniroute/SS-tier";
+
+        # Routine ↓ tier.
+        unspecified-low.model = "omniroute/A-tier";
+        quick.model = "omniroute/B-tier";
       };
       ralph_loop = {
         enabled = true;
