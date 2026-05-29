@@ -119,33 +119,18 @@
     fi
   '';
 
-  # ── Nautilus toggle ─────────────────────────────────────────────────
-  # Same special-workspace pattern as the other tray toggles. Nautilus
-  # on Wayland reports its app_id as `org.gnome.Nautilus` — verified
-  # at runtime against `hyprctl clients`. Parks on special:files when
-  # hidden. Subsequent launch invocations are DBus-routed to the
-  # existing instance by Nautilus itself, so re-launch is safe.
-  nautilus-toggle = pkgs.writeShellScriptBin "nautilus-toggle" ''
-    HYPRCTL="${pkgs.hyprland}/bin/hyprctl"
-    JQ="${pkgs.jq}/bin/jq"
-
-    win=$($HYPRCTL clients -j 2>/dev/null | $JQ -r '.[] | select(.class == "org.gnome.Nautilus") | "\(.address) \(.workspace.name)"' 2>/dev/null | head -1)
-
-    NAUTILUS="${pkgs.nautilus}/bin/nautilus"
-
-    if [ -z "$win" ]; then
-      $NAUTILUS &
-      exit 0
-    fi
-
-    addr=$(echo "$win" | cut -d' ' -f1)
-    ws=$(echo "$win" | cut -d' ' -f2-)
-
-    if [ "$ws" = "special:files" ]; then
-      $HYPRCTL dispatch movetoworkspace "+0,address:$addr"
-    else
-      $HYPRCTL dispatch movetoworkspacesilent "special:files,address:$addr"
-    fi
+  # ── Nautilus open (new window each time) ───────────────────────────
+  # Unlike the other tray toggles, Nautilus is bound as a "spawn a
+  # fresh window" action — file-manager UX is "I want another window
+  # to drag/drop into", not "hide/show one canonical window".
+  # `--new-window` forces a fresh top-level even when an existing
+  # Nautilus instance is alive (DBus-bridged single-instance mode is
+  # the default — without the flag the binding would just focus the
+  # existing window, which is the wrong UX here). The mkPopup rule
+  # for `org.gnome.Nautilus` in session.nix still floats / sizes /
+  # centres each new window the same way.
+  nautilus-open = pkgs.writeShellScriptBin "nautilus-open" ''
+    exec ${pkgs.nautilus}/bin/nautilus --new-window
   '';
 
   # ── KeePassXC toggle ────────────────────────────────────────────────
@@ -365,7 +350,7 @@ in {
       throne-toggle
       spotify-toggle
       keepassxc-toggle
-      nautilus-toggle
+      nautilus-open
       bluetooth-toggle
       network-toggle
       pwvucontrol-toggle
@@ -380,7 +365,7 @@ in {
     throne-toggle
     spotify-toggle
     keepassxc-toggle
-    nautilus-toggle
+    nautilus-open
     bluetooth-toggle
     network-toggle
     pwvucontrol-toggle

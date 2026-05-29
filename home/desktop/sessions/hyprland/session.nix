@@ -176,8 +176,11 @@ in {
         "$mainMod, Т, exec, throne-toggle"
         # Nautilus — E for Explorer (Windows / GNOME / KDE convention
         # for "open file manager"). Single keystroke, conflict-free.
-        "$mainMod, E, exec, nautilus-toggle"
-        "$mainMod, У, exec, nautilus-toggle"
+        # Spawns a fresh window each press; file-manager UX is "give
+        # me another pane to drag into", not the hide/show pattern
+        # the other tray toggles use.
+        "$mainMod, E, exec, nautilus-open"
+        "$mainMod, У, exec, nautilus-open"
         # KeePassXC — K is taken by movefocus up (vim convention),
         # so the password manager goes on Super+Shift+K. Mnemonic:
         # K for Key / KeePass. RU dup keyed by L→Л.
