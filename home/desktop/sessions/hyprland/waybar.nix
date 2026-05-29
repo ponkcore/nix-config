@@ -55,7 +55,7 @@
     };
 
     "custom/telegram" = {
-      format = "<span weight='heavy'></span>";
+      format = "<span weight='heavy'></span>";
       exec = "${app-status}/bin/app-status com.ayugram.desktop";
       return-type = "json";
       interval = 2;
@@ -64,7 +64,7 @@
     };
 
     "custom/spotify" = {
-      format = "<span weight='heavy'></span>";
+      format = "<span weight='heavy'></span>";
       exec = "${app-status}/bin/app-status spotify";
       return-type = "json";
       interval = 2;
@@ -73,14 +73,14 @@
     };
 
     "custom/throne" = {
-      # Glyph: nf-md-shield_lock (󰦝) — Throne is a VPN / Xray proxy
-      # GUI; the shield-with-lock reads as "secured tunnel" alongside
-      # the surrounding tray icons. Was previously fa-key (); that
-      # glyph moved to custom/keepassxc where it is a more accurate
-      # fit. CSS hook `#custom-throne.running` handles active-state
-      # tint via the JSON class app-status returns. Throne reports
-      # its window class as `Throne` (capital T) — verified at
-      # runtime against `hyprctl clients`.
+      # Glyph: nf-md-shield_lock — Throne is a VPN / Xray proxy GUI;
+      # the shield-with-lock reads as "secured tunnel" alongside the
+      # surrounding tray icons. Was previously fa-key; that glyph
+      # moved to custom/keepassxc where it is a more accurate fit.
+      # CSS hook `#custom-throne.running` handles active-state tint
+      # via the JSON class app-status returns. Throne reports its
+      # window class as `Throne` (capital T) — verified at runtime
+      # against `hyprctl clients`.
       format = "<span weight='heavy'>󰦝</span>";
       exec = "${app-status}/bin/app-status Throne";
       return-type = "json";
@@ -97,12 +97,13 @@
       # `hyprctl clients`. CSS hook `#custom-keepassxc.running`
       # handles the active-state pulse via the JSON class
       # app-status returns when a KeePassXC window is present.
-      # Note: with MinimizeOnClose=true (our seed default) the
-      # window may be tray-hidden but absent from `hyprctl clients`;
-      # in that state the indicator goes dark and the toggle script
-      # re-launches keepassxc, which DBus-restores the existing
-      # instance instead of spawning a second one.
-      format = "<span weight='heavy'></span>";
+      # Note: with MinimizeOnClose=true (our seed default in
+      # home/keepassxc.nix) the close button parks the window into
+      # the tray — in that state the class is absent from
+      # `hyprctl clients`, so the next click re-launches keepassxc,
+      # which DBus-restores the existing instance instead of
+      # spawning a second process.
+      format = "<span weight='heavy'></span>";
       exec = "${app-status}/bin/app-status org.keepassxc.KeePassXC";
       return-type = "json";
       interval = 2;
@@ -111,7 +112,7 @@
     };
 
     "custom/bluetooth" = {
-      format = "<span weight='heavy'></span>";
+      format = "<span weight='heavy'></span>";
       on-click = "${bluetooth-toggle}/bin/bluetooth-toggle";
       tooltip = false;
     };
