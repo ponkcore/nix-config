@@ -119,6 +119,38 @@
     fi
   '';
 
+  # ── KeePassXC toggle ────────────────────────────────────────────────
+  # Same special-workspace pattern as throne-toggle / spotify-toggle.
+  # KeePassXC's window class on Wayland is `org.keepassxc.KeePassXC`
+  # (verified at runtime against `hyprctl clients`). With
+  # MinimizeOnClose=true (our seed default in home/keepassxc.nix) the
+  # close button parks the window into the system tray — in that
+  # state the class is absent from `hyprctl clients`, so the next
+  # click here re-launches keepassxc, which DBus-restores the
+  # existing instance instead of spawning a second process.
+  keepassxc-toggle = pkgs.writeShellScriptBin "keepassxc-toggle" ''
+    HYPRCTL="${pkgs.hyprland}/bin/hyprctl"
+    JQ="${pkgs.jq}/bin/jq"
+
+    win=$($HYPRCTL clients -j 2>/dev/null | $JQ -r '.[] | select(.class == "org.keepassxc.KeePassXC") | "\(.address) \(.workspace.name)"' 2>/dev/null | head -1)
+
+    KEEPASSXC="${pkgs.keepassxc}/bin/keepassxc"
+
+    if [ -z "$win" ]; then
+      $KEEPASSXC &
+      exit 0
+    fi
+
+    addr=$(echo "$win" | cut -d' ' -f1)
+    ws=$(echo "$win" | cut -d' ' -f2-)
+
+    if [ "$ws" = "special:keepassxc" ]; then
+      $HYPRCTL dispatch movetoworkspace "+0,address:$addr"
+    else
+      $HYPRCTL dispatch movetoworkspacesilent "special:keepassxc,address:$addr"
+    fi
+  '';
+
   # ── orbit toggle (bluetooth tab) ────────────────────────────────────
   # Bluetooth tile in Waybar shares the Orbit popup with the Wi-Fi
   # tile — `--tab bluetooth` jumps straight to the Bluetooth panel.
@@ -303,6 +335,7 @@ in {
       telegram-toggle
       throne-toggle
       spotify-toggle
+      keepassxc-toggle
       bluetooth-toggle
       network-toggle
       pwvucontrol-toggle
@@ -316,6 +349,7 @@ in {
     telegram-toggle
     throne-toggle
     spotify-toggle
+    keepassxc-toggle
     bluetooth-toggle
     network-toggle
     pwvucontrol-toggle

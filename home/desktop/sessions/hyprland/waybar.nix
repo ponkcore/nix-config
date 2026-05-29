@@ -6,6 +6,7 @@
 #   - custom/telegram      (drives the telegram-toggle script)
 #   - custom/spotify       (drives the spotify-toggle script)
 #   - custom/throne        (drives the throne-toggle script)
+#   - custom/keepassxc     (drives the keepassxc-toggle script)
 #   - custom/bluetooth     (drives the bluetooth-toggle script)
 #   - network              (Hyprland on-click → network-toggle)
 #
@@ -17,6 +18,7 @@
   telegram-toggle,
   throne-toggle,
   spotify-toggle,
+  keepassxc-toggle,
   bluetooth-toggle,
   network-toggle,
   pwvucontrol-toggle,
@@ -53,7 +55,7 @@
     };
 
     "custom/telegram" = {
-      format = "<span weight='heavy'></span>";
+      format = "<span weight='heavy'></span>";
       exec = "${app-status}/bin/app-status com.ayugram.desktop";
       return-type = "json";
       interval = 2;
@@ -62,7 +64,7 @@
     };
 
     "custom/spotify" = {
-      format = "<span weight='heavy'></span>";
+      format = "<span weight='heavy'></span>";
       exec = "${app-status}/bin/app-status spotify";
       return-type = "json";
       interval = 2;
@@ -71,14 +73,15 @@
     };
 
     "custom/throne" = {
-      # Same glyph slot the previous custom/clash entry occupied —
-      # Font Awesome fa-key reads as a proxy / VPN signifier
-      # alongside the surrounding tray icons. The CSS hook
-      # `#custom-throne.running` handles active-state tint via the
-      # JSON class app-status returns. Throne reports its window
-      # class as `Throne` (capital T) — verified at runtime
-      # against `hyprctl clients`.
-      format = "<span weight='heavy'></span>";
+      # Glyph: nf-md-shield_lock (󰦝) — Throne is a VPN / Xray proxy
+      # GUI; the shield-with-lock reads as "secured tunnel" alongside
+      # the surrounding tray icons. Was previously fa-key (); that
+      # glyph moved to custom/keepassxc where it is a more accurate
+      # fit. CSS hook `#custom-throne.running` handles active-state
+      # tint via the JSON class app-status returns. Throne reports
+      # its window class as `Throne` (capital T) — verified at
+      # runtime against `hyprctl clients`.
+      format = "<span weight='heavy'>󰦝</span>";
       exec = "${app-status}/bin/app-status Throne";
       return-type = "json";
       interval = 2;
@@ -86,8 +89,29 @@
       tooltip = false;
     };
 
+    "custom/keepassxc" = {
+      # Glyph: fa-key (), inherited from the previous custom/throne
+      # slot — reads as "password manager" / "credentials". The
+      # window class on Wayland is the lowercase reverse-DNS
+      # `org.keepassxc.KeePassXC`, verified at runtime against
+      # `hyprctl clients`. CSS hook `#custom-keepassxc.running`
+      # handles the active-state pulse via the JSON class
+      # app-status returns when a KeePassXC window is present.
+      # Note: with MinimizeOnClose=true (our seed default) the
+      # window may be tray-hidden but absent from `hyprctl clients`;
+      # in that state the indicator goes dark and the toggle script
+      # re-launches keepassxc, which DBus-restores the existing
+      # instance instead of spawning a second one.
+      format = "<span weight='heavy'></span>";
+      exec = "${app-status}/bin/app-status org.keepassxc.KeePassXC";
+      return-type = "json";
+      interval = 2;
+      on-click = "${keepassxc-toggle}/bin/keepassxc-toggle";
+      tooltip = false;
+    };
+
     "custom/bluetooth" = {
-      format = "<span weight='heavy'></span>";
+      format = "<span weight='heavy'></span>";
       on-click = "${bluetooth-toggle}/bin/bluetooth-toggle";
       tooltip = false;
     };

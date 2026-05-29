@@ -459,6 +459,15 @@ in {
           class = "spotify";
           category = popup.app;
         })
+        # KeePassXC — same `app` size category as Spotify/Throne
+        # (50%×55%). Class is the lowercase reverse-DNS form
+        # `org.keepassxc.KeePassXC`, verified at runtime against
+        # `hyprctl clients`. The toggle script (keepassxc-toggle)
+        # parks the window on special:keepassxc when hidden.
+        ++ (mkPopup {
+          class = "org.keepassxc.KeePassXC";
+          category = popup.app;
+        })
         ++ (mkPopup {
           class = "org.gnome.Nautilus";
           category = popup.app;

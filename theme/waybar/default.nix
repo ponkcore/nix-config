@@ -45,6 +45,7 @@
       "custom/telegram"
       "custom/spotify"
       "custom/throne"
+      "custom/keepassxc"
       "custom/separator"
     ];
 
@@ -201,7 +202,7 @@ in {
 
       #tray, #clock, #cpu, #memory, #backlight,
       #network, #bluetooth, #pulseaudio, #idle_inhibitor,
-      #custom-nix, #custom-telegram, #custom-spotify, #custom-throne, #custom-bluetooth, #custom-cpu, #custom-battery, #custom-power,
+      #custom-nix, #custom-telegram, #custom-spotify, #custom-throne, #custom-keepassxc, #custom-bluetooth, #custom-cpu, #custom-battery, #custom-power,
       #group-volume, #group-brightness {
         min-width: 13px;
         margin-top: 2px;
@@ -211,9 +212,10 @@ in {
 
       #custom-nix { font-size: 18px; }
 
-      #custom-telegram { font-size: 18px; color: @fg; }
-      #custom-spotify  { font-size: 18px; color: @fg; }
-      #custom-throne   { font-size: 18px; color: @fg; }
+      #custom-telegram  { font-size: 18px; color: @fg; }
+      #custom-spotify   { font-size: 18px; color: @fg; }
+      #custom-throne    { font-size: 18px; color: @fg; }
+      #custom-keepassxc { font-size: 18px; color: @fg; }
 
       /* App-toggle running indicator — exec script (app-status,
          home/desktop/sessions/hyprland/scripts.nix) emits
@@ -233,7 +235,8 @@ in {
 
       #custom-telegram.running,
       #custom-spotify.running,
-      #custom-throne.running {
+      #custom-throne.running,
+      #custom-keepassxc.running {
         animation: app-glow-pulse 2s ease-in-out infinite;
       }
 
