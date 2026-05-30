@@ -121,6 +121,58 @@
     };
   };
 
+  # silent-vt-keep — closes the second log-flash window observed on
+  # 2026-05-30. After silent-vt unbinds vtcon1, two later events re-bind
+  # fbcon to amdgpudrmfb and flash queued console output to the panel:
+  #
+  #   1. plymouth-quit → greeter compositor handoff (cage's `-s` flag
+  #      issues VT_ACTIVATE; the kernel re-binds fbcon to whatever
+  #      framebuffer is primary).
+  #   2. greeter compositor exit → user Hyprland startup (libseat
+  #      session take-over via logind triggers the same path).
+  #
+  # Each re-bind flushes any pending /dev/console writes that systemd /
+  # systemd-logind / D-Bus accumulated since the last unbind. Visible
+  # as a brief log flash before the greeter or before the desktop.
+  #
+  # The keeper polls /sys/class/vtconsole/vtcon1/bind twice per second
+  # for 120 seconds (covers both handoffs with plenty of margin) and
+  # writes 0 whenever the kernel re-binds it. Cost: ~240 read syscalls
+  # over the boot. After 120 s the keeper exits — by then the system
+  # is in steady state and no more compositor handoffs occur until
+  # logout/shutdown.
+  #
+  # On rescue / emergency boots the unit does not run (same condition
+  # as silent-vt) so a usable console is preserved.
+  systemd.services.silent-vt-keep = {
+    description = "Keep VT framebuffer console unbound during compositor handoffs";
+    after = ["plymouth-quit.service"];
+    wantedBy = ["plymouth-quit.service"];
+    unitConfig = {
+      ConditionPathExists = "/sys/class/vtconsole/vtcon1/bind";
+      ConditionKernelCommandLine = [
+        "!systemd.unit=rescue.target"
+        "!systemd.unit=emergency.target"
+      ];
+    };
+    serviceConfig = {
+      Type = "simple";
+      ExecStart = pkgs.writeShellScript "silent-vt-keep" ''
+        for _ in $(seq 1 240); do
+          if [ -e /sys/class/vtconsole/vtcon1/bind ] \
+             && [ "$(cat /sys/class/vtconsole/vtcon1/bind)" = "1" ]; then
+            echo 0 > /sys/class/vtconsole/vtcon1/bind
+          fi
+          sleep 0.5
+        done
+      '';
+      Restart = "no";
+      StandardOutput = "null";
+      StandardError = "null";
+      Nice = 10;
+    };
+  };
+
   # Suppress console output during shutdown. systemd-shutdown's internal
   # bump_sysctl_printk_log_level overrides boot.consoleLogLevel, so we
   # zero printk one-shot right before shutdown.target activates. Defence-

@@ -4,81 +4,181 @@
 # "gnome". GNOME hosts use gdm instead (see ./gdm.nix when added).
 # Selection happens in ../default.nix based on the active session set.
 #
-# greetd runs cage as a Wayland kiosk; cage in turn runs ReGreet (GTK4)
-# which presents the login form. Custom CSS in extraCss themes the
-# greeter using the gruvbox palette directly imported from lib/.
+# ── On the choice of compositor for the greeter session ──────────────
+#
+# greetd needs a Wayland compositor to host ReGreet. Two viable hosts
+# exist on a NixOS system that already runs Hyprland:
+#
+#   cage (kiosk compositor, 0.2.x)
+#     - cannot mirror outputs
+#     - cannot restrict to a named output without external wlr-randr
+#     - cage's `-s` flag (VT switching) issues VT_ACTIVATE during
+#       startup, which re-binds vtcon1 to fbcon and flashes any queued
+#       kernel/systemd output onto the panel after silent-vt unbind
+#     - atexit teardown triggers xdg-desktop-portal-hyprland SEGV
+#       (CCWlOutput dtor after wl_display poison) — see #400 closed
+#       "not planned"
+#
+#   Hyprland kiosk (already installed for the user session)
+#     - native `mirror` directive: HDMI-A-1 displays a copy of eDP-1
+#       at the HDMI's resolution (handles 2880x1800@2 → 1920x1080@1)
+#     - clean exit via greetd → no portal autostart, no atexit dance
+#     - libseat/logind session take-over does NOT issue VT_ACTIVATE
+#       on its own; the VT remains under fbcon-detached state from
+#       silent-vt + silent-vt-keep
+#     - zero closure delta — Hyprland is already in the system
+#
+# Decision (2026-05-30): swap cage for Hyprland-as-greeter. Solves
+# the multi-monitor "regreet appears only on eDP-1, drifts to HDMI-A-1
+# after ~5 seconds" bug architecturally. Also closes the second
+# log-flash window (cage's VT_ACTIVATE) at the source.
+#
+# Research backing: researches/2026-05-29-greetd-multi-monitor-mirror-
+# alternatives.result.md — Hyprland + regreet rated #1 candidate.
 {
   config,
   lib,
   pkgs,
   ...
 }: let
-  # Palette — shared via lib/palette.nix. Path is one level deeper now
-  # that this file lives under modules/nixos/desktop/greeter/.
+  # Palette — shared via lib/palette.nix.
   p = import ../../../../lib/palette.nix;
+
+  # ── Hyprland greeter kiosk config ────────────────────────────────
+  # Minimal Hyprland configuration for the greeter session. Hosts
+  # exactly one window (regreet) and exits when regreet exits.
+  #
+  # Monitor strategy:
+  #   - eDP-1 is the source of truth. Native 2880x1800 at scale 2
+  #     (logical 1440x900) — matches the user-session config so
+  #     regreet renders identically.
+  #   - HDMI-A-1 mirrors eDP-1 via Hyprland's native `mirror` arg.
+  #     The mirrored output renders the source's framebuffer scaled
+  #     to fit the HDMI's 1920x1080 — no separate workspace, no
+  #     bounding-box drift, no wlr-randr race.
+  #   - Catch-all line for any future external display: also mirror
+  #     eDP-1 by default (safer than extending and getting a blank
+  #     half-screen on an unexpected DP/USB-C dock).
+  #
+  # No keybinds (the greeter has no use for compositor-level binds —
+  # ReGreet handles its own keyboard input). No animations, no
+  # decoration, no wallpaper inside the compositor (regreet renders
+  # its own background from /etc/greetd/wallpaper.jpg).
+  greeterHyprlandConfig = pkgs.writeText "greeter-hyprland.conf" ''
+    # Monitors — mirror every external output to the internal panel.
+    monitor = eDP-1, preferred, 0x0, 2
+    monitor = HDMI-A-1, preferred, auto, 1, mirror, eDP-1
+    monitor = , preferred, auto, 1, mirror, eDP-1
+
+    # Input — match user session (US/RU with caps_toggle) so the
+    # operator types into the password field with the same layout
+    # they use in the desktop session.
+    input {
+      kb_layout = us,ru
+      kb_options = grp:caps_toggle
+      repeat_rate = 50
+      repeat_delay = 300
+    }
+
+    # No window decoration / animation / gaps. The greeter is one
+    # full-window GTK app — no compositor chrome around it.
+    general {
+      border_size = 0
+      gaps_in = 0
+      gaps_out = 0
+      no_focus_fallback = true
+    }
+
+    decoration {
+      rounding = 0
+      shadow {
+        enabled = false
+      }
+      blur {
+        enabled = false
+      }
+    }
+
+    animations {
+      enabled = false
+    }
+
+    misc {
+      disable_hyprland_logo = true
+      disable_splash_rendering = true
+      force_default_wallpaper = 0
+      vfr = true
+      # Disable Hyprland's own QoL warnings — the greeter session
+      # is throwaway and does not need them.
+      disable_autoreload = true
+    }
+
+    # No user keybinds. The greeter has none. Ctrl+Alt+F1..F6 still
+    # works (kernel VT switching is independent of compositor binds).
+
+    # Window rule — make the regreet window fullscreen and centered.
+    # `regreet` advertises app_id = "regreet" via GTK4. Without this
+    # rule Hyprland would tile it; the greeter expects a single
+    # full-screen presentation.
+    windowrulev2 = fullscreen, class:^(regreet)$
+    windowrulev2 = noborder, class:^(regreet)$
+
+    # Launch sequence:
+    #   1. regreet runs synchronously (we do NOT exec-once because
+    #      we want to know when it exits)
+    #   2. when regreet exits, dispatch exit → Hyprland tears down →
+    #      greetd starts the user session
+    exec-once = ${lib.getExe config.programs.regreet.package} && hyprctl dispatch exit
+  '';
+
+  # Greeter wrapper script — runs Hyprland with the kiosk config and
+  # silences stderr so wlroots/Aquamarine init noise (DRM, EGL, GLES2,
+  # libseat) never reaches the controlling tty during the brief
+  # window between the greetd service start and Hyprland's DRM
+  # take-over.
+  #
+  # We bypass UWSM here on purpose. UWSM is a user-session lifecycle
+  # manager; the greeter is a system-level throwaway compositor that
+  # should not register with the user systemd instance. Calling
+  # /run/current-system/sw/bin/Hyprland directly avoids the UWSM
+  # service-template overhead and keeps the exit path simple.
+  greeterScript = pkgs.writeShellScript "greeter-hyprland-kiosk" ''
+    exec /run/current-system/sw/bin/Hyprland \
+      --config ${greeterHyprlandConfig} \
+      2>/dev/null
+  '';
 in {
   # greetd — minimal display manager backend
   services.greetd = {
     enable = true;
-    # Smooth Plymouth→greeter handoff: ReGreet handles Plymouth quit itself
+    # Smooth Plymouth → greeter handoff: ReGreet handles Plymouth
+    # quit itself.
     greeterManagesPlymouth = true;
-    # No autologin — user must enter password
+    # No autologin — user must enter password.
     restart = true;
   };
 
-  # Silent greeter: redirect cage/wlroots stderr to /dev/null.
-  # cage's wlr_log_init() messages (libseat, DRM, EGL, GLES2) go to stderr
-  # via greetd's terminal setup (NOT through systemd's StandardError).
-  # This suppresses the ~0.5s VT flash between Plymouth quit and ReGreet render.
-  #
-  # Multi-monitor handling: cage cannot mirror outputs nor restrict to a
-  # named output (cage 0.2.1 — see researches/2026-05-29-greetd-cage-
-  # multi-monitor-mirror.result.md). When a second display is attached at
-  # boot, cage spans the regreet window across the bounding box of every
-  # output, splitting the form. Workaround: a wrapper child of cage uses
-  # wlr-randr against the cage Wayland socket (cage advertises
-  # zwlr_output_manager_v1) to disable every output except eDP-1, then
-  # exec's regreet. Idempotent — non-existent outputs are no-ops with
-  # `|| true`. The brief (~100 ms) two-output flash before wlr-randr
-  # completes is acceptable; an architectural fix would be to swap cage
-  # for Hyprland-as-greeter (deferred — see decisions/ when filed).
-  services.greetd.settings.default_session.command = let
-    greeterWrapper = pkgs.writeShellScript "greeter-wrapper" ''
-      # Disable every connected output except the internal panel.
-      # Output names that do not exist on the current hardware are
-      # silently ignored — wlr-randr returns non-zero, suppressed by
-      # `|| true`. eDP-1 is the canonical internal panel name on
-      # AMD/Intel laptops; adjust if the host uses a different one.
-      for out in HDMI-A-1 HDMI-A-2 DP-1 DP-2 DP-3; do
-        ${lib.getExe pkgs.wlr-randr} --output "$out" --off 2>/dev/null || true
-      done
-      exec ${lib.getExe config.programs.regreet.package}
-    '';
-  in
-    lib.mkForce (
-      "${pkgs.bash}/bin/bash -c 'exec ${pkgs.dbus}/bin/dbus-run-session "
-      + "${lib.getExe pkgs.cage} ${lib.escapeShellArgs config.programs.regreet.cageArgs} "
-      + "-- ${greeterWrapper} 2>/dev/null'"
-    );
+  # Hyprland kiosk as the greeter compositor. dbus-run-session is
+  # required so regreet's GTK4 stack has a session bus to talk to
+  # (gnome-keyring, accountsservice). bash -c keeps the redirect
+  # syntax clean.
+  services.greetd.settings.default_session.command = lib.mkForce (
+    "${pkgs.bash}/bin/bash -c '"
+    + "exec ${pkgs.dbus}/bin/dbus-run-session ${greeterScript}"
+    + "'"
+  );
 
   # ReGreet discovers sessions via XDG_DATA_DIRS.
   # The greetd systemd service does NOT source /etc/set-environment,
   # so we must inject XDG_DATA_DIRS explicitly.
   #
-  # GTK_USE_PORTAL=0 + GDK_DEBUG=no-portals — suppress xdg-desktop-portal
-  # autostart inside the greeter session. xdg-desktop-portal-hyprland
-  # 1.3.11/1.3.12 reliably SEGVs in CCWlOutput::~CCWlOutput during atexit
-  # when cage exits: its global CPortalManager destructor sends Wayland
-  # destructor requests after wl_display_disconnect() has already poisoned
-  # the display object map (use-after-free hitting WL_ARRAY_POISON_PTR
-  # at 0x44). Upstream issue hyprwm/xdg-desktop-portal-hyprland#400 closed
-  # "not planned"; partial fix in v1.3.7 (commit fb9c8d6) covers only the
-  # toplevel proxy, not the broader teardown path. Regreet uses no portal
-  # services, so disabling GTK→portal IPC has no functional cost. Belt
-  # and braces: the two vars block GTK4's modern path (GTK_USE_PORTAL)
-  # and GDK's debug-controlled fallback (GDK_DEBUG=no-portals).
-  # Researched 2026-05-29 — see
-  # ~/Documents/talos-brain/researches/2026-05-29-xdg-desktop-portal-hyprland-segv-greeter-exit.result.md
+  # GTK_USE_PORTAL=0 + GDK_DEBUG=no-portals — suppress
+  # xdg-desktop-portal autostart inside the greeter session.
+  # xdg-desktop-portal-hyprland 1.3.11/1.3.12 SEGVs in
+  # CCWlOutput::~CCWlOutput during atexit. With Hyprland-as-greeter
+  # we do not exhibit cage's exit fragility, but xdph autostart on
+  # GTK app boot would still spin up an unnecessary portal stack
+  # for a 2-second login session. Researched 2026-05-29.
   systemd.services.greetd = {
     environment = {
       XDG_DATA_DIRS = "${config.services.displayManager.sessionData.desktops}/share:/run/current-system/sw/share";
@@ -86,21 +186,14 @@ in {
       GDK_DEBUG = "no-portals";
     };
     # Redirect greetd's stderr to journal instead of VT.
-    # Prevents "waitpid: Holding login session N open" and similar
-    # diagnostic messages from leaking onto the console.
     serviceConfig.StandardError = "journal";
   };
 
-  # ReGreet — GTK4 greetd frontend running inside cage (Wayland kiosk)
+  # ReGreet — GTK4 greetd frontend (now hosted by Hyprland, not cage)
   programs.regreet = {
     enable = true;
-    # cage -s: allow VT switching (needed for SysRq / TTY escape)
-    cageArgs = ["-s"];
 
     # Gruvbox-Dark GTK — consistent with HM gtk.theme.
-    # Use gruvbox-gtk-theme (has gtk-4.0 assets) over the older
-    # gruvbox-dark-gtk (gtk-2.0/3.0 only) so ReGreet renders without
-    # falling back to default Adwaita colours.
     theme = {
       name = "Gruvbox-Dark";
       package = pkgs.gruvbox-gtk-theme;
@@ -113,9 +206,7 @@ in {
       name = "Capitaine Cursors (Gruvbox)";
       package = pkgs.capitaine-cursors-themed;
     };
-    # UI font — match the rest of the system (mako uses the same).
-    # 11pt Cantarell rendered tiny on the laptop's HiDPI panel; Noto
-    # Sans 14 is the canonical desktop UI font for this config.
+    # UI font — match the rest of the system.
     font = {
       name = "Noto Sans";
       size = 14;
@@ -125,7 +216,6 @@ in {
     # regreet.toml — background + GTK settings
     settings = {
       background = {
-        # Wallpaper accessible to greeter user (installed via environment.etc below)
         path = "/etc/greetd/wallpaper.jpg";
         fit = "Cover";
       };
@@ -142,7 +232,7 @@ in {
       };
     };
 
-    # CSS — style the login box, clock, and buttons
+    # CSS — style the login box, clock, and buttons.
     extraCss =
       /*
       CSS
@@ -272,14 +362,13 @@ in {
       '';
   };
 
-  # Wallpaper accessible to the greeter user
+  # Wallpaper accessible to the greeter user.
   # Home dir is mode 700 — greeter cannot read /home/oonishi/.local/share/...
-  # so we install a system-level copy at /etc/greetd/wallpaper.png
-  # Source: tracked in repo at assets/wallpaper.png (flake pure-eval compatible)
+  # so we install a system-level copy at /etc/greetd/wallpaper.jpg.
   environment.etc."greetd/wallpaper.jpg".source = ../../../../assets/wallpaper.jpg;
 
-  # greeter user — required by regreet module assertion
-  # greetd runs the greeter session under this system user
+  # greeter user — required by regreet module assertion.
+  # greetd runs the greeter session under this system user.
   users.users.greeter = {
     isSystemUser = true;
     group = "greeter";
