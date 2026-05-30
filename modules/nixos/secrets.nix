@@ -5,7 +5,9 @@
 # NixOS module reads `/etc/ssh/ssh_host_ed25519_key` automatically.
 #
 # Adding a new secret:
-#   1. Encrypt: cd secrets && agenix -e <name>.age   (interactive)
+#   1. Encrypt:
+#        - interactive editor: `cd secrets && agenix -e <name>.age`
+#        - non-interactive seed: `agenix-seed <name>.age <plaintext>`
 #   2. List its public keys in secrets/secrets.nix.
 #   3. Add an `age.secrets.<name>` block here.
 #   4. Reference `config.age.secrets.<name>.path` from the consumer.
@@ -14,7 +16,94 @@
   pkgs,
   username,
   ...
-}: {
+}: let
+  # agenix-seed — non-interactive (re-)write of an .age secret from a
+  # plaintext file on disk. Wraps `rage -e` directly, recipients are
+  # auto-derived from secrets/secrets.nix, the same way `agenix -e`
+  # does it. Use cases:
+  #   - bootstrapping a new secret without manually opening $EDITOR
+  #   - automating rotation in CI / cron / scripts
+  #   - sidestepping the `agenix -e + EDITOR=cp` race that hangs
+  #     non-interactive runs (observed 2026-05-30, see brain journal)
+  #
+  # Usage: agenix-seed <basename>.age <plaintext-path>
+  # Example: agenix-seed tokens.age ./tokens.txt
+  agenix-seed = pkgs.writeShellApplication {
+    name = "agenix-seed";
+    runtimeInputs = with pkgs; [rage gnused];
+    text = ''
+      set -euo pipefail
+
+      if [ "$#" -ne 2 ]; then
+        cat >&2 <<EOF
+      Usage: agenix-seed <basename>.age <plaintext-path>
+
+      Reads the plaintext from <plaintext-path>, encrypts it for every
+      recipient declared in secrets/secrets.nix under the basename's
+      'publicKeys' entry, and writes the result to that same .age file.
+
+      Run from /etc/nixos/secrets/ (any cwd works as long as
+      secrets.nix sits next to the target .age).
+      EOF
+        exit 1
+      fi
+
+      target="$1"
+      seed="$2"
+
+      if [ ! -r "$seed" ]; then
+        echo "agenix-seed: cannot read plaintext file '$seed'" >&2
+        exit 2
+      fi
+
+      # Resolve directory holding secrets.nix. The user normally runs
+      # this from /etc/nixos/secrets/, but we also accept absolute or
+      # relative paths to .age files outside that dir.
+      target_dir="$(dirname "$target")"
+      if [ "$target_dir" = "." ]; then
+        target_dir="$PWD"
+      fi
+      basename="$(basename "$target")"
+
+      if [ ! -r "$target_dir/secrets.nix" ]; then
+        echo "agenix-seed: $target_dir/secrets.nix not found." >&2
+        echo "  Run this from the directory containing secrets.nix" >&2
+        echo "  (typically /etc/nixos/secrets/)." >&2
+        exit 3
+      fi
+
+      # Use nix-instantiate to evaluate publicKeys for the basename.
+      # Mirrors what `agenix -e` does internally.
+      readarray -t recipients < <(
+        nix-instantiate --eval --strict --json -E "
+          (let rules = import $target_dir/secrets.nix;
+           in rules.\"$basename\".publicKeys)
+        " 2>/dev/null \
+          | sed -e 's/^\[//' -e 's/\]$//' -e 's/","/\n/g' -e 's/^"//' -e 's/"$//'
+      )
+
+      if [ "''${#recipients[@]}" -eq 0 ] || [ -z "''${recipients[0]:-}" ]; then
+        echo "agenix-seed: no publicKeys found for '$basename' in" >&2
+        echo "  $target_dir/secrets.nix" >&2
+        exit 4
+      fi
+
+      # Build the rage -r argument list.
+      args=()
+      for r in "''${recipients[@]}"; do
+        args+=(-r "$r")
+      done
+
+      out="$target_dir/$basename"
+      tmp="$(mktemp --tmpdir agenix-seed.XXXXXX)"
+      trap 'rm -f "$tmp"' EXIT
+
+      rage -e "''${args[@]}" -o "$tmp" < "$seed"
+      mv -f "$tmp" "$out"
+      echo "agenix-seed: wrote $out (recipients: ''${#recipients[@]})"
+    '';
+  };
+in {
   imports = [inputs.agenix.nixosModules.default];
 
   age = {
@@ -33,8 +122,9 @@
     };
   };
 
-  # agenix CLI available system-wide for `agenix -e` workflow.
+  # agenix CLI + agenix-seed wrapper available system-wide.
   environment.systemPackages = [
     inputs.agenix.packages.${pkgs.stdenv.hostPlatform.system}.default
+    agenix-seed
   ];
 }
