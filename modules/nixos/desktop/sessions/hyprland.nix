@@ -30,7 +30,7 @@
 #                                 hyprland-quiet alone.
 #
 #   hyprland-uwsm-silent        — replaces the .desktop entry that
-#                                 ReGreet reads from XDG_DATA_DIRS.
+#                                 nwg-hello reads from XDG_DATA_DIRS.
 #                                 Without this, the greeter launches
 #                                 the upstream verbose entry that
 #                                 calls `uwsm start hyprland-uwsm`

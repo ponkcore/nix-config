@@ -108,8 +108,8 @@
   #   - The post-greeter handoff. xdg-desktop-portal-hyprland's verbose
   #     interface registration log goes to journald (the user-units route
   #     stdout/stderr there), but anything that DOES escape to /dev/console
-  #     during the brief window between cage exit and Hyprland's DRM
-  #     take-over no longer reaches the panel.
+  #     during the brief window between sway-kiosk exit and Hyprland's
+  #     DRM take-over no longer reaches the panel.
   #   - The shutdown unmount diagnostics. systemd-shutdown (PID 1, after
   #     journald is gone) writes via kmsg + /dev/console; with vtcon1
   #     unbound those writes go nowhere visible.
@@ -117,7 +117,7 @@
   # What still works:
   #   - Plymouth: paints via DRM directly, not through vtcon — unaffected.
   #   - Hyprland: Wayland → DRM, no VT dependency — unaffected.
-  #   - greetd + cage: Wayland kiosk — unaffected.
+  #   - greetd + sway-kiosk + nwg-hello: Wayland greeter — unaffected.
   #   - journald: every message remains addressable via journalctl.
   #   - KERN_EMERG / kernel panics: bypass console_loglevel and the vtcon
   #     binding via emergency_write_handler; still reach the panel.
@@ -167,9 +167,9 @@
   # 2026-05-30. After silent-vt unbinds vtcon1, two later events re-bind
   # fbcon to amdgpudrmfb and flash queued console output to the panel:
   #
-  #   1. plymouth-quit → greeter compositor handoff (cage's `-s` flag
-  #      issues VT_ACTIVATE; the kernel re-binds fbcon to whatever
-  #      framebuffer is primary).
+  #   1. plymouth-quit → greeter compositor handoff (sway opens its
+  #      DRM backend on the active VT; the kernel re-binds fbcon to
+  #      whatever framebuffer is primary).
   #   2. greeter compositor exit → user Hyprland startup (libseat
   #      session take-over via logind triggers the same path).
   #

@@ -17,7 +17,7 @@
     isNormalUser = true;
     # Host-agnostic default — host modules override with the real
     # display name (e.g. hosts/lecoo/default.nix sets "Oonishi"). The
-    # GECOS field surfaces in greeters (ReGreet, gdm) and `finger`.
+    # GECOS field surfaces in greeters (nwg-hello, gdm) and `finger`.
     description = lib.mkDefault "Primary user";
     extraGroups = [
       "wheel"

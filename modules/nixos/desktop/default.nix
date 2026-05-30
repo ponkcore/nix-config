@@ -34,7 +34,8 @@ in {
     # ++ lib.optionals (has "niri")     [ ./sessions/niri.nix     ]
     # ++ lib.optionals (has "gnome")    [ ./sessions/gnome.nix    ]
     # Greeter selection — gdm wins iff GNOME is active, otherwise
-    # greetd + ReGreet handles all sessions (Hyprland, niri, …).
+    # greetd + sway-kiosk + nwg-hello handles all sessions
+    # (Hyprland, niri, …).
     ++ lib.optionals (desktops != [] && !(has "gnome")) [./greeter/greetd.nix];
   # ++ lib.optionals (has "gnome")                       [ ./greeter/gdm.nix    ];
 }

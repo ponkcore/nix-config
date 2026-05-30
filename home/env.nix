@@ -7,9 +7,9 @@
 # the values just means two places to keep in sync.
 #
 # Compositor-level env (Hyprland's `env = [...]`) is also separate:
-# greetd → cage → uwsm starts with an empty environment, so the
-# compositor needs explicit declarations regardless of what HM emits
-# into ~/.config/hm-session-vars.sh.
+# greetd → sway-kiosk (nwg-hello) → uwsm starts with an empty
+# environment, so the compositor needs explicit declarations
+# regardless of what HM emits into ~/.config/hm-session-vars.sh.
 _: {
   home.sessionVariables = {
     EDITOR = "nvim";

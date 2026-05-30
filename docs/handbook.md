@@ -506,7 +506,7 @@ existing sessions.
    ```
 
 6. **Build + verify** — `nix flake check && rebuild-test`.
-   At login, the greeter (greetd + ReGreet) shows both sessions
+   At login, the greeter (greetd + nwg-hello) shows both sessions
    in its dropdown; select "niri" once to try it.
 
 ### Notes

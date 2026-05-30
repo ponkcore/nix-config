@@ -60,7 +60,7 @@ modules/
     desktop/                 Wayland desktop stack
       default.nix
       hyprland.nix           Hyprland + UWSM + quiet wrappers + portals
-      display.nix            greetd + ReGreet (cage Wayland kiosk)
+      display.nix            greetd + nwg-hello (sway Wayland kiosk)
   hardware/                  Opt-in hardware-class profiles
     cpu/amd.nix              amd_pstate, microcode, kvm-amd, IOMMU
     gpu/amd.nix              amdgpu, Mesa, VAAPI, VDPAU bridge

@@ -45,8 +45,8 @@
   # The option is host-specific because the EC chip is platform-specific.
   services.lecoo-ctrl.enable = true;
 
-  # Real display name for the primary user. Surfaces in ReGreet and
-  # any tool reading the GECOS field. Universal users.nix only sets
-  # a host-agnostic default ("Primary user").
+  # Real display name for the primary user. Surfaces in nwg-hello
+  # and any tool reading the GECOS field. Universal users.nix only
+  # sets a host-agnostic default ("Primary user").
   users.users.${username}.description = "Oonishi";
 }

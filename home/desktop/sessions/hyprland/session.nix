@@ -563,8 +563,9 @@ in {
 
       # ── Misc (disable default wallpaper/splash, enable VRR) ─────────────
       # Without these, Hyprland briefly shows its default blue wallpaper + logo
-      # between ReGreet exit and hyprpaper startup. background_color matches
-      # our palette bg so the transition is seamless (black → bg → wallpaper).
+      # between greeter (sway+nwg-hello) exit and hyprpaper startup.
+      # background_color matches our palette bg so the transition is seamless
+      # (black → bg → wallpaper).
       # vrr = 1: enable Adaptive-Sync on fullscreen content only — eliminates
       # tearing on video / games without flicker on static desktop content.
       # The Lecoo Pro 14 panel reports adaptive-sync support via EDID; on a

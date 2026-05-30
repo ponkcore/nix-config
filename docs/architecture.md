@@ -139,8 +139,9 @@ behaviour for sessions the host has not selected, and adding a new
 session is a folder-scale change with no edits to existing sessions.
 
 Greeter selection is automatic: `gdm` if `gnome ∈ desktops`, otherwise
-`greetd + ReGreet`. A host with an empty (or missing) `desktops` list
-gets nothing from the desktop layer — useful for headless / VM hosts.
+`greetd + sway-kiosk + nwg-hello`. A host with an empty (or missing)
+`desktops` list gets nothing from the desktop layer — useful for
+headless / VM hosts.
 
 ## Inputs (flake.nix)
 
@@ -199,7 +200,7 @@ Authorisation list is `secrets/secrets.nix`. Both the host SSH host key
 ## Desktop stack (Hyprland session, current)
 
 ```
-greetd → cage (Wayland kiosk) → ReGreet (GTK4 greeter)
+greetd → sway (Wayland kiosk) → nwg-hello (GTK3 greeter)
                                        │
                                        ▼
                                      UWSM
@@ -263,7 +264,7 @@ Layer 2 (web/banking/notes/2FA) lives in the KeePass vault. Layer 3
 | `.hm-backup` cleanup | `home/cleanup.nix` |
 | Desktop session dispatcher (system) | `modules/nixos/desktop/default.nix` |
 | Desktop session dispatcher (user) | `home/desktop/default.nix` |
-| greetd / ReGreet styling | `modules/nixos/desktop/greeter/greetd.nix` |
+| greetd / nwg-hello styling | `modules/nixos/desktop/greeter/greetd.nix` |
 | Hyprland system enable + UWSM | `modules/nixos/desktop/sessions/hyprland.nix` |
 | Hyprland user config | `home/desktop/sessions/hyprland/` |
 | Gruvbox palette source | `lib/palette.nix` |
