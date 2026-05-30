@@ -131,6 +131,21 @@
     command = "${uvx-bin}"
     args = ["mcp-nixos"]
 
+    # mcp-nix — felixdorn/mcp-nix. Second-layer Nix MCP that
+    # complements mcp-nixos by exposing what mcp-nixos doesn't:
+    # derivation source code (read_derivation), option declaration
+    # files with line numbers (read_option_declaration), search
+    # across ecosystem modules outside core nixpkgs (sops-nix,
+    # disko, impermanence, microvm, nixos-hardware, nix-nomad,
+    # simple-nixos-mailserver), and Nix stdlib lookups (Noogle).
+    # Decision rule between the two — see SOUL.md §9.
+    # Same uvx pattern as mcp-nixos.
+    [[mcp.servers]]
+    name = "nix"
+    enabled = true
+    command = "${uvx-bin}"
+    args = ["mcp-nix"]
+
     # context7 — Upstash hosted documentation lookup. HTTP remote;
     # X-Context7-API-Key auth. Pulls up-to-date library/framework
     # docs into the LLM context. Useful when working with libraries
