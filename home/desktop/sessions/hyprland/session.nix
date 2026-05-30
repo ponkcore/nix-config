@@ -504,6 +504,16 @@ in {
           class = "com.mitchellh.ghostty-term";
           category = popup.tool;
         })
+        # nvim — own ghostty class so the editor floats at the same
+        # 80%×65% TUI footprint as btop / rebuild / term, instead of
+        # tiling under the dwindle layout. Spawn with
+        # `ghostty --class=com.mitchellh.ghostty-nvim -e nvim` (no
+        # keybind yet — invoked manually or wired into a launcher
+        # entry later).
+        ++ (mkPopup {
+          class = "com.mitchellh.ghostty-nvim";
+          category = popup.tool;
+        })
         ++ (mkPopup {
           class = "mpv";
           category = popup.media;

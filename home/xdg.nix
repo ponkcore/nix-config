@@ -1,10 +1,56 @@
 # xdg.nix — XDG user dirs + MIME associations.
 # Default browser = Firefox; default text/code editor = Neovim
-# (Terminal=true desktop entries fork a Ghostty via xdg-terminal-exec —
-# package added in theme/ghostty.nix).
+# (launched directly inside a uniquely-classed Ghostty so the
+# Hyprland popup.tool window-rule floats it — see desktopEntries
+# below; the dedicated class avoids spawning a tiled terminal via
+# xdg-terminal-exec / com.mitchellh.ghostty.desktop).
 {config, ...}: {
   xdg = {
     enable = true;
+
+    # Override the upstream nvim.desktop (Terminal=true → forks via
+    # xdg-terminal-exec → ghostty.desktop → no unique class → tiles)
+    # with a launcher that spawns ghostty with the
+    # `com.mitchellh.ghostty-nvim` class directly. The matching
+    # window-rule in home/desktop/sessions/hyprland/session.nix
+    # floats this class at popup.tool size (80%×65%). Used by
+    # Nautilus when opening text/code files; in-terminal `nvim` is
+    # untouched and stays inline.
+    desktopEntries.nvim = {
+      name = "Neovim wrapper";
+      genericName = "Text Editor";
+      comment = "Edit text files";
+      icon = "nvim";
+      # `-e nvim` invokes the editor inside ghostty; `--` passes the
+      # remaining argv to nvim verbatim, so `nvim.desktop %F` lands
+      # the selected file paths as nvim arguments.
+      exec = "ghostty --class=com.mitchellh.ghostty-nvim -e nvim -- %F";
+      terminal = false;
+      categories = ["Utility" "TextEditor"];
+      startupNotify = false;
+      mimeType = [
+        "text/english"
+        "text/plain"
+        "text/x-makefile"
+        "text/x-c++hdr"
+        "text/x-c++src"
+        "text/x-chdr"
+        "text/x-csrc"
+        "text/x-java"
+        "text/x-moc"
+        "text/x-pascal"
+        "text/x-tcl"
+        "text/x-tex"
+        "application/x-shellscript"
+        "text/x-c"
+        "text/x-c++"
+      ];
+      # Keywords mirror upstream so rofi search still resolves.
+      settings = {
+        Keywords = "Text;editor;";
+        TryExec = "ghostty";
+      };
+    };
 
     userDirs = {
       enable = true;
