@@ -36,6 +36,17 @@
   # to the native flake binary (input is already wired in flake.nix).
   uvx-bin = "${pkgs.uv}/bin/uvx";
 
+  # mcp-nix requires Python ≥3.13 and gptme's runtime is Python
+  # 3.12, so we have to give uvx an explicit interpreter. uv would
+  # otherwise auto-download a generic-linux CPython 3.13 from
+  # python-build-standalone, which fails on NixOS (the binary is
+  # dynamically linked against /lib64/ld-linux* that NixOS does not
+  # provide). Pinning uvx at the Nix-built python313 sidesteps both
+  # the version mismatch and the loader incompatibility. Path
+  # interpolated via Nix so the closure tracks python313 and the
+  # pin survives channel updates.
+  python313-bin = "${pkgs.python313}/bin/python3.13";
+
   # TOML template living in /nix/store — apiKey / baseUrl are
   # placeholders, replaced at activation time using values read from
   # /run/agenix/tokens. The `.toml` literal itself is safe to commit
@@ -139,12 +150,18 @@
     # disko, impermanence, microvm, nixos-hardware, nix-nomad,
     # simple-nixos-mailserver), and Nix stdlib lookups (Noogle).
     # Decision rule between the two — see SOUL.md §9.
-    # Same uvx pattern as mcp-nixos.
+    #
+    # `--python ${python313-bin}` is mandatory: mcp-nix requires
+    # Python ≥3.13 (gptme's interpreter is 3.12, would fail uv's
+    # version resolver) and uv's auto-download path picks up a
+    # generic-linux build that NixOS cannot run (dynamic loader
+    # mismatch). Pointing uvx at the Nix-built python313 fixes
+    # both — see python313-bin in the let-block above.
     [[mcp.servers]]
     name = "nix"
     enabled = true
     command = "${uvx-bin}"
-    args = ["mcp-nix"]
+    args = ["--python", "${python313-bin}", "mcp-nix"]
 
     # context7 — Upstash hosted documentation lookup. HTTP remote;
     # X-Context7-API-Key auth. Pulls up-to-date library/framework
