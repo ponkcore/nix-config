@@ -44,17 +44,48 @@
     "vt.global_cursor_default=0"
     "fbcon=nodefer"
     "logo.nologo"
-    # Plymouth modeset stability — keep the splash anchored to the
-    # framebuffer DRM device handed over by firmware (simpledrm /
-    # efifb). Without this Plymouth opens the first /dev/dri/card*
-    # before amdgpu has finished EDID negotiation, then keeps
-    # rendering into the obsolete EFI buffer when amdgpu's modeset
-    # arrives — visible as the splash compressed into a small
-    # region of the upper-left corner on a 2880×1800 panel.
-    # plymouth.use-simpledrm forces Plymouth to stay on simpledrm
-    # for the entire splash; amdgpu still loads via initrd, the
-    # Wayland session takes the native panel mode at greeter start.
-    "plymouth.use-simpledrm"
+    # Plymouth single-output policy — splash on the internal eDP
+    # panel only.
+    #
+    # Background: Plymouth has no per-connector gating in upstream.
+    # ply-device-manager.c picks one DRM card and renders one head
+    # per connected connector on it; there is no allow-list /
+    # deny-list / device= knob (verified against Plymouth 24.004.60
+    # source — those tokens are forum mythology, not upstream API).
+    # Multi-connector behaviour must therefore be gated *below*
+    # Plymouth, in the kernel DRM layer.
+    #
+    # `video=HDMI-A-1:d` tells the DRM core to force HDMI-A-1 to
+    # `disconnected` before any driver / userspace probe runs.
+    # amdgpu sees the connector as off, Plymouth never enumerates
+    # a head for it, the splash renders at native 2880x1800 on
+    # eDP-1 only with HDMI dark.
+    #
+    # Notably absent: `plymouth.use-simpledrm` (was set previously
+    # to anchor the splash to the firmware framebuffer; root-cause
+    # research showed simpledrm is the *cause* of the upper-left
+    # corner sub-native render, not the cure — UEFI GOP exposes a
+    # ~1024x768 cloned framebuffer to both panels). Removing it
+    # makes Plymouth wait up to DeviceTimeout=8s for amdgpu, which
+    # by then has done EDID negotiation and produced a clean
+    # native-resolution head per connector.
+    #
+    # Trade-off accepted: HDMI-A-1 stays force-disabled at the
+    # kernel level until something writes `on` to
+    # /sys/class/drm/card*-HDMI-A-1/status — Hyprland's `monitor
+    # =HDMI-A-1, ...` directive does this implicitly when it
+    # claims the connector at session start, so the user-session
+    # behaviour does not change. If a future change drops the
+    # explicit `monitor=HDMI-A-1` line, this kernel param will
+    # also need to be revisited (or replaced with `video=HDMI-A-1
+    # :e` to leave the connector hot-pluggable).
+    #
+    # Research backing:
+    # researches/2026-05-30-plymouth-single-output-multimonitor
+    # .result.md (talos-brain). Source primary references:
+    # ply-device-manager.c, drm renderer plugin.c, kernel
+    # fb/modedb.html.
+    "video=HDMI-A-1:d"
   ];
 
   # Plymouth boot splash — abstract_ring theme from adi1090x collection.
