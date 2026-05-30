@@ -56,6 +56,28 @@
   # Palette — shared via lib/palette.nix.
   p = import ../../../../lib/palette.nix;
 
+  # Greeter wrapper — runs sway under dbus-run-session with debug.
+  #
+  # Why dbus-run-session:
+  #   - sway 1.11 uses libdbus internally (idle inhibitor, IPC); without
+  #     a session bus it can crash early during startup. The previous
+  #     cage-based config wrapped the kiosk in dbus-run-session for
+  #     this exact reason.
+  #   - GTK3 (nwg-hello) requires DBUS_SESSION_BUS_ADDRESS to talk to
+  #     gsettings / accessibility / portal stack. Without it GTK falls
+  #     back to fdo defaults but logs a warning and may exit.
+  #
+  # --debug --verbose: while we are stabilising the new stack, surface
+  # every wlroots / sway init message into the journal. Once the stack
+  # is known-good these can be dropped to keep the boot quiet.
+  greeterScript = pkgs.writeShellScript "sway-greeter-run" ''
+    exec ${pkgs.dbus}/bin/dbus-run-session -- \
+      ${pkgs.sway}/bin/sway \
+        --debug \
+        --verbose \
+        --config ${swayGreeterConfig}
+  '';
+
   # ── sway kiosk config ────────────────────────────────────────────
   # Minimal sway config: per-output background, US/RU keyboard,
   # nwg-hello as the only foreground app, exit when nwg-hello exits.
@@ -104,7 +126,15 @@
 
     # Launch sequence: nwg-hello runs in foreground; on exit, sway
     # shuts itself down → greetd starts the user session.
-    exec "${pkgs.nwg-hello}/bin/nwg-hello; swaymsg exit"
+    #
+    # nwg-hello in nixpkgs hardcodes its config-search path to its
+    # own /nix/store/.../etc/nwg-hello/nwg-hello.{json,css} and does
+    # NOT fall through to /etc/nwg-hello/ — see main.py lines 55-66
+    # in nwg-hello 0.4.1. The if-elif picks the store-path first
+    # and never re-reads from /etc. We therefore pass our config
+    # files explicitly via --config / --stylesheet so the operator
+    # JSON+CSS in /etc are actually used.
+    exec "${pkgs.nwg-hello}/bin/nwg-hello --config /etc/nwg-hello/nwg-hello.json --stylesheet /etc/nwg-hello/nwg-hello.css; swaymsg exit"
   '';
 
   # ── nwg-hello config (JSON) ──────────────────────────────────────
@@ -123,9 +153,17 @@
   # narrow (no need to pull gruvbox-gtk-theme into the greeter).
   nwgHelloConfig = pkgs.writeText "nwg-hello.json" (
     builtins.toJSON {
+      # nwg-hello does NOT honour XDG_DATA_DIRS — it reads session
+      # .desktop files from these paths only. NixOS exposes the
+      # session set as `services.displayManager.sessionData.desktops`,
+      # a derivation containing share/wayland-sessions/. Point at
+      # that store path directly. The /run/current-system/sw/share
+      # tree contains the user's PATH packages, NOT session
+      # definitions — pointing nwg-hello there gave it an empty
+      # list and crashed on `sessions[0]` with IndexError.
       session_dirs = [
-        "/run/current-system/sw/share/wayland-sessions"
-        "/run/current-system/sw/share/xsessions"
+        "${config.services.displayManager.sessionData.desktops}/share/wayland-sessions"
+        "${config.services.displayManager.sessionData.desktops}/share/xsessions"
       ];
       custom_sessions = [];
       monitor_nums = [];
@@ -291,7 +329,7 @@ in {
     restart = true;
   };
 
-  services.greetd.settings.default_session.command = lib.mkForce "${pkgs.sway}/bin/sway --config ${swayGreeterConfig}";
+  services.greetd.settings.default_session.command = lib.mkForce "${greeterScript}";
 
   # ── greetd systemd service environment ─────────────────────────
   systemd.services.greetd = {
@@ -334,4 +372,14 @@ in {
     createHome = true;
   };
   users.groups.greeter = {};
+
+  # nwg-hello caches the last-used user/session at
+  # /var/cache/nwg-hello/cache.json. The directory does not exist
+  # on a fresh install — first launch logs a non-fatal "No such file
+  # or directory" then proceeds. tmpfiles ensures the directory
+  # exists with greeter ownership so the cache write later succeeds
+  # silently.
+  systemd.tmpfiles.rules = [
+    "d /var/cache/nwg-hello 0755 greeter greeter -"
+  ];
 }
