@@ -273,6 +273,19 @@
           Authorization = "Bearer REPLACE_LAZYWEB_TOKEN";
         };
       };
+      # Context7 — Upstash hosted documentation lookup
+      # (https://context7.com). Pulls up-to-date library/framework
+      # docs into the LLM context. Free anonymous tier works without
+      # auth but rate-limits aggressively; supplying CONTEXT7_API_KEY
+      # via the X-Context7-API-Key header lifts those caps.
+      context7 = {
+        type = "remote";
+        url = "https://mcp.context7.com/mcp";
+        enabled = true;
+        headers = {
+          X-Context7-API-Key = "REPLACE_CONTEXT7_KEY";
+        };
+      };
     };
     # plugin: oh-my-openagent NOT loaded by default — use `omo` fish function
     # to launch opencode with the plugin (via OPENCODE_CONFIG_CONTENT env var).
@@ -379,6 +392,7 @@ in {
   #   OMNIROUTE_API_KEY  — opencode omniroute provider apiKey
   #   FIREWORKS_API_KEY  — `opencode providers login` flow
   #   LAZYWEB_MCP_TOKEN  — Bearer header for the lazyweb MCP server
+  #   CONTEXT7_API_KEY   — X-Context7-API-Key header for context7 MCP
   #
   # If /run/agenix/tokens is missing or unreadable, activation fails
   # loudly with the message below. To recover: re-encrypt the file
@@ -403,13 +417,19 @@ in {
       echo "ERROR: LAZYWEB_MCP_TOKEN missing in $SECRETS" >&2
       exit 1
     fi
+    if [ -z "''${CONTEXT7_API_KEY:-}" ]; then
+      echo "ERROR: CONTEXT7_API_KEY missing in $SECRETS" >&2
+      exit 1
+    fi
     mkdir -p "${config.xdg.configHome}/opencode"
     umask 077
     ${pkgs.jq}/bin/jq \
       --arg key "$OMNIROUTE_API_KEY" \
       --arg lz  "Bearer $LAZYWEB_MCP_TOKEN" \
+      --arg c7  "$CONTEXT7_API_KEY" \
       '.provider.omniroute.options.apiKey = $key
-       | .mcp.lazyweb.headers.Authorization = $lz' \
+       | .mcp.lazyweb.headers.Authorization = $lz
+       | .mcp.context7.headers["X-Context7-API-Key"] = $c7' \
       ${opencodeJsonTemplate} \
       > "$OUT.tmp"
     chmod 600 "$OUT.tmp"
