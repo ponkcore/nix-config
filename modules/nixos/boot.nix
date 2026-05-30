@@ -260,6 +260,52 @@
   # CONFIG_DEBUG_FS, or amdgpu not the active driver), the
   # ConditionPathExists short-circuits and the unit completes
   # without action.
+  # Re-arm the HDMI connector force-off before shutdown / reboot
+  # so the Plymouth shutdown splash is single-output (eDP only),
+  # mirroring the boot policy. Without this, by shutdown time
+  # hdmi-rearm has already cleared the force flag, both connectors
+  # are live, and the shutdown splash renders mirrored on both —
+  # which both looks wrong and slows the shutdown sequence
+  # (per-connector teardown, DPMS waits, etc; observed ~10 s
+  # extra wait vs the single-output case).
+  #
+  # Symmetric with hdmi-rearm: writes `off` to status, then
+  # triggers a hotplug so the kernel actually applies the force.
+  # Ordered before shutdown.target so it lands while userspace is
+  # still alive, before plymouth-shutdown takes over the screen.
+  systemd.services.hdmi-disarm = {
+    description = "Re-disable HDMI-A-1 before shutdown to single-output the shutdown splash";
+    before = ["shutdown.target" "reboot.target" "halt.target"];
+    requiredBy = ["shutdown.target" "reboot.target" "halt.target"];
+    unitConfig = {
+      DefaultDependencies = false;
+      ConditionPathExists = "/sys/kernel/debug/dri/0000:6e:00.0/HDMI-A-1/trigger_hotplug";
+    };
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = [
+        "${pkgs.bash}/bin/bash -c 'for f in /sys/class/drm/card*-HDMI-A-1/status; do echo off > \"$f\"; done'"
+        "${pkgs.bash}/bin/bash -c 'echo 1 > /sys/kernel/debug/dri/0000:6e:00.0/HDMI-A-1/trigger_hotplug'"
+      ];
+      StandardOutput = "journal";
+      StandardError = "journal";
+    };
+  };
+
+  # Re-arming sequence — the order matters:
+  #   1. write `on` to /sys/class/drm/card*-HDMI-A-1/status — this
+  #      lifts the force=DRM_FORCE_OFF flag set by `video=HDMI-A-1:d`
+  #      on the kernel command line. Without this step the connector
+  #      stays force-disabled across an entire boot, no matter how
+  #      many hotplugs we trigger.
+  #   2. write `1` to debugfs trigger_hotplug — this fires
+  #      drm_helper_hpd_irq_event() which routes through wlroots
+  #      and lets Hyprland claim the connector via its `monitor=
+  #      HDMI-A-1, ...` directive.
+  # Verified empirically (2026-05-30): trigger_hotplug alone is a
+  # no-op while force is still set; both operations together are
+  # idempotent and survive the unplugged case (status reports
+  # `disconnected`, Hyprland skips it cleanly).
   systemd.services.hdmi-rearm = {
     description = "Re-arm HDMI-A-1 connector after Plymouth quit";
     after = ["plymouth-quit.service"];
@@ -269,7 +315,13 @@
     };
     serviceConfig = {
       Type = "oneshot";
-      ExecStart = "${pkgs.bash}/bin/bash -c 'echo 1 > /sys/kernel/debug/dri/0000:6e:00.0/HDMI-A-1/trigger_hotplug'";
+      # Globbed paths — survive amdgpu enumerating as card0 vs card1
+      # across kernel upgrades. The PCI address (0000:6e:00.0) is
+      # stable for this host (Phoenix iGPU on Lenovo Lecoo Pro 14).
+      ExecStart = [
+        "${pkgs.bash}/bin/bash -c 'for f in /sys/class/drm/card*-HDMI-A-1/status; do echo on > \"$f\"; done'"
+        "${pkgs.bash}/bin/bash -c 'echo 1 > /sys/kernel/debug/dri/0000:6e:00.0/HDMI-A-1/trigger_hotplug'"
+      ];
       StandardOutput = "journal";
       StandardError = "journal";
     };
