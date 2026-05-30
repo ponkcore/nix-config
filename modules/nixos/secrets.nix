@@ -22,13 +22,23 @@
     # host that has openssh enabled (which we always do — see services.nix).
     identityPaths = ["/etc/ssh/ssh_host_ed25519_key"];
 
-    secrets.omniroute-key = {
-      file = ../../secrets/omniroute-key.age;
-      # Owner = primary user. Mode 400 = owner-only-readable.
+    # tokens.age — bundle of all third-party API tokens consumed by
+    # user-space agent tooling (gptme runtime, opencode runtime,
+    # opencode MCP clients). Decrypted to /run/agenix/tokens at
+    # activation, owner = primary user, mode 400.
+    secrets.tokens = {
+      file = ../../secrets/tokens.age;
       owner = username;
       mode = "400";
-      # Path: /run/agenix/omniroute-key (default — symlinked from the
-      # generation-pinned location so rebuilds atomically swap it).
+    };
+
+    # Legacy — kept for one rebuild cycle to support rollback to the
+    # pre-rename generation. Remove together with the .age file in
+    # the second cleanup commit (planned, see journal).
+    secrets.omniroute-key = {
+      file = ../../secrets/omniroute-key.age;
+      owner = username;
+      mode = "400";
     };
   };
 

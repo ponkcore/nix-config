@@ -1,7 +1,7 @@
 # tests/secrets.nix — exercises the agenix decryption pipeline.
 #
-# The production secret (secrets/omniroute-key.age) is encrypted to
-# the live host's SSH ed25519 key, which the test VM does not have.
+# The production secret (secrets/tokens.age) is encrypted to the live
+# host's SSH ed25519 key, which the test VM does not have.
 # Reusing the production wiring would just fail at activation. So
 # the test:
 #   1. Builds a throwaway fixtures derivation that ssh-keygens a

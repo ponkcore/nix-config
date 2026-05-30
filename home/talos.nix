@@ -3,7 +3,7 @@
 # Three responsibilities:
 #   1. Install pkgs.gptme into the user environment.
 #   2. Render ~/.config/gptme/config.toml at activation, substituting
-#      OMNIROUTE_API_KEY and OMNIROUTE_BASE_URL from /run/agenix/omniroute-key.
+#      OMNIROUTE_API_KEY and OMNIROUTE_BASE_URL from /run/agenix/tokens.
 #      Same pattern as home/opencode.nix (the secret never lands in
 #      /nix/store; only the template with placeholders does).
 #   3. Provide a fish function `talos` that opens gptme in the brain
@@ -26,8 +26,8 @@
 
   # TOML template living in /nix/store — apiKey / baseUrl are
   # placeholders, replaced at activation time using values read from
-  # /run/agenix/omniroute-key. The `.toml` literal itself is safe to
-  # commit because it contains no secret material.
+  # /run/agenix/tokens. The `.toml` literal itself is safe to commit
+  # because it contains no secret material.
   configTemplate = pkgs.writeText "gptme-config.toml.template" ''
     # gptme config — rendered by home/talos.nix activation script.
     # Edit the source module, not this file (HM rewrites it on rebuild).
@@ -40,8 +40,8 @@
     MODEL = "fireworks/accounts/fireworks/models/glm-5p1"
 
     # Direct Fireworks endpoint — fast path, no omniroute hop.
-    # FIREWORKS_API_KEY is sourced from the same omniroute-key.age
-    # secret (carries both keys), so no new agenix entry is needed.
+    # FIREWORKS_API_KEY is sourced from tokens.age (which bundles
+    # OMNIROUTE_API_KEY, FIREWORKS_API_KEY, and LAZYWEB_MCP_TOKEN).
     #
     # Catalogue (Fireworks model cards / /v1/models, 2026-05-22):
     #   fireworks/accounts/fireworks/models/glm-5p1         (default; ctx 202k)
@@ -185,11 +185,11 @@ in {
   programs.fish.functions.talos = talosFish;
 
   # Render ~/.config/gptme/config.toml from configTemplate, substituting
-  # the secrets read from /run/agenix/omniroute-key. Mirrors the
-  # opencode-config activation in home/opencode.nix.
+  # the secrets read from /run/agenix/tokens. Mirrors the opencode-
+  # config activation in home/opencode.nix.
   home.activation.talos-config = lib.hm.dag.entryAfter ["writeBoundary"] ''
     set -eu
-    SECRETS="/run/agenix/omniroute-key"
+    SECRETS="/run/agenix/tokens"
     OUT="${config.xdg.configHome}/gptme/config.toml"
     if [ ! -r "$SECRETS" ]; then
       echo "ERROR: $SECRETS missing or unreadable." >&2
@@ -207,9 +207,9 @@ in {
       echo "ERROR: FIREWORKS_API_KEY missing in $SECRETS" >&2
       exit 1
     fi
-    # OMNIROUTE_BASE_URL is not part of omniroute-key.age yet (the
-    # opencode module hard-codes the URL); keep it overridable here in
-    # case a future host fronts a different proxy.
+    # OMNIROUTE_BASE_URL is not part of tokens.age (the opencode module
+    # hard-codes the URL); keep it overridable here in case a future
+    # host fronts a different proxy.
     : "''${OMNIROUTE_BASE_URL:=https://omniroute.infinitycore.space:8443/v1}"
 
     mkdir -p "${config.xdg.configHome}/gptme"

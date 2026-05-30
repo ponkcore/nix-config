@@ -28,8 +28,20 @@ let
 
   all = hosts ++ users;
 in {
-  # OMNIROUTE_API_KEY — used by opencode through home-manager activation.
-  # Decrypted at activation time into /run/agenix/omniroute-key (chmod 400,
-  # owner=oonishi). Read by home/opencode.nix when rendering opencode.json.
+  # tokens.age — bundle of all third-party API tokens consumed by user-
+  # space agent tooling (gptme, opencode runtime, opencode MCP clients).
+  # Decrypted at activation time into /run/agenix/tokens (chmod 400,
+  # owner=oonishi). Read by home/talos.nix and home/opencode.nix when
+  # rendering their config files.
+  #
+  # Current contents:
+  #   OMNIROUTE_API_KEY  — gptme + opencode omniroute provider
+  #   FIREWORKS_API_KEY  — gptme fireworks provider (direct)
+  #   LAZYWEB_MCP_TOKEN  — opencode lazyweb MCP server (Bearer header)
+  "tokens.age".publicKeys = all;
+
+  # Legacy — kept until the second cleanup commit so that older
+  # generations (with /run/agenix/omniroute-key consumers) can roll
+  # back. Remove once tokens.age has proven stable for >1 day.
   "omniroute-key.age".publicKeys = all;
 }

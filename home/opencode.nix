@@ -2,10 +2,12 @@
 #
 # - opencode binary from llm-agents flake
 # - Plugin config (safe in nix store) via xdg.configFile
-# - Provider config rendered at activation time, apiKey sourced from
-#   /run/agenix/omniroute-key (decrypted by agenix from secrets/omniroute-key.age)
-# - The nix-store template contains only a placeholder; the real key
-#   appears ONLY in ~/.config/opencode/opencode.json (chmod 600, owner-only)
+# - Provider config + lazyweb MCP Bearer rendered at activation time,
+#   secrets sourced from /run/agenix/tokens (decrypted by agenix from
+#   secrets/tokens.age — bundles OMNIROUTE_API_KEY, FIREWORKS_API_KEY,
+#   LAZYWEB_MCP_TOKEN).
+# - The nix-store template contains only placeholders; the real keys
+#   appear ONLY in ~/.config/opencode/opencode.json (chmod 600, owner-only)
 {
   config,
   pkgs,
@@ -259,6 +261,19 @@
       };
       models = omnirouteModels;
     };
+    # MCP servers — opencode-native remote transport. Bearer token is a
+    # placeholder in the nix-store template; the activation script
+    # below substitutes it from /run/agenix/tokens.
+    mcp = {
+      lazyweb = {
+        type = "remote";
+        url = "https://www.lazyweb.com/mcp";
+        enabled = true;
+        headers = {
+          Authorization = "Bearer REPLACE_LAZYWEB_TOKEN";
+        };
+      };
+    };
     # plugin: oh-my-openagent NOT loaded by default — use `omo` fish function
     # to launch opencode with the plugin (via OPENCODE_CONFIG_CONTENT env var).
     # This keeps vanilla opencode fast and plugin-free for simple tasks.
@@ -339,23 +354,24 @@ in {
     });
   };
 
-  # Render opencode.json with the real apiKey at activation time.
-  # The key NEVER appears in /nix/store — only the template (with placeholder).
+  # Render opencode.json with real secrets at activation time. Tokens
+  # NEVER appear in /nix/store — only the template (with placeholders).
   #
-  # Source of the key: /run/agenix/omniroute-key — decrypted at boot by
-  # the agenix NixOS module from secrets/omniroute-key.age using this
-  # host's SSH host key. Owner=oonishi, mode=400.
+  # Source of secrets: /run/agenix/tokens — decrypted at boot by the
+  # agenix NixOS module from secrets/tokens.age using this host's SSH
+  # host key. Owner = oonishi, mode 400.
   #
-  # The .age file contains:
-  #   OMNIROUTE_API_KEY=sk-...
-  #   FIREWORKS_API_KEY=...   (used by `opencode providers login` flow)
+  # The .age file bundles:
+  #   OMNIROUTE_API_KEY  — opencode omniroute provider apiKey
+  #   FIREWORKS_API_KEY  — `opencode providers login` flow
+  #   LAZYWEB_MCP_TOKEN  — Bearer header for the lazyweb MCP server
   #
-  # If /run/agenix/omniroute-key is missing or unreadable, activation fails
-  # loudly with the message below. To recover: re-encrypt the file with
-  # `agenix -e secrets/omniroute-key.age` (see docs/handbook.md §Secrets).
+  # If /run/agenix/tokens is missing or unreadable, activation fails
+  # loudly with the message below. To recover: re-encrypt the file
+  # with `agenix -e secrets/tokens.age` (see docs/handbook.md §Secrets).
   home.activation.opencode-config = lib.hm.dag.entryAfter ["writeBoundary"] ''
     set -eu
-    SECRETS="/run/agenix/omniroute-key"
+    SECRETS="/run/agenix/tokens"
     OUT="${config.xdg.configHome}/opencode/opencode.json"
     if [ ! -r "$SECRETS" ]; then
       echo "ERROR: $SECRETS missing or unreadable." >&2
@@ -369,10 +385,17 @@ in {
       echo "ERROR: OMNIROUTE_API_KEY missing in $SECRETS" >&2
       exit 1
     fi
+    if [ -z "''${LAZYWEB_MCP_TOKEN:-}" ]; then
+      echo "ERROR: LAZYWEB_MCP_TOKEN missing in $SECRETS" >&2
+      exit 1
+    fi
     mkdir -p "${config.xdg.configHome}/opencode"
     umask 077
-    ${pkgs.jq}/bin/jq --arg key "$OMNIROUTE_API_KEY" \
-      '.provider.omniroute.options.apiKey = $key' \
+    ${pkgs.jq}/bin/jq \
+      --arg key "$OMNIROUTE_API_KEY" \
+      --arg lz  "Bearer $LAZYWEB_MCP_TOKEN" \
+      '.provider.omniroute.options.apiKey = $key
+       | .mcp.lazyweb.headers.Authorization = $lz' \
       ${opencodeJsonTemplate} \
       > "$OUT.tmp"
     chmod 600 "$OUT.tmp"
