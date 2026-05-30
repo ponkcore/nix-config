@@ -284,75 +284,89 @@ in {
     inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system}.opencode
   ];
 
-  # opencode native config (.opencode.json — viper reads this).
-  # Empty body — providers/models come from oh-my-openagent plugin via opencode.json.
-  xdg.configFile."opencode/.opencode.json" = {
-    source = builtins.toFile "opencode-native-config" (builtins.toJSON {
-      "$schema" = "https://opencode.ai/config.json";
-    });
-  };
+  # opencode declarative state — Home Manager symlinks into
+  # ~/.config/opencode/ from /nix/store. Three families:
+  #   - .opencode.json    : viper bootstrap (just the $schema)
+  #   - oh-my-openagent.json : agent/category model routing
+  #   - skill/<name>/SKILL.md : lazyweb MCP playbooks
+  # No secrets in any of these (Bearer token is patched into
+  # opencode.json at activation, see home.activation.opencode-config).
 
-  # oh-my-openagent plugin config (the plugin reads THIS file).
-  # No secrets — safe to put in nix store via xdg.configFile.
-  xdg.configFile."opencode/oh-my-openagent.json" = {
-    source = builtins.toFile "oh-my-openagent-config" (builtins.toJSON {
-      "$schema" = "https://raw.githubusercontent.com/code-yeongyu/oh-my-openagent/dev/assets/oh-my-opencode.schema.json";
-      # Per-agent and per-category routing onto omniroute combo tiers.
-      # Tier table (operator-supplied) lives in comboModels above. The
-      # combo router picks the underlying model per request, so no
-      # per-agent variant/reasoningEffort knobs.
-      agents = {
-        # Top tier — flagship reasoning + vision (when underlying allows).
-        sisyphus.model = "omniroute/SSS-tier";
-        prometheus.model = "omniroute/SSS-tier";
-        multimodal-looker.model = "omniroute/SSS-tier";
+  xdg.configFile =
+    {
+      "opencode/.opencode.json".source = builtins.toFile "opencode-native-config" (builtins.toJSON {
+        "$schema" = "https://opencode.ai/config.json";
+      });
 
-        # Second tier — heavy reasoning, GPT-flavoured.
-        hephaestus.model = "omniroute/SS-tier";
-        oracle.model = "omniroute/SS-tier";
-        momus.model = "omniroute/SS-tier";
+      "opencode/oh-my-openagent.json".source = builtins.toFile "oh-my-openagent-config" (builtins.toJSON {
+        "$schema" = "https://raw.githubusercontent.com/code-yeongyu/oh-my-openagent/dev/assets/oh-my-opencode.schema.json";
+        # Per-agent and per-category routing onto omniroute combo tiers.
+        # Tier table (operator-supplied) lives in comboModels above. The
+        # combo router picks the underlying model per request, so no
+        # per-agent variant/reasoningEffort knobs.
+        agents = {
+          # Top tier — flagship reasoning + vision (when underlying allows).
+          sisyphus.model = "omniroute/SSS-tier";
+          prometheus.model = "omniroute/SSS-tier";
+          multimodal-looker.model = "omniroute/SSS-tier";
 
-        # Mid flagship — fast, no attachments.
-        metis.model = "omniroute/S-tier";
+          # Second tier — heavy reasoning, GPT-flavoured.
+          hephaestus.model = "omniroute/SS-tier";
+          oracle.model = "omniroute/SS-tier";
+          momus.model = "omniroute/SS-tier";
 
-        # Mixed pool — Opus + GPT + Kimi rotation.
-        atlas.model = "omniroute/A-tier";
-        sisyphus-junior.model = "omniroute/A-tier";
-        librarian.model = "omniroute/A-tier";
-        explore.model = "omniroute/A-tier";
+          # Mid flagship — fast, no attachments.
+          metis.model = "omniroute/S-tier";
 
-        # Override agents (opencode built-ins overridden by oh-my-openagent).
-        build.model = "omniroute/SSS-tier";
-        OpenCode-Builder.model = "omniroute/SSS-tier";
-        plan.model = "omniroute/SS-tier";
-      };
-      categories = {
-        # Visual + creative + writing + unspecified-high → flagship.
-        visual-engineering.model = "omniroute/SSS-tier";
-        artistry.model = "omniroute/SSS-tier";
-        unspecified-high.model = "omniroute/SSS-tier";
-        writing.model = "omniroute/SSS-tier";
+          # Mixed pool — Opus + GPT + Kimi rotation.
+          atlas.model = "omniroute/A-tier";
+          sisyphus-junior.model = "omniroute/A-tier";
+          librarian.model = "omniroute/A-tier";
+          explore.model = "omniroute/A-tier";
 
-        # Deep reasoning workloads → SS (GPT reasoning).
-        ultrabrain.model = "omniroute/SS-tier";
-        deep.model = "omniroute/SS-tier";
-
-        # Routine ↓ tier.
-        unspecified-low.model = "omniroute/A-tier";
-        quick.model = "omniroute/B-tier";
-      };
-      ralph_loop = {
-        enabled = true;
-        default_max_iterations = 10;
-        default_strategy = "reset";
-      };
-      experimental = {
-        dynamic_context_pruning = {
-          enabled = false;
+          # Override agents (opencode built-ins overridden by oh-my-openagent).
+          build.model = "omniroute/SSS-tier";
+          OpenCode-Builder.model = "omniroute/SSS-tier";
+          plan.model = "omniroute/SS-tier";
         };
-      };
-    });
-  };
+        categories = {
+          # Visual + creative + writing + unspecified-high → flagship.
+          visual-engineering.model = "omniroute/SSS-tier";
+          artistry.model = "omniroute/SSS-tier";
+          unspecified-high.model = "omniroute/SSS-tier";
+          writing.model = "omniroute/SSS-tier";
+
+          # Deep reasoning workloads → SS (GPT reasoning).
+          ultrabrain.model = "omniroute/SS-tier";
+          deep.model = "omniroute/SS-tier";
+
+          # Routine ↓ tier.
+          unspecified-low.model = "omniroute/A-tier";
+          quick.model = "omniroute/B-tier";
+        };
+        ralph_loop = {
+          enabled = true;
+          default_max_iterations = 10;
+          default_strategy = "reset";
+        };
+        experimental = {
+          dynamic_context_pruning = {
+            enabled = false;
+          };
+        };
+      });
+    }
+    // builtins.listToAttrs (map (skill: {
+        name = "opencode/skill/${skill}/SKILL.md";
+        value = {source = ./opencode-skills/${skill}/SKILL.md;};
+      }) [
+        "lazyweb-add-inspo-source"
+        "lazyweb-design-brainstorm"
+        "lazyweb-design-improve"
+        "lazyweb-design-research"
+        "lazyweb-quick-references"
+        "lazyweb-remove-inspo-source"
+      ]);
 
   # Render opencode.json with real secrets at activation time. Tokens
   # NEVER appear in /nix/store — only the template (with placeholders).
