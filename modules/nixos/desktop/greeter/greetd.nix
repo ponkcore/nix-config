@@ -66,9 +66,33 @@
   # its own background from /etc/greetd/wallpaper.jpg).
   greeterHyprlandConfig = pkgs.writeText "greeter-hyprland.conf" ''
     # Monitors — mirror every external output to the internal panel.
-    monitor = eDP-1, preferred, 0x0, 2
-    monitor = HDMI-A-1, preferred, auto, 1, mirror, eDP-1
+    #
+    # scale 1.5 on eDP-1 (logical 1920x1200): a compromise between
+    # readable HiDPI rendering on the laptop panel and reasonable
+    # element sizing on the HDMI mirror. scale 2 (user-session
+    # default) made the regreet form oversized; scale 1 made the
+    # 2880x1800 panel render too small on a single login window.
+    #
+    # Aspect ratio caveat: eDP-1 is 16:10 (2880x1800), HDMI-A-1 is
+    # typically 16:9. Hyprland's `mirror` blits the source
+    # framebuffer to the target without letterbox, so ~10% of the
+    # vertical content is cropped on a 16:9 mirror target. Acceptable
+    # trade for "regreet visible on both panels"; the login form
+    # itself is small enough to remain visible inside the cropped
+    # region.
+    monitor = eDP-1, 2880x1800@120, 0x0, 1.5
+    monitor = HDMI-A-1, 1920x1080@60, auto, 1, mirror, eDP-1
     monitor = , preferred, auto, 1, mirror, eDP-1
+
+    # Cursor — Hyprland renders the cursor itself outside any GTK
+    # surface (e.g. when hovering bare compositor area). regreet's
+    # cursorTheme only theming the GTK pointer; the compositor needs
+    # XCURSOR_THEME / HYPRCURSOR_THEME exported via env. Without
+    # these the greeter shows the default white wlroots arrow.
+    env = XCURSOR_THEME, Capitaine Cursors (Gruvbox)
+    env = XCURSOR_SIZE, 24
+    env = HYPRCURSOR_THEME, Capitaine Cursors (Gruvbox)
+    env = HYPRCURSOR_SIZE, 24
 
     # Input — match user session (US/RU with caps_toggle) so the
     # operator types into the password field with the same layout
