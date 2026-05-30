@@ -44,6 +44,17 @@
     "vt.global_cursor_default=0"
     "fbcon=nodefer"
     "logo.nologo"
+    # Plymouth modeset stability — keep the splash anchored to the
+    # framebuffer DRM device handed over by firmware (simpledrm /
+    # efifb). Without this Plymouth opens the first /dev/dri/card*
+    # before amdgpu has finished EDID negotiation, then keeps
+    # rendering into the obsolete EFI buffer when amdgpu's modeset
+    # arrives — visible as the splash compressed into a small
+    # region of the upper-left corner on a 2880×1800 panel.
+    # plymouth.use-simpledrm forces Plymouth to stay on simpledrm
+    # for the entire splash; amdgpu still loads via initrd, the
+    # Wayland session takes the native panel mode at greeter start.
+    "plymouth.use-simpledrm"
   ];
 
   # Plymouth boot splash — abstract_ring theme from adi1090x collection.

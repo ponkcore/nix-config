@@ -56,26 +56,22 @@
   # Palette — shared via lib/palette.nix.
   p = import ../../../../lib/palette.nix;
 
-  # Greeter wrapper — runs sway under dbus-run-session with debug.
+  # Greeter wrapper — runs sway under dbus-run-session.
   #
   # Why dbus-run-session:
-  #   - sway 1.11 uses libdbus internally (idle inhibitor, IPC); without
-  #     a session bus it can crash early during startup. The previous
-  #     cage-based config wrapped the kiosk in dbus-run-session for
-  #     this exact reason.
-  #   - GTK3 (nwg-hello) requires DBUS_SESSION_BUS_ADDRESS to talk to
-  #     gsettings / accessibility / portal stack. Without it GTK falls
-  #     back to fdo defaults but logs a warning and may exit.
+  #   - sway 1.11 uses libdbus internally (idle inhibitor, IPC).
+  #   - GTK3 (nwg-hello) requires DBUS_SESSION_BUS_ADDRESS for
+  #     gsettings / accessibility.
   #
-  # --debug --verbose: while we are stabilising the new stack, surface
-  # every wlroots / sway init message into the journal. Once the stack
-  # is known-good these can be dropped to keep the boot quiet.
+  # All sway stderr is silenced. wlroots/Aquamarine init messages
+  # otherwise reach controlling tty during the brief plymouth-quit
+  # → sway-DRM-takeover window and flash on the panel before the
+  # form appears (silent-vt-keep eventually rebinds, but only after
+  # half a second of visible text). Greetd's StandardError=journal
+  # still captures the wrapper's own diagnostics.
   greeterScript = pkgs.writeShellScript "sway-greeter-run" ''
     exec ${pkgs.dbus}/bin/dbus-run-session -- \
-      ${pkgs.sway}/bin/sway \
-        --debug \
-        --verbose \
-        --config ${swayGreeterConfig}
+      ${pkgs.sway}/bin/sway --config ${swayGreeterConfig} 2>/dev/null
   '';
 
   # ── sway kiosk config ────────────────────────────────────────────
@@ -99,11 +95,24 @@
   # No keybinds. The greeter has no use for sway-level binds; nwg-
   # hello handles its own keyboard input. Ctrl+Alt+F1..F6 stays
   # functional via kernel VT switching, independent of sway.
+  # ── sway kiosk config ────────────────────────────────────────────
+  # eDP-1 is forced as the only active output during the greeter.
+  # Why disable HDMI-A-1 here:
+  #   - nwg-hello picks the form's monitor via `form_on_monitors=[N]`
+  #     where N is the index in sway's wl_output enumeration order.
+  #     Order is not stable across boots; with HDMI plugged the form
+  #     can land on the external panel.
+  #   - The greeter is a 1-second-of-attention surface; running it
+  #     on both panels has no functional value, only failure modes.
+  #   - The user-session Hyprland reconfigures both outputs from
+  #     scratch when it starts, so disabling HDMI here has zero
+  #     carry-over.
+  # `output * bg` paints the (single) active output. HDMI stays dark
+  # until Hyprland claims it post-login.
   swayGreeterConfig = pkgs.writeText "sway-greeter-config" ''
-    # Outputs — wallpaper as background, native modes.
-    output * bg /etc/greetd/wallpaper.jpg fill
+    output HDMI-A-1 disable
     output eDP-1 enable
-    output HDMI-A-1 enable
+    output * bg /etc/greetd/wallpaper.jpg fill
 
     # Keyboard — match user session.
     input "type:keyboard" {
