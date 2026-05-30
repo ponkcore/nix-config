@@ -226,7 +226,7 @@ age.secrets.my-new-secret = {
 **Edit an existing secret:**
 ```fish
 cd /etc/nixos/secrets
-agenix -e omniroute-key.age
+agenix -e tokens.age
 ```
 
 **Authorise a new editor or new host:**

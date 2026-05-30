@@ -39,9 +39,4 @@ in {
   #   FIREWORKS_API_KEY  — gptme fireworks provider (direct)
   #   LAZYWEB_MCP_TOKEN  — opencode lazyweb MCP server (Bearer header)
   "tokens.age".publicKeys = all;
-
-  # Legacy — kept until the second cleanup commit so that older
-  # generations (with /run/agenix/omniroute-key consumers) can roll
-  # back. Remove once tokens.age has proven stable for >1 day.
-  "omniroute-key.age".publicKeys = all;
 }

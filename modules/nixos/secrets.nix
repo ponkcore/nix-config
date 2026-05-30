@@ -31,15 +31,6 @@
       owner = username;
       mode = "400";
     };
-
-    # Legacy — kept for one rebuild cycle to support rollback to the
-    # pre-rename generation. Remove together with the .age file in
-    # the second cleanup commit (planned, see journal).
-    secrets.omniroute-key = {
-      file = ../../secrets/omniroute-key.age;
-      owner = username;
-      mode = "400";
-    };
   };
 
   # agenix CLI available system-wide for `agenix -e` workflow.
