@@ -236,6 +236,45 @@
     };
   };
 
+  # Re-enable HDMI-A-1 after Plymouth has finished.
+  #
+  # `video=HDMI-A-1:d` (set in boot.kernelParams above) tells the
+  # kernel DRM core to force the HDMI connector into the OFF state
+  # at boot — that is what gives us the single-output Plymouth
+  # splash on eDP-1. The force is sticky: writing `on` to
+  # /sys/class/drm/.../status flips the status field but does NOT
+  # trigger a connector probe, so wlroots/Hyprland never see a
+  # hotplug event and never bring the panel up. Empirically:
+  # `cat status` reports `connected`, `hyprctl monitors` reports
+  # only eDP-1.
+  #
+  # The reliable wake-up is amdgpu's `trigger_hotplug` debugfs
+  # entry, which fires drm_helper_hpd_irq_event(). That routes
+  # through wlroots' libdisplay-info path and Hyprland claims the
+  # connector via its `monitor=HDMI-A-1, ...` directive.
+  #
+  # Ordered after plymouth-quit so the splash is already torn
+  # down before we touch DRM. Idempotent — `trigger_hotplug` is
+  # a write-1 trigger, repeats are harmless. Failure path: if
+  # the debugfs entry is absent (kernel built without
+  # CONFIG_DEBUG_FS, or amdgpu not the active driver), the
+  # ConditionPathExists short-circuits and the unit completes
+  # without action.
+  systemd.services.hdmi-rearm = {
+    description = "Re-arm HDMI-A-1 connector after Plymouth quit";
+    after = ["plymouth-quit.service"];
+    wantedBy = ["multi-user.target"];
+    unitConfig = {
+      ConditionPathExists = "/sys/kernel/debug/dri/0000:6e:00.0/HDMI-A-1/trigger_hotplug";
+    };
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "${pkgs.bash}/bin/bash -c 'echo 1 > /sys/kernel/debug/dri/0000:6e:00.0/HDMI-A-1/trigger_hotplug'";
+      StandardOutput = "journal";
+      StandardError = "journal";
+    };
+  };
+
   # Disable services that polled or waited unnecessarily on shutdown.
   systemd.services.systemd-udev-settle.enable = false;
   systemd.services.NetworkManager-wait-online.enable = false;
