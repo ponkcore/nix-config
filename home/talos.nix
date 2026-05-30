@@ -24,6 +24,18 @@
 }: let
   brainDir = "${config.home.homeDirectory}/Documents/talos-brain";
 
+  # MCP server runners. Both go through `uvx` for now:
+  #   - mcp-server-fetch: not in nixpkgs at all; uvx pulls from PyPI.
+  #   - mcp-nixos: ships a flake but its build chain depends on the
+  #     nixpkgs `python3Packages.fastmcp` derivation, which is
+  #     currently broken on nixos-25.11 — fastmcp 3.2.4 is missing
+  #     `platformdirs` in propagatedBuildInputs and fails the import
+  #     check phase. Running `uvx mcp-nixos` sidesteps the broken
+  #     derivation entirely (uv resolves real PyPI deps).
+  # When upstream nixpkgs fixes fastmcp, we can switch mcp-nixos back
+  # to the native flake binary (input is already wired in flake.nix).
+  uvx-bin = "${pkgs.uv}/bin/uvx";
+
   # TOML template living in /nix/store — apiKey / baseUrl are
   # placeholders, replaced at activation time using values read from
   # /run/agenix/tokens. The `.toml` literal itself is safe to commit
@@ -101,6 +113,44 @@
     # 1 MiB cap reason as kr/claude-* — see decisions/0008-no-vision-
     # on-omniroute.md. Flip when Angie loosens.
     models = { "kr/claude-opus-4.7" = { context = 1_000_000, max_output = 128_000, supports_vision = false, supports_reasoning = true }, "kr/claude-opus-4.6" = { context = 1_000_000, max_output = 128_000, supports_vision = false, supports_reasoning = true }, "kr/claude-sonnet-4.6" = { context = 200_000, max_output = 64_000, supports_vision = false, supports_reasoning = true }, "kr/claude-sonnet-4.5" = { context = 200_000, max_output = 64_000, supports_vision = false, supports_reasoning = true }, "kr/claude-haiku-4.5" = { context = 200_000, max_output = 64_000, supports_vision = false, supports_reasoning = true }, "SSS-tier" = { context = 1_000_000, max_output = 64_000, supports_vision = false, supports_reasoning = true }, "SS-tier" = { context = 1_040_000, max_output = 100_000, supports_vision = false, supports_reasoning = true }, "S-tier" = { context = 200_000, max_output = 32_000, supports_vision = false, supports_reasoning = true }, "A-tier" = { context = 262_144, max_output = 32_000, supports_vision = false, supports_reasoning = true }, "B-tier" = { context = 128_000, max_output = 8_000, supports_vision = false, supports_reasoning = false } }
+
+    # MCP servers — extend gptme's tool surface with Model Context
+    # Protocol providers. Tools become available as `<server>.<tool>`
+    # in conversation. See researches/ for evaluation notes.
+    [mcp]
+    enabled = true
+    auto_start = true
+
+    # mcp-nixos — utensils/mcp-nixos. Searchable NixOS option +
+    # package documentation. Runs through uvx because the upstream
+    # nix flake currently breaks on nixpkgs' fastmcp derivation
+    # (missing platformdirs). uvx pulls real PyPI deps and works.
+    [[mcp.servers]]
+    name = "nixos"
+    enabled = true
+    command = "${uvx-bin}"
+    args = ["mcp-nixos"]
+
+    # context7 — Upstash hosted documentation lookup. HTTP remote;
+    # X-Context7-API-Key auth. Pulls up-to-date library/framework
+    # docs into the LLM context. Useful when working with libraries
+    # whose APIs have shifted post-training-cutoff.
+    [[mcp.servers]]
+    name = "context7"
+    enabled = true
+    url = "https://mcp.context7.com/mcp"
+    headers = { X-Context7-API-Key = "@CONTEXT7_API_KEY@" }
+
+    # fetch — modelcontextprotocol/servers `src/fetch`. Fetches a URL
+    # and converts HTML to markdown. Not packaged in nixpkgs; we use
+    # `uvx` to grab + run it from PyPI on first use, transparently.
+    # uvx caches the venv after first run, so subsequent starts are
+    # near-instant.
+    [[mcp.servers]]
+    name = "fetch"
+    enabled = true
+    command = "${uvx-bin}"
+    args = ["mcp-server-fetch"]
   '';
 
   # Fish function — defined as a separate file so home-manager picks
@@ -180,7 +230,10 @@
     end
   '';
 in {
-  home.packages = [pkgs.gptme];
+  # uv ships uvx alongside, used by gptme's [[mcp.servers]] block
+  # to launch mcp-server-fetch from PyPI on first use (no nixpkgs
+  # entry for that python package).
+  home.packages = [pkgs.gptme pkgs.uv];
 
   programs.fish.functions.talos = talosFish;
 
@@ -207,6 +260,10 @@ in {
       echo "ERROR: FIREWORKS_API_KEY missing in $SECRETS" >&2
       exit 1
     fi
+    if [ -z "''${CONTEXT7_API_KEY:-}" ]; then
+      echo "ERROR: CONTEXT7_API_KEY missing in $SECRETS" >&2
+      exit 1
+    fi
     # OMNIROUTE_BASE_URL is not part of tokens.age (the opencode module
     # hard-codes the URL); keep it overridable here in case a future
     # host fronts a different proxy.
@@ -218,6 +275,7 @@ in {
       -e "s|@OMNIROUTE_BASE_URL@|$OMNIROUTE_BASE_URL|g" \
       -e "s|@OMNIROUTE_API_KEY@|$OMNIROUTE_API_KEY|g" \
       -e "s|@FIREWORKS_API_KEY@|$FIREWORKS_API_KEY|g" \
+      -e "s|@CONTEXT7_API_KEY@|$CONTEXT7_API_KEY|g" \
       ${configTemplate} > "$OUT.tmp"
     chmod 600 "$OUT.tmp"
     mv -f "$OUT.tmp" "$OUT"
