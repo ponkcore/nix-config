@@ -44,8 +44,13 @@
       CheckForUpdates = false;
     };
     Browser = {
-      # Operator toggles this on after pairing the browser extension.
-      Enabled = false;
+      # Browser integration on by default — the Firefox profile
+      # ships keepassxc-browser + the native-messaging manifest via
+      # programs.firefox.nativeMessagingHosts (see
+      # home/firefox/default.nix). On already-seeded hosts this
+      # value is *not* re-applied; toggle in Settings → Browser
+      # Integration once after the rebuild.
+      Enabled = true;
       # HM owns the native-messaging manifests; tell KeePassXC NOT to
       # rewrite them at startup (otherwise it conflicts with the
       # nix-store paths HM symlinks in).

@@ -102,6 +102,21 @@
   "browser.sessionstore.privacy_level" = 1;
   "browser.formfill.enable" = false;
 
+  # ── Password manager ──
+  # Built-in password manager fully off — passwords live in KeePassXC,
+  # auto-fill is delegated to the keepassxc-browser extension via the
+  # native-messaging host wired in home/firefox/default.nix.
+  # `rememberSignons = false` is the canonical kill-switch for the
+  # "Would you like to save this login?" doorhanger; `autofillForms`
+  # and the capture/generation knobs are belt-and-braces against
+  # firmware bugs that re-enable the doorhanger from a partial pref.
+  "signon.rememberSignons" = false;
+  "signon.autofillForms" = false;
+  "signon.formlessCapture.enabled" = false;
+  "signon.generation.enabled" = false;
+  "signon.management.page.breach-alerts.enabled" = false;
+  "signon.firefoxRelay.feature" = "disabled";
+
   # ── Cleanup ──
   # Firefox 150 uses a v3 migration system: v1/v2 prefs are consolidated
   # into privacy.sanitize.pending. We must keep v1 and v2 prefs FULLY
