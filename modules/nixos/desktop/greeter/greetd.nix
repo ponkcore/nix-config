@@ -1,40 +1,52 @@
-# greeter/greetd.nix — greetd display manager + ReGreet greeter.
+# greeter/greetd.nix — greetd display manager + nwg-hello greeter on sway.
 #
 # The default greeter for hosts whose `desktops` list does NOT include
 # "gnome". GNOME hosts use gdm instead (see ./gdm.nix when added).
 # Selection happens in ../default.nix based on the active session set.
 #
-# ── On the choice of compositor for the greeter session ──────────────
+# ── Stack rationale ─────────────────────────────────────────────────
 #
-# greetd needs a Wayland compositor to host ReGreet. Two viable hosts
-# exist on a NixOS system that already runs Hyprland:
+# greetd needs a Wayland compositor to host the GUI greeter. Three
+# tried hosts on this machine:
 #
-#   cage (kiosk compositor, 0.2.x)
-#     - cannot mirror outputs
-#     - cannot restrict to a named output without external wlr-randr
-#     - cage's `-s` flag (VT switching) issues VT_ACTIVATE during
-#       startup, which re-binds vtcon1 to fbcon and flashes any queued
-#       kernel/systemd output onto the panel after silent-vt unbind
-#     - atexit teardown triggers xdg-desktop-portal-hyprland SEGV
-#       (CCWlOutput dtor after wl_display poison) — see #400 closed
-#       "not planned"
+#   cage 0.2.x — spans the bounding box of the output layout (no
+#     letterbox, no per-output config, no mirror). Multi-monitor with
+#     dissimilar resolutions = visible crop. Plus xdph SEGV at exit.
 #
-#   Hyprland kiosk (already installed for the user session)
-#     - native `mirror` directive: HDMI-A-1 displays a copy of eDP-1
-#       at the HDMI's resolution (handles 2880x1800@2 → 1920x1080@1)
-#     - clean exit via greetd → no portal autostart, no atexit dance
-#     - libseat/logind session take-over does NOT issue VT_ACTIVATE
-#       on its own; the VT remains under fbcon-detached state from
-#       silent-vt + silent-vt-keep
-#     - zero closure delta — Hyprland is already in the system
+#   Hyprland kiosk — solves the mirror trivially via `monitor =
+#     mirror,...`, but Hyprland's own .portal file claims xdph;
+#     CPortalManager destructor SEGVs after wl_display_disconnect()
+#     (hyprwm/xdg-desktop-portal-hyprland#400, closed not-planned
+#     2026-05-21). Operator-visible: error window flashes at handoff.
 #
-# Decision (2026-05-30): swap cage for Hyprland-as-greeter. Solves
-# the multi-monitor "regreet appears only on eDP-1, drifts to HDMI-A-1
-# after ~5 seconds" bug architecturally. Also closes the second
-# log-flash window (cage's VT_ACTIVATE) at the source.
+#   sway 1.11 — per-output gtk-layer-shell surfaces, no portal claim
+#     (XDG_CURRENT_DESKTOP=sway → portal looks for xdg-desktop-portal-
+#     wlr, which does NOT autostart in a stripped greeter session).
+#     Combined with nwg-hello (the only GTK greeter that natively
+#     handles multi-monitor via monitor_nums + form_on_monitors), this
+#     is the cleanest stack that actually solves all four constraints
+#     at once: silent boot, multi-monitor, gruvbox theming, no xdph.
 #
-# Research backing: researches/2026-05-29-greetd-multi-monitor-mirror-
-# alternatives.result.md — Hyprland + regreet rated #1 candidate.
+# Decision: 2026-05-30, option 2 from
+# researches/2026-05-30-greeter-stack-for-hyprland-multi-monitor.result.md.
+#
+# Architecture notes:
+#   - sway is invoked by absolute store path. `programs.sway.enable`
+#     is intentionally left off so sway does NOT appear as a
+#     selectable user-session in /run/current-system/sw/share/
+#     wayland-sessions/. The greeter sway is a kiosk-only host.
+#   - nwg-hello reads its config from /etc/nwg-hello/{json,css}. The
+#     hyprland.conf shipped with the package is unused (we go via
+#     sway). Wallpaper lives at /etc/greetd/wallpaper.jpg, served
+#     both by sway's `output * bg` and by the nwg-hello CSS
+#     `background-image` on the form layer.
+#   - Greeter env: XDG_CURRENT_DESKTOP=sway, GTK_USE_PORTAL=0,
+#     GDK_DEBUG=no-portals — belt-and-suspenders against any portal
+#     autostart inside the greeter session.
+#   - greeterManagesPlymouth = false. nwg-hello has no plymouth
+#     integration; let greetd own the plymouth-quit transition. The
+#     fbcon flash window is covered by silent-vt + silent-vt-keep
+#     in modules/nixos/boot.nix.
 {
   config,
   lib,
@@ -44,369 +56,277 @@
   # Palette — shared via lib/palette.nix.
   p = import ../../../../lib/palette.nix;
 
-  # ── Hyprland greeter kiosk config ────────────────────────────────
-  # Minimal Hyprland configuration for the greeter session. Hosts
-  # exactly one window (regreet) and exits when regreet exits.
+  # ── sway kiosk config ────────────────────────────────────────────
+  # Minimal sway config: per-output background, US/RU keyboard,
+  # nwg-hello as the only foreground app, exit when nwg-hello exits.
   #
-  # Monitor strategy:
-  #   - eDP-1 is the source of truth. Native 2880x1800 at scale 2
-  #     (logical 1440x900) — matches the user-session config so
-  #     regreet renders identically.
-  #   - HDMI-A-1 mirrors eDP-1 via Hyprland's native `mirror` arg.
-  #     The mirrored output renders the source's framebuffer scaled
-  #     to fit the HDMI's 1920x1080 — no separate workspace, no
-  #     bounding-box drift, no wlr-randr race.
-  #   - Catch-all line for any future external display: also mirror
-  #     eDP-1 by default (safer than extending and getting a blank
-  #     half-screen on an unexpected DP/USB-C dock).
+  # Output strategy:
+  #   - eDP-1 native 2880x1800; sway picks the panel's preferred mode.
+  #   - HDMI-A-1 native 1920x1080; same.
+  #   - Each output gets the wallpaper as solid background; nwg-hello
+  #     overlays its own gtk-layer-shell surface per output, sized to
+  #     that output's native mode. No spanning, no crop.
+  #   - No `output * scale 1.5` — nwg-hello scales internally via GTK
+  #     and the system's per-monitor xdg-output scale; trying to set
+  #     a scale here doubles up with GTK's own and looks blurry.
   #
-  # No keybinds (the greeter has no use for compositor-level binds —
-  # ReGreet handles its own keyboard input). No animations, no
-  # decoration, no wallpaper inside the compositor (regreet renders
-  # its own background from /etc/greetd/wallpaper.jpg).
-  # Hyprpaper config for the greeter session. Two wallpaper bindings:
-  # one per output. cover-fit (no `contain:` prefix), so each monitor
-  # renders the wallpaper at its native aspect ratio with the long
-  # axis cropped — no stretch artefacts.
-  greeterHyprpaperConfig = pkgs.writeText "greeter-hyprpaper.conf" ''
-    preload = /etc/greetd/wallpaper.jpg
-    wallpaper = eDP-1,/etc/greetd/wallpaper.jpg
-    wallpaper = HDMI-A-1,/etc/greetd/wallpaper.jpg
-    wallpaper = ,/etc/greetd/wallpaper.jpg
+  # Input strategy:
+  #   - xkb_layout us,ru with caps_toggle — matches user session.
+  #   - repeat_rate / repeat_delay tuned to feel like Hyprland.
+  #
+  # No keybinds. The greeter has no use for sway-level binds; nwg-
+  # hello handles its own keyboard input. Ctrl+Alt+F1..F6 stays
+  # functional via kernel VT switching, independent of sway.
+  swayGreeterConfig = pkgs.writeText "sway-greeter-config" ''
+    # Outputs — wallpaper as background, native modes.
+    output * bg /etc/greetd/wallpaper.jpg fill
+    output eDP-1 enable
+    output HDMI-A-1 enable
+
+    # Keyboard — match user session.
+    input "type:keyboard" {
+        xkb_layout us,ru
+        xkb_options grp:caps_toggle
+        repeat_rate 50
+        repeat_delay 300
+    }
+
+    # Cursor — Capitaine Gruvbox, same as user session.
+    seat seat0 xcursor_theme "Capitaine Cursors (Gruvbox)" 24
+
+    # No window decorations / gaps / animations. nwg-hello uses
+    # gtk-layer-shell so it floats outside sway's tiling tree
+    # anyway; these are belt-and-suspenders.
+    default_border none
+    default_floating_border none
+    gaps inner 0
+    gaps outer 0
+
+    # Launch sequence: nwg-hello runs in foreground; on exit, sway
+    # shuts itself down → greetd starts the user session.
+    exec "${pkgs.nwg-hello}/bin/nwg-hello; swaymsg exit"
   '';
 
-  greeterHyprlandConfig = pkgs.writeText "greeter-hyprland.conf" ''
-    # Monitors — extend layout, no mirror.
-    #
-    # eDP-1 hosts the regreet window (windowrule below pins it).
-    # HDMI-A-1 stays active but receives only the wallpaper from
-    # hyprpaper — clean per-output rendering, no aspect-ratio crop,
-    # no scaling artefacts. Each monitor renders at its native mode
-    # at scale 1 — the greeter is a one-off session, HiDPI scaling
-    # only matters for the regreet window itself, which fullscreens
-    # on eDP-1 and lets GTK4 handle internal text/widget scaling.
-    #
-    # scale 1.5 on eDP-1 (logical 1920x1200): readable HiDPI without
-    # oversized buttons. scale 1 on HDMI-A-1: native 1920x1080.
-    # No `mirror` arg anywhere — hyprpaper paints both outputs
-    # independently from the same source image.
-    monitor = eDP-1, 2880x1800@120, 0x0, 1.5
-    monitor = HDMI-A-1, 1920x1080@60, auto, 1
-    monitor = , preferred, auto, 1
-
-    # Cursor — Hyprland renders the cursor itself outside any GTK
-    # surface (e.g. when hovering bare compositor area). regreet's
-    # cursorTheme only theming the GTK pointer; the compositor needs
-    # XCURSOR_THEME / HYPRCURSOR_THEME exported via env. Without
-    # these the greeter shows the default white wlroots arrow.
-    env = XCURSOR_THEME, Capitaine Cursors (Gruvbox)
-    env = XCURSOR_SIZE, 24
-    env = HYPRCURSOR_THEME, Capitaine Cursors (Gruvbox)
-    env = HYPRCURSOR_SIZE, 24
-
-    # Input — match user session (US/RU with caps_toggle) so the
-    # operator types into the password field with the same layout
-    # they use in the desktop session.
-    input {
-      kb_layout = us,ru
-      kb_options = grp:caps_toggle
-      repeat_rate = 50
-      repeat_delay = 300
-    }
-
-    # No window decoration / animation / gaps. The greeter is one
-    # full-window GTK app — no compositor chrome around it.
-    general {
-      border_size = 0
-      gaps_in = 0
-      gaps_out = 0
-      no_focus_fallback = true
-    }
-
-    decoration {
-      rounding = 0
-      shadow {
-        enabled = false
-      }
-      blur {
-        enabled = false
-      }
-    }
-
-    animations {
-      enabled = false
-    }
-
-    misc {
-      disable_hyprland_logo = true
-      disable_splash_rendering = true
-      force_default_wallpaper = 0
-      vfr = true
-      # Disable Hyprland's own QoL warnings — the greeter session
-      # is throwaway and does not need them.
-      disable_autoreload = true
-    }
-
-    # No user keybinds. The greeter has none. Ctrl+Alt+F1..F6 still
-    # works (kernel VT switching is independent of compositor binds).
-
-    # Window rule — make the regreet window fullscreen on eDP-1 only.
-    # `regreet` advertises app_id = "regreet" via GTK4. Without these
-    # rules Hyprland would tile it; the greeter expects a single
-    # full-screen presentation pinned to the internal panel.
-    # `monitor:eDP-1` forces regreet to spawn on eDP-1 even when
-    # HDMI is connected. HDMI gets only the wallpaper.
-    windowrulev2 = monitor eDP-1, class:^(regreet)$
-    windowrulev2 = fullscreen, class:^(regreet)$
-    windowrulev2 = noborder, class:^(regreet)$
-
-    # Launch sequence:
-    #   1. hyprpaper paints both monitors with the greeter wallpaper
-    #   2. regreet runs on eDP-1 (windowrule pins it there); when it
-    #      exits, dispatch exit → Hyprland tears down → greetd starts
-    #      the user session
-    exec-once = ${lib.getExe pkgs.hyprpaper} -c ${greeterHyprpaperConfig}
-    exec-once = ${lib.getExe config.programs.regreet.package} && hyprctl dispatch exit
-  '';
-
-  # Greeter wrapper script — runs Hyprland with the kiosk config and
-  # silences stderr so wlroots/Aquamarine init noise (DRM, EGL, GLES2,
-  # libseat) never reaches the controlling tty during the brief
-  # window between the greetd service start and Hyprland's DRM
-  # take-over.
+  # ── nwg-hello config (JSON) ──────────────────────────────────────
+  # monitor_nums = [] → surface on every monitor.
+  # form_on_monitors = [0] → form only on the first enumerated
+  # monitor (eDP-1 in current cabling). HDMI-A-1 shows wallpaper
+  # only. If sway enumerates outputs in a different order on a
+  # future hardware change, swap to [1] or [].
   #
-  # We bypass UWSM here on purpose. UWSM is a user-session lifecycle
-  # manager; the greeter is a system-level throwaway compositor that
-  # should not register with the user systemd instance. Calling
-  # /run/current-system/sw/bin/Hyprland directly avoids the UWSM
-  # service-template overhead and keeps the exit path simple.
-  greeterScript = pkgs.writeShellScript "greeter-hyprland-kiosk" ''
-    exec /run/current-system/sw/bin/Hyprland \
-      --config ${greeterHyprlandConfig} \
-      2>/dev/null
+  # session_dirs uses /run/current-system/sw/share for nixos-style
+  # path layout. The greetd systemd unit re-asserts XDG_DATA_DIRS
+  # below for safety.
+  #
+  # GTK theme = Adwaita + prefer-dark-theme. Gruvbox is delivered
+  # via the CSS file below — keeps the GTK theme dependency surface
+  # narrow (no need to pull gruvbox-gtk-theme into the greeter).
+  nwgHelloConfig = pkgs.writeText "nwg-hello.json" (
+    builtins.toJSON {
+      session_dirs = [
+        "/run/current-system/sw/share/wayland-sessions"
+        "/run/current-system/sw/share/xsessions"
+      ];
+      custom_sessions = [];
+      monitor_nums = [];
+      form_on_monitors = [0];
+      delay_secs = 1;
+      cmd-sleep = "systemctl suspend";
+      cmd-reboot = "systemctl reboot";
+      cmd-poweroff = "systemctl poweroff";
+      gtk-theme = "Adwaita";
+      gtk-icon-theme = "";
+      gtk-cursor-theme = "Capitaine Cursors (Gruvbox)";
+      prefer-dark-theme = true;
+      template-name = "";
+      time-format = "%H:%M";
+      date-format = "%a, %d %b";
+      layer = "overlay";
+      keyboard-mode = "exclusive";
+      lang = "";
+      avatar-show = false;
+      avatar-size = 100;
+      avatar-border-width = 1;
+      avatar-border-color = "#eee";
+      avatar-corner-radius = 15;
+      avatar-circle = false;
+      env-vars = [];
+    }
+  );
+
+  # ── nwg-hello CSS — gruvbox-warm theme ───────────────────────────
+  # Selectors come from the nwg-hello default stylesheet:
+  #   window, #form-wrapper, entry, button, #power-button,
+  #   #welcome-label, #clock-label, #date-label,
+  #   #form-label, #form-combo, #password-entry, #login-button.
+  # Wallpaper is loaded via background-image on the window node.
+  nwgHelloCss = pkgs.writeText "nwg-hello.css" ''
+    /* ── Wallpaper ─────────────────────────────────────────────── */
+    window {
+        background-image: url("/etc/greetd/wallpaper.jpg");
+        background-size: cover;
+        background-position: center;
+        color: ${p.fg};
+    }
+
+    /* ── Login form frame ──────────────────────────────────────── */
+    #form-wrapper {
+        background-color: alpha(${p.bg}, 0.92);
+        border: 1px solid ${p.border};
+        border-radius: 12px;
+        padding: 24px 32px;
+    }
+
+    /* ── Welcome / clock / date ────────────────────────────────── */
+    #welcome-label {
+        color: ${p.fg_bright};
+        font-size: 32px;
+        font-weight: 600;
+    }
+
+    #clock-label {
+        color: ${p.accent_warm};
+        font-family: monospace;
+        font-size: 64px;
+        font-weight: 700;
+    }
+
+    #date-label {
+        color: ${p.fg_dim};
+        font-size: 18px;
+    }
+
+    /* ── Form labels ───────────────────────────────────────────── */
+    #form-label,
+    label {
+        color: ${p.fg_dim};
+        font-weight: 500;
+    }
+
+    /* ── Entry (password / username) ──────────────────────────── */
+    entry,
+    #password-entry {
+        background-color: ${p.bg_mid};
+        color: ${p.fg};
+        border: 1px solid ${p.border_inact};
+        border-radius: 6px;
+        padding: 8px 12px;
+        caret-color: ${p.accent_warm};
+    }
+
+    entry:focus,
+    #password-entry:focus {
+        border-color: ${p.accent_warm};
+        box-shadow: 0 0 0 1px ${p.accent_warm};
+    }
+
+    /* ── Combobox (session selector) ───────────────────────────── */
+    combobox,
+    #form-combo {
+        background-color: ${p.bg_mid};
+        color: ${p.fg};
+        border: 1px solid ${p.border_inact};
+        border-radius: 6px;
+        padding: 4px 8px;
+    }
+
+    combobox:hover,
+    #form-combo:hover {
+        border-color: ${p.accent_warm};
+    }
+
+    /* ── Buttons (generic) ─────────────────────────────────────── */
+    button {
+        background-color: ${p.bg_mid};
+        color: ${p.fg};
+        border: 1px solid ${p.border_inact};
+        border-radius: 6px;
+        padding: 8px 20px;
+        font-weight: 500;
+    }
+
+    button:hover {
+        background-color: ${p.hover_bg};
+        color: ${p.hover_fg};
+        border-color: ${p.accent_warm};
+    }
+
+    /* ── Login button — primary action ─────────────────────────── */
+    #login-button {
+        background-color: ${p.accent_warm};
+        color: ${p.bg};
+        border-color: ${p.accent_warm};
+        font-weight: 600;
+    }
+
+    #login-button:hover {
+        background-color: ${p.bright_yellow};
+        color: ${p.bg};
+    }
+
+    /* ── Power buttons (sleep/reboot/poweroff) ─────────────────── */
+    #power-button {
+        background: none;
+        border: none;
+        border-radius: 18px;
+        padding: 8px;
+    }
+
+    #power-button:hover {
+        background-color: alpha(${p.fg_bright}, 0.1);
+    }
+
+    #power-button:active {
+        background-color: alpha(${p.bright_yellow}, 0.2);
+    }
   '';
 in {
-  # greetd — minimal display manager backend
+  # ── greetd ─────────────────────────────────────────────────────
   services.greetd = {
     enable = true;
-    # Smooth Plymouth → greeter handoff: ReGreet handles Plymouth
-    # quit itself.
-    greeterManagesPlymouth = true;
-    # No autologin — user must enter password.
+    # nwg-hello has no plymouth integration → let greetd own the
+    # plymouth-quit handoff. silent-vt+silent-vt-keep mute the
+    # fbcon side-channel.
+    greeterManagesPlymouth = false;
     restart = true;
   };
 
-  # Hyprland kiosk as the greeter compositor. dbus-run-session is
-  # required so regreet's GTK4 stack has a session bus to talk to
-  # (gnome-keyring, accountsservice). bash -c keeps the redirect
-  # syntax clean.
-  services.greetd.settings.default_session.command = lib.mkForce (
-    "${pkgs.bash}/bin/bash -c '"
-    + "exec ${pkgs.dbus}/bin/dbus-run-session ${greeterScript}"
-    + "'"
-  );
+  services.greetd.settings.default_session.command = lib.mkForce "${pkgs.sway}/bin/sway --config ${swayGreeterConfig}";
 
-  # ReGreet discovers sessions via XDG_DATA_DIRS.
-  # The greetd systemd service does NOT source /etc/set-environment,
-  # so we must inject XDG_DATA_DIRS explicitly.
-  #
-  # GTK_USE_PORTAL=0 + GDK_DEBUG=no-portals — suppress
-  # xdg-desktop-portal autostart inside the greeter session.
-  # xdg-desktop-portal-hyprland 1.3.11/1.3.12 SEGVs in
-  # CCWlOutput::~CCWlOutput during atexit. With Hyprland-as-greeter
-  # we do not exhibit cage's exit fragility, but xdph autostart on
-  # GTK app boot would still spin up an unnecessary portal stack
-  # for a 2-second login session. Researched 2026-05-29.
+  # ── greetd systemd service environment ─────────────────────────
   systemd.services.greetd = {
     environment = {
+      # nwg-hello session enumeration
       XDG_DATA_DIRS = "${config.services.displayManager.sessionData.desktops}/share:/run/current-system/sw/share";
+      # Mark this as a sway session so the system portal config
+      # (if any portal is ever D-Bus-activated) looks for
+      # xdg-desktop-portal-wlr, NOT xdg-desktop-portal-hyprland.
+      XDG_CURRENT_DESKTOP = "sway";
+      # Belt-and-suspenders: prevent GTK clients (nwg-hello) from
+      # ever asking for a portal even if the bus has one available.
       GTK_USE_PORTAL = "0";
       GDK_DEBUG = "no-portals";
     };
-    # Redirect greetd's stderr to journal instead of VT.
+    # Keep wlroots / sway init noise out of the controlling tty.
     serviceConfig.StandardError = "journal";
   };
 
-  # ReGreet — GTK4 greetd frontend (now hosted by Hyprland, not cage)
-  programs.regreet = {
-    enable = true;
+  # ── nwg-hello config files ─────────────────────────────────────
+  environment.etc."nwg-hello/nwg-hello.json".source = nwgHelloConfig;
+  environment.etc."nwg-hello/nwg-hello.css".source = nwgHelloCss;
 
-    # Gruvbox-Dark GTK — consistent with HM gtk.theme.
-    theme = {
-      name = "Gruvbox-Dark";
-      package = pkgs.gruvbox-gtk-theme;
-    };
-    iconTheme = {
-      name = "oomox-gruvbox-dark";
-      package = pkgs.gruvbox-dark-icons-gtk;
-    };
-    cursorTheme = {
-      name = "Capitaine Cursors (Gruvbox)";
-      package = pkgs.capitaine-cursors-themed;
-    };
-    # UI font — match the rest of the system.
-    font = {
-      name = "Noto Sans";
-      size = 14;
-      package = pkgs.noto-fonts-lgc-plus;
-    };
-
-    # regreet.toml — background + GTK settings
-    settings = {
-      background = {
-        path = "/etc/greetd/wallpaper.jpg";
-        fit = "Cover";
-      };
-      GTK = {
-        application_prefer_dark_theme = true;
-        cursor_blink = false;
-      };
-      appearance = {
-        greeting_msg = "Welcome back!";
-      };
-      widget.clock = {
-        format = "%a %H:%M";
-        resolution = "500ms";
-      };
-    };
-
-    # CSS — style the login box, clock, and buttons.
-    extraCss =
-      /*
-      CSS
-      */
-      ''
-        /* ── Login box frame ─────────────────────────────────────────── */
-        .background {
-          background-color: alpha(${p.bg}, 0.92);
-          border: 1px solid ${p.border};
-          border-radius: 12px;
-          box-shadow: 0 4px 24px alpha(#000000, 0.5);
-        }
-
-        /* ── Labels (User:, Session:) ─────────────────────────────────── */
-        label {
-          color: ${p.fg_dim};
-          font-weight: 500;
-        }
-
-        /* ── Message label (greeting, errors) ─────────────────────────── */
-        #message_label {
-          color: ${p.fg_bright};
-          font-size: 1.1em;
-        }
-
-        /* ── Clock frame ──────────────────────────────────────────────── */
-        #clock_frame {
-          background-color: alpha(${p.bg}, 0.85);
-          border: 1px solid ${p.border};
-          border-radius: 0 0 12px 12px;
-          border-top-width: 0px;
-          padding: 8px 24px;
-        }
-
-        #clock_frame label {
-          color: ${p.accent_warm};
-          font-size: 1.4em;
-          font-weight: 600;
-        }
-
-        /* ── Combo box / entry ─────────────────────────────────────────── */
-        combobox, entry {
-          color: ${p.fg};
-          background-color: ${p.bg_mid};
-          border: 1px solid ${p.border_inact};
-          border-radius: 6px;
-          padding: 6px 10px;
-        }
-
-        combobox:hover, entry:hover {
-          border-color: ${p.accent_warm};
-        }
-
-        combobox:focus, entry:focus {
-          border-color: ${p.accent_warm};
-          box-shadow: 0 0 0 1px ${p.accent_warm};
-        }
-
-        /* ── Buttons ──────────────────────────────────────────────────── */
-        button {
-          color: ${p.fg};
-          background-color: ${p.bg_mid};
-          border: 1px solid ${p.border_inact};
-          border-radius: 6px;
-          padding: 6px 20px;
-          font-weight: 500;
-        }
-
-        button:hover {
-          background-color: ${p.hover_bg};
-          color: ${p.hover_fg};
-          border-color: ${p.accent_warm};
-        }
-
-        button:focus {
-          border-color: ${p.accent_warm};
-          box-shadow: 0 0 0 1px ${p.accent_warm};
-        }
-
-        /* Login button — primary action */
-        button.suggested-action {
-          background-color: ${p.accent_warm};
-          color: ${p.bg};
-          border-color: ${p.accent_warm};
-          font-weight: 600;
-        }
-
-        button.suggested-action:hover {
-          background-color: ${p.bright_yellow};
-          color: ${p.bg};
-        }
-
-        /* Reboot/poweroff — destructive */
-        button.destructive-action {
-          color: ${p.bright_red};
-          border-color: alpha(${p.red}, 0.4);
-        }
-
-        button.destructive-action:hover {
-          background-color: alpha(${p.red}, 0.2);
-          color: ${p.bright_red};
-        }
-
-        /* Toggle button (manual session entry) */
-        togglebutton {
-          color: ${p.fg_dim};
-          background-color: ${p.bg_mid};
-          border: 1px solid ${p.border_inact};
-          border-radius: 6px;
-        }
-
-        togglebutton:checked {
-          background-color: ${p.hover_bg};
-          color: ${p.hover_fg};
-          border-color: ${p.accent_warm};
-        }
-
-        /* ── Info bar (notifications) ──────────────────────────────────── */
-        infobar {
-          background-color: alpha(${p.bg_mid}, 0.9);
-          border-radius: 6px;
-        }
-
-        infobar label {
-          color: ${p.fg_dim};
-        }
-      '';
-  };
-
-  # Wallpaper accessible to the greeter user.
-  # Home dir is mode 700 — greeter cannot read /home/oonishi/.local/share/...
-  # so we install a system-level copy at /etc/greetd/wallpaper.jpg.
+  # Wallpaper — readable by the unprivileged greeter user.
   environment.etc."greetd/wallpaper.jpg".source = ../../../../assets/wallpaper.jpg;
 
-  # greeter user — required by regreet module assertion.
-  # greetd runs the greeter session under this system user.
+  # ── Packages required by the greeter session ───────────────────
+  # Cursor theme path resolves via /run/current-system/sw/share/icons.
+  environment.systemPackages = [
+    pkgs.nwg-hello
+    pkgs.sway
+    pkgs.capitaine-cursors-themed
+  ];
+
+  # ── greeter user (required by greetd) ──────────────────────────
   users.users.greeter = {
     isSystemUser = true;
     group = "greeter";
