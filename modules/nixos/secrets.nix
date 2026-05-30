@@ -100,6 +100,18 @@
 
       rage -e "''${args[@]}" -o "$tmp" < "$seed"
       mv -f "$tmp" "$out"
+
+      # Preserve the prior owner/mode of the .age file so git +
+      # pre-commit hooks can read it. mktemp + sudo run inherit
+      # root:root 0600 by default, which breaks `git diff-index`
+      # ("Permission denied"). The .age content is encrypted, so
+      # 0644 owner=invoker is the right resting state — same as
+      # what `agenix -e` produces.
+      if [ -n "''${SUDO_USER:-}" ]; then
+        chown "$SUDO_USER:$(id -gn "$SUDO_USER")" "$out"
+      fi
+      chmod 644 "$out"
+
       echo "agenix-seed: wrote $out (recipients: ''${#recipients[@]})"
     '';
   };
