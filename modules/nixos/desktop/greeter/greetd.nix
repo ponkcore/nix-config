@@ -64,25 +64,35 @@
   # ReGreet handles its own keyboard input). No animations, no
   # decoration, no wallpaper inside the compositor (regreet renders
   # its own background from /etc/greetd/wallpaper.jpg).
+  # Hyprpaper config for the greeter session. Two wallpaper bindings:
+  # one per output. cover-fit (no `contain:` prefix), so each monitor
+  # renders the wallpaper at its native aspect ratio with the long
+  # axis cropped — no stretch artefacts.
+  greeterHyprpaperConfig = pkgs.writeText "greeter-hyprpaper.conf" ''
+    preload = /etc/greetd/wallpaper.jpg
+    wallpaper = eDP-1,/etc/greetd/wallpaper.jpg
+    wallpaper = HDMI-A-1,/etc/greetd/wallpaper.jpg
+    wallpaper = ,/etc/greetd/wallpaper.jpg
+  '';
+
   greeterHyprlandConfig = pkgs.writeText "greeter-hyprland.conf" ''
-    # Monitors — mirror every external output to the internal panel.
+    # Monitors — extend layout, no mirror.
     #
-    # scale 1.5 on eDP-1 (logical 1920x1200): a compromise between
-    # readable HiDPI rendering on the laptop panel and reasonable
-    # element sizing on the HDMI mirror. scale 2 (user-session
-    # default) made the regreet form oversized; scale 1 made the
-    # 2880x1800 panel render too small on a single login window.
+    # eDP-1 hosts the regreet window (windowrule below pins it).
+    # HDMI-A-1 stays active but receives only the wallpaper from
+    # hyprpaper — clean per-output rendering, no aspect-ratio crop,
+    # no scaling artefacts. Each monitor renders at its native mode
+    # at scale 1 — the greeter is a one-off session, HiDPI scaling
+    # only matters for the regreet window itself, which fullscreens
+    # on eDP-1 and lets GTK4 handle internal text/widget scaling.
     #
-    # Aspect ratio caveat: eDP-1 is 16:10 (2880x1800), HDMI-A-1 is
-    # typically 16:9. Hyprland's `mirror` blits the source
-    # framebuffer to the target without letterbox, so ~10% of the
-    # vertical content is cropped on a 16:9 mirror target. Acceptable
-    # trade for "regreet visible on both panels"; the login form
-    # itself is small enough to remain visible inside the cropped
-    # region.
+    # scale 1.5 on eDP-1 (logical 1920x1200): readable HiDPI without
+    # oversized buttons. scale 1 on HDMI-A-1: native 1920x1080.
+    # No `mirror` arg anywhere — hyprpaper paints both outputs
+    # independently from the same source image.
     monitor = eDP-1, 2880x1800@120, 0x0, 1.5
-    monitor = HDMI-A-1, 1920x1080@60, auto, 1, mirror, eDP-1
-    monitor = , preferred, auto, 1, mirror, eDP-1
+    monitor = HDMI-A-1, 1920x1080@60, auto, 1
+    monitor = , preferred, auto, 1
 
     # Cursor — Hyprland renders the cursor itself outside any GTK
     # surface (e.g. when hovering bare compositor area). regreet's
@@ -140,18 +150,22 @@
     # No user keybinds. The greeter has none. Ctrl+Alt+F1..F6 still
     # works (kernel VT switching is independent of compositor binds).
 
-    # Window rule — make the regreet window fullscreen and centered.
-    # `regreet` advertises app_id = "regreet" via GTK4. Without this
-    # rule Hyprland would tile it; the greeter expects a single
-    # full-screen presentation.
+    # Window rule — make the regreet window fullscreen on eDP-1 only.
+    # `regreet` advertises app_id = "regreet" via GTK4. Without these
+    # rules Hyprland would tile it; the greeter expects a single
+    # full-screen presentation pinned to the internal panel.
+    # `monitor:eDP-1` forces regreet to spawn on eDP-1 even when
+    # HDMI is connected. HDMI gets only the wallpaper.
+    windowrulev2 = monitor eDP-1, class:^(regreet)$
     windowrulev2 = fullscreen, class:^(regreet)$
     windowrulev2 = noborder, class:^(regreet)$
 
     # Launch sequence:
-    #   1. regreet runs synchronously (we do NOT exec-once because
-    #      we want to know when it exits)
-    #   2. when regreet exits, dispatch exit → Hyprland tears down →
-    #      greetd starts the user session
+    #   1. hyprpaper paints both monitors with the greeter wallpaper
+    #   2. regreet runs on eDP-1 (windowrule pins it there); when it
+    #      exits, dispatch exit → Hyprland tears down → greetd starts
+    #      the user session
+    exec-once = ${lib.getExe pkgs.hyprpaper} -c ${greeterHyprpaperConfig}
     exec-once = ${lib.getExe config.programs.regreet.package} && hyprctl dispatch exit
   '';
 
