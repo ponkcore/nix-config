@@ -346,32 +346,29 @@ in {
       };
 
       # ── Workspace policy ───────────────────────────────────────────────
-      # Pin workspaces to monitors. The dominant use case is docked
-      # with the lid closed → HDMI is the primary surface and hosts
-      # ws 1-8 (`default:true` on ws1 makes it the boot landing
-      # workspace). eDP-1 hosts ws9 for ancillary tasks (chat,
-      # monitoring) when the lid is open. `persistent:true` keeps
-      # the workspaces alive even when empty so the per-monitor
-      # binding survives across re-plug events.
+      # Default Hyprland behaviour: workspaces are dynamic and not
+      # pinned to monitors. A workspace is born on whichever monitor
+      # has focus when it is first activated. Each monitor keeps its
+      # own current workspace independently — Super+1..9 cycles the
+      # focused monitor's workspaces, not a global pool.
       #
-      # When HDMI is absent (laptop on the move), Hyprland evacuates
-      # ws 1-8 to eDP-1 as fallback automatically; on re-plug the
-      # `persistent` flag pulls them back to HDMI.
+      # Why no monitor-pinning: the previous policy hard-pinned
+      # ws 1-8 to HDMI-A-1 and ws9 to eDP-1 to optimise the docked
+      # path (HDMI primary, eDP-1 ancillary). On the unplugged path
+      # (laptop on the move) Hyprland still evacuated ws 1-8 to
+      # eDP-1, but eDP-1 booted to ws9 because of `default:true`
+      # there — landing on ws9 instead of ws1 was disorienting, and
+      # re-plugging HDMI yanked ws 1-8 back instantly with all the
+      # windows opened in lap-only mode. Removing the pin restores
+      # the conventional dynamic flow at the cost of losing the
+      # docking automation; if/when docking becomes the dominant
+      # mode again we can revive the pin behind a host-condition
+      # script.
       #
-      # Smart-gaps rules (w[tv1], f[1]) below: no gaps/border when a
-      # single tiled or fullscreen window is visible — maximizes
-      # usable area on the 14" panel.
+      # Smart-gaps rules retained: no gaps/border when a single
+      # tiled or fullscreen window is visible — maximises usable
+      # area on the 14" panel.
       workspace = [
-        "1, monitor:HDMI-A-1, default:true, persistent:true"
-        "2, monitor:HDMI-A-1, persistent:true"
-        "3, monitor:HDMI-A-1, persistent:true"
-        "4, monitor:HDMI-A-1, persistent:true"
-        "5, monitor:HDMI-A-1, persistent:true"
-        "6, monitor:HDMI-A-1, persistent:true"
-        "7, monitor:HDMI-A-1, persistent:true"
-        "8, monitor:HDMI-A-1, persistent:true"
-        "9, monitor:eDP-1, default:true, persistent:true"
-
         "w[tv1], gapsout:0, gapsin:0, border:false"
         "f[1], gapsout:0, gapsin:0, border:false"
       ];
