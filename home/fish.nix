@@ -110,6 +110,41 @@ _: {
         set -l updated (jq '.plugin = ((.plugin // []) | if any(.[]; test("^oh-my-open(agent|code)(@.*)?$")) then . else . + ["oh-my-openagent@latest"] end)' "$cfg")
         OPENCODE_CONFIG_CONTENT="$updated" opencode $argv
       '';
+      # ── Tailscale helpers ───────────────────────────────────────────
+      # Tailscaled and throne TUN cannot run together (DNS hijacking +
+      # default-route conflict — see modules/nixos/tailscale.nix). The
+      # helpers below make manual juggling painless.
+      #
+      # ts-on  : ensure throne is down, start tailscaled, run `up`.
+      # ts-off : run `down` and stop tailscaled (throne stays as-is).
+      # ts     : passthrough to `tailscale` so `ts status`, `ts ping`,
+      #          `ts ip`, etc. work without typing the full name. With
+      #          no arguments — `tailscale status`.
+      ts-on = ''
+        # Refuse to start while throne TUN is active. Throne runs as a
+        # systemd-wrapped user binary; the TUN is owned by throne-core
+        # via security.wrappers. Detect by interface presence — if a
+        # tun-style interface other than tailscale0 is up with a default
+        # route, abort.
+        if ip -br link show 2>/dev/null | grep -qE '^(throne|tun|utun|wg)[0-9]*\s+UP'
+          echo "ERROR: throne (or another TUN VPN) appears to be up. Disable it first." >&2
+          echo "       Hint: throne-toggle, then re-run ts-on." >&2
+          return 1
+        end
+        sudo systemctl start tailscaled
+        sudo tailscale up --accept-routes $argv
+      '';
+      ts-off = ''
+        sudo tailscale down
+        sudo systemctl stop tailscaled
+      '';
+      ts = ''
+        if test (count $argv) -eq 0
+          tailscale status
+        else
+          tailscale $argv
+        end
+      '';
     };
   };
 
