@@ -293,19 +293,28 @@
   };
 
   # Re-arming sequence — the order matters:
-  #   1. write `on` to /sys/class/drm/card*-HDMI-A-1/status — this
+  #   1. write `detect` to /sys/class/drm/card*-HDMI-A-1/status — this
   #      lifts the force=DRM_FORCE_OFF flag set by `video=HDMI-A-1:d`
-  #      on the kernel command line. Without this step the connector
+  #      on the kernel command line and returns the connector to
+  #      auto-detect (EDID + HPD). Without this step the connector
   #      stays force-disabled across an entire boot, no matter how
   #      many hotplugs we trigger.
+  #
+  #      DO NOT write `on` here — that is DRM_FORCE_ON, which forces
+  #      the connector to report `connected` even with no cable
+  #      attached. Hyprland then creates a phantom 1920x1080 monitor
+  #      from the `monitor=HDMI-A-1, ...` line, workspaces silently
+  #      pin to it, waybar shows you switching workspaces that you
+  #      cannot see. `detect` is the correct DRM verb — it lets the
+  #      kernel probe the cable each time `trigger_hotplug` fires.
   #   2. write `1` to debugfs trigger_hotplug — this fires
   #      drm_helper_hpd_irq_event() which routes through wlroots
   #      and lets Hyprland claim the connector via its `monitor=
   #      HDMI-A-1, ...` directive.
   # Verified empirically (2026-05-30): trigger_hotplug alone is a
-  # no-op while force is still set; both operations together are
-  # idempotent and survive the unplugged case (status reports
-  # `disconnected`, Hyprland skips it cleanly).
+  # no-op while force is still set. With `detect` the unplugged
+  # case reports `disconnected` and Hyprland skips the connector
+  # cleanly; the plugged case probes EDID and brings the panel up.
   systemd.services.hdmi-rearm = {
     description = "Re-arm HDMI-A-1 connector after Plymouth quit";
     after = ["plymouth-quit.service"];
@@ -327,7 +336,7 @@
       # across kernel upgrades. The PCI address (0000:6e:00.0) is
       # stable for this host (Phoenix iGPU on Lenovo Lecoo Pro 14).
       ExecStart = [
-        "${pkgs.bash}/bin/bash -c 'for f in /sys/class/drm/card*-HDMI-A-1/status; do echo on > \"$f\"; done'"
+        "${pkgs.bash}/bin/bash -c 'for f in /sys/class/drm/card*-HDMI-A-1/status; do echo detect > \"$f\"; done'"
         "${pkgs.bash}/bin/bash -c 'echo 1 > /sys/kernel/debug/dri/0000:6e:00.0/HDMI-A-1/trigger_hotplug'"
       ];
       StandardOutput = "journal";
