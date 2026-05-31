@@ -315,6 +315,14 @@
     };
     serviceConfig = {
       Type = "oneshot";
+      # RemainAfterExit pins the unit in `active (exited)` after
+      # ExecStart returns, so a `nixos-rebuild switch` does NOT
+      # re-trigger the hotplug write. Without this flag the unit
+      # is `inactive (dead)` and every switch re-runs both
+      # ExecStart commands — visible as a brief HDMI black flash.
+      # Boot still re-runs the unit cleanly (state is fresh each
+      # boot), shutdown is handled by the separate hdmi-disarm.
+      RemainAfterExit = true;
       # Globbed paths — survive amdgpu enumerating as card0 vs card1
       # across kernel upgrades. The PCI address (0000:6e:00.0) is
       # stable for this host (Phoenix iGPU on Lenovo Lecoo Pro 14).
