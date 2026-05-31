@@ -1,0 +1,43 @@
+# Extend MCP client connection timeouts from 5s/10s to 30s/30s.
+#
+# Upstream gptme hard-codes timeout=5.0 on session.initialize() and
+# timeout=10.0 on session.list_tools() for both the stdio and HTTP
+# transports. The 5s initialize budget is too tight for any MCP
+# server whose entrypoint imports a heavy Python framework before
+# returning the first JSON-RPC response. Concrete failure on lecoo:
+# `mcp-nix` (FastMCP 3.3.x) takes ~2.8-3.5s on a hot uv cache and
+# ~6-7s on the first run after `nix-collect-garbage`, so initialize
+# regularly trips the 5s ceiling and the asyncio TaskGroup tears
+# down with `BrokenResourceError` (the dying child still has a write
+# in flight while anyio cancels the read scope).
+#
+# 30s gives every server a comfortable margin without making real
+# failures hang noticeably — gptme's session start is already
+# dominated by other I/O.
+#
+# Drop this patch when upstream gptme makes the timeouts
+# configurable; tracked at gptme/mcp/client.py.
+--- gptme/mcp/client.py
++++ gptme/mcp/client.py
+@@ -122,8 +122,8 @@
+             if not self.session:
+                 raise RuntimeError("Failed to initialize session")
+ 
+-            await asyncio.wait_for(self.session.initialize(), timeout=5.0)
+-            tools = await asyncio.wait_for(self.session.list_tools(), timeout=10.0)
++            await asyncio.wait_for(self.session.initialize(), timeout=30.0)
++            tools = await asyncio.wait_for(self.session.list_tools(), timeout=30.0)
+             self.tools = tools  # Assign after await
+ 
+             if not self.tools:
+@@ -156,8 +156,8 @@
+             if not self.session:
+                 raise RuntimeError("Failed to initialize session")
+ 
+-            await asyncio.wait_for(self.session.initialize(), timeout=5.0)
+-            tools = await asyncio.wait_for(self.session.list_tools(), timeout=10.0)
++            await asyncio.wait_for(self.session.initialize(), timeout=30.0)
++            tools = await asyncio.wait_for(self.session.list_tools(), timeout=30.0)
+             self.tools = tools
+ 
+             if not self.tools:
