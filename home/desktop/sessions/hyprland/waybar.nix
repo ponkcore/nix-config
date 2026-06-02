@@ -23,8 +23,26 @@
   network-toggle,
   pwvucontrol-toggle,
   btop-toggle,
+  pkgs,
   ...
 }: {
+  # Waybar must start after Hyprland IPC is fully ready, not
+  # merely after graphical-session.target. Without this, the
+  # hyprland/workspaces module subscribes to a compositor whose
+  # event loop is not yet dispatching — the subscription silently
+  # dies, leaving a static workspace strip. Cf. lesson 0005.
+  systemd.user.services.waybar = {
+    Unit.After = ["graphical-session.target" "wayland-wm@Hyprland.service"];
+    Service.ExecStartPre = "${pkgs.coreutils}/bin/timeout 30 ${pkgs.writeShellScript "waybar-wait-hyprland" ''
+      # Wait until Hyprland IPC actually responds. The
+      # wayland-wm unit becoming active is not enough — the
+      # event loop needs a few hundred ms more on cold boot.
+      until ${pkgs.hyprland}/bin/hyprctl monitors >/dev/null 2>&1; do
+        ${pkgs.coreutils}/bin/sleep 0.2
+      done
+    ''}";
+  };
+
   programs.waybar.settings.mainBar = {
     "hyprland/workspaces" = {
       on-click = "activate";
