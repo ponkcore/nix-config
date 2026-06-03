@@ -42,7 +42,15 @@
     "systemd.show_status=false"
     "plymouth.ignore-serial-consoles"
     "vt.global_cursor_default=0"
-    "fbcon=nodefer"
+    # fbcon=defer is intentionally NOT set — the kernel already has
+    # CONFIG_FRAMEBUFFER_CONSOLE_DEFERRED_TAKEOVER=y, which prevents
+    # fbcon from binding until the first console write. With quiet +
+    # loglevel=0 no writes occur during boot, so fbcon stays dormant
+    # the entire time. Previously `fbcon=nodefer` was set here, which
+    # DISABLED deferred takeover and caused fbcon to bind immediately
+    # on every framebuffer registration (UEFI GOP at ~0.9s, amdgpudrmfb
+    # at ~3.6s) — visible as console text flashing before/around
+    # Plymouth and during the greeter→Hyprland handoff.
     "logo.nologo"
     # Plymouth single-output policy — splash on the internal eDP
     # panel only.
