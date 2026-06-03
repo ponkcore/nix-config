@@ -50,7 +50,7 @@ in {
       ./qt.nix
       ./windsurf.nix
       ./donutbrowser.nix
-      ./devin-cli.nix
+      ./hermes.nix
 
       ./direnv.nix
       ./yazi.nix

@@ -105,7 +105,6 @@
   # Local package derivations.
   (final: _prev: {
     donutbrowser = final.callPackage ./donutbrowser {};
-    devin-cli = final.callPackage ./devin-cli {};
     orbit = final.callPackage ./orbit {};
 
     # gptme — terminal-first AI agent built from the upstream Poetry
