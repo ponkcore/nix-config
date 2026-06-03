@@ -47,13 +47,6 @@
       url = "github:nix-community/poetry2nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-
-    # hermes-agent — Nous Research Hermes AI agent + desktop GUI.
-    # Ships a Nix flake with `.#desktop` that builds the Electron app
-    # from source via buildNpmPackage + nixpkgs electron wrapper.
-    # Does NOT follow our nixpkgs — the repo pins nixos-unstable for
-    # its Python/Node dependency set; following would break the build.
-    hermes-agent.url = "github:NousResearch/hermes-agent";
   };
 
   outputs = {nixpkgs, ...} @ inputs: let

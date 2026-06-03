@@ -50,7 +50,6 @@ in {
       ./qt.nix
       ./windsurf.nix
       ./donutbrowser.nix
-      ./hermes.nix
 
       ./direnv.nix
       ./yazi.nix
