@@ -49,4 +49,11 @@
   # and any tool reading the GECOS field. Universal users.nix only
   # sets a host-agnostic default ("Primary user").
   users.users.${username}.description = "Oonishi";
+
+  # Local DNS shortcut for Open Design web frontend.
+  # Resolves od.lan → 127.0.0.1 so the browser URL reads
+  # http://od.lan:5174 instead of http://127.0.0.1:5174.
+  networking.extraHosts = ''
+    127.0.0.1 od.lan
+  '';
 }
