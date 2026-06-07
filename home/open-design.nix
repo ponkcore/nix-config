@@ -9,9 +9,6 @@
   services.open-design = {
     enable = true;
     autoStart = true;
-    webFrontend = {
-      enable = true;
-      allowedOrigins = ["http://od.lan:5174"];
-    };
+    webFrontend.enable = true;
   };
 }
