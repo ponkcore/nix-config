@@ -47,6 +47,10 @@
       url = "github:nix-community/poetry2nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # Open Design — local-first design product (daemon + web frontend).
+    # Ships its own Home Manager module via homeManagerModules.default.
+    open-design.url = "github:nexu-io/open-design";
   };
 
   outputs = {nixpkgs, ...} @ inputs: let
