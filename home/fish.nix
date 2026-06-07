@@ -81,15 +81,6 @@ _: {
       oc = ''
         cd /etc/nixos
       '';
-      # age-pub — print the ed25519 public keys used by agenix
-      # (host key from /etc/ssh, user key from ~/.ssh).
-      # These are the keys listed in secrets/secrets.nix.
-      age-pub = ''
-        echo "# host (lecoo)"
-        cat /etc/ssh/ssh_host_ed25519_key.pub
-        echo "# user (ponkcore)"
-        cat ~/.ssh/id_ed25519.pub
-      '';
       # sshkey — print the three-line snippet for adding the local
       # ed25519 public key to a remote host's ~/.ssh/authorized_keys.
       # Optional argument: path to a different pubkey (defaults to
