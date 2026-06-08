@@ -106,6 +106,7 @@
   (final: _prev: {
     donutbrowser = final.callPackage ./donutbrowser {};
     orbit = final.callPackage ./orbit {};
+    antigravity-cli = final.callPackage ./antigravity-cli {};
 
     # gptme — terminal-first AI agent built from the upstream Poetry
     # project. poetry2nix is constructed against the host pkgs set
