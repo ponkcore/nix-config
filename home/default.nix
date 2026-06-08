@@ -51,6 +51,7 @@ in {
       ./windsurf.nix
       ./donutbrowser.nix
       ./chromium.nix
+      ./antigravity.nix
 
       ./direnv.nix
       ./yazi.nix
