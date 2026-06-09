@@ -52,7 +52,7 @@
   # tree; that fix lives on nixos-unstable, not on 25.11. Drop this
   # rebind once 25.11 receives the backport.
   #
-  # Throne 1.0.13 from unstable is built against qtbase-6.11.0
+  # Throne 1.1.2 from unstable is built against qtbase-6.11.0
   # whereas 25.11's gruvbox-kvantum and qt6ct ship qtbase-6.10.2,
   # which makes Qt's plugin loader reject them at runtime
   # (build-version mismatch). To keep the in-app Theme picker
@@ -73,7 +73,7 @@
   # dependencies"). home/throne.nix consumes it via runtime
   # QT_PLUGIN_PATH and forces Throne onto Wayland with the
   # `-platform wayland` argv (the env-var QT_QPA_PLATFORM is
-  # silently ignored by Throne 1.0.13 even when both plugins
+  # silently ignored by Throne 1.1.2 even when both plugins
   # are present — see the comment in home/throne.nix).
   # Getting Throne off XWayland was necessary to fix mixed-DPI
   # popup sizing: on eDP-1 scale 2 + HDMI-A-1 scale 1, XWayland

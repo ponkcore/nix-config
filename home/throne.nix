@@ -44,7 +44,7 @@
 #    Qt scanning libqxcb.so and libqwayland.so, then loading xcb
 #    without trying wayland at all. Other Qt6 apps in this profile
 #    (AyuGram, KeePassXC, Spotify) honour the env-var fallback chain
-#    fine; Throne 1.0.13 specifically does not. Passing the platform
+#    fine; Throne 1.1.2 specifically does not. Passing the platform
 #    via the standard `-platform` Qt argument is parsed by the
 #    QGuiApplication constructor before app code can interfere, and
 #    works reliably. There is no xcb fallback, but on this box every

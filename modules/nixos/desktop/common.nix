@@ -9,7 +9,23 @@
 # Adding a new session must NOT require edits here. If a candidate
 # package or option only makes sense for one compositor, it belongs
 # in that compositor's session file, not here.
-{pkgs, ...}: {
+{
+  pkgs,
+  inputs,
+  ...
+}: {
+  # Throne 1.1.2 (from nixpkgs-unstable) renamed its core binary
+  # Core -> ThroneCore. The programs.throne NixOS module shipped by
+  # 25.11 still wires security.wrappers at .../share/throne/Core, so
+  # the wrapper path no longer exists and the build fails at
+  # ensure-all-wrappers-paths-exist. We disable the stale 25.11 module
+  # and import the matching one from unstable (which references
+  # ThroneCore). Drop both lines once 25.11 backports throne >=1.1.2.
+  disabledModules = ["programs/throne.nix"];
+  imports = [
+    "${inputs.nixpkgs-unstable}/nixos/modules/programs/throne.nix"
+  ];
+
   # Polkit — required by polkit-gnome-authentication-agent regardless
   # of compositor. The agent itself is launched per-session.
   security.polkit.enable = true;
