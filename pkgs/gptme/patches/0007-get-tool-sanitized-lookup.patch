@@ -1,0 +1,19 @@
+--- gptme/tools/__init__.py
++++ gptme/tools/__init__.py
+@@ -304,6 +304,15 @@
+ def get_tool(tool_name: str) -> ToolSpec | None:
+     """Returns a loaded tool by name or block type."""
+     loaded_tools = _get_loaded_tools()
++    # Try sanitized form: OpenAI tools API requires ^[a-zA-Z0-9_-]+$
++    # so dots in MCP tool names are replaced with underscores in
++    # _spec2tool. If the direct lookup fails, check if any tool's
++    # sanitized name matches.
++    if "_" in tool_name:
++        import re as _re
++        for tool in loaded_tools:
++            if _re.sub(r'[^a-zA-Z0-9_-]', '_', tool.name) == tool_name or any(_re.sub(r'[^a-zA-Z0-9_-]', '_', bt) == tool_name for bt in tool.block_types):
++                return tool
+     # check tool names
+     for tool in loaded_tools:
+         if tool.name == tool_name:
+             return tool
