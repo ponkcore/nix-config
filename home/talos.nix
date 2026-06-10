@@ -61,6 +61,7 @@
     # catalogue. Override at run time with
     # `gptme --model <provider>/<id>` or with the `MODEL` env var.
     MODEL = "fireworks/accounts/fireworks/models/glm-5p1"
+    TOOL_FORMAT = "tool"
 
     # Direct Fireworks endpoint — fast path, no omniroute hop.
     # FIREWORKS_API_KEY is sourced from tokens.age (which bundles
