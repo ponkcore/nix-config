@@ -97,7 +97,10 @@
     # marked true for all chat models in our roster — Fireworks tools
     # routing handles it whether we set it or not, but vision support
     # actually matters because it gates `view_image`.
-    models = { "accounts/fireworks/models/glm-5p1" = { context = 202_752, supports_vision = false, supports_reasoning = true }, "accounts/fireworks/models/deepseek-v4-pro" = { context = 1_048_576, supports_vision = false, supports_reasoning = true }, "accounts/fireworks/models/kimi-k2p6" = { context = 262_144, supports_vision = true, supports_reasoning = true }, "accounts/fireworks/models/qwen3p6-plus" = { context = 256_000, supports_vision = false, supports_reasoning = true }, "accounts/fireworks/models/minimax-m2p7" = { context = 200_000, supports_vision = false, supports_reasoning = true } }
+    # per-model metadata removed — upstream gptme HEAD handles this
+    # differently (ProviderConfig no longer has a 'models' field).
+    # If context/vision/reasoning defaults are wrong, add a patch
+    # or configure via the new upstream mechanism when documented.
 
     # Omniroute proxy — Kiro Claude family only.
     # See PROVIDERS.md for the catalogue (opus-4.7/4.6,
@@ -124,7 +127,7 @@
     # supports_vision is forced false on every combo for the same Angie
     # 1 MiB cap reason as kr/claude-* — see decisions/0008-no-vision-
     # on-omniroute.md. Flip when Angie loosens.
-    models = { "kr/claude-opus-4.7" = { context = 1_000_000, max_output = 128_000, supports_vision = false, supports_reasoning = true }, "kr/claude-opus-4.6" = { context = 1_000_000, max_output = 128_000, supports_vision = false, supports_reasoning = true }, "kr/claude-sonnet-4.6" = { context = 200_000, max_output = 64_000, supports_vision = false, supports_reasoning = true }, "kr/claude-sonnet-4.5" = { context = 200_000, max_output = 64_000, supports_vision = false, supports_reasoning = true }, "kr/claude-haiku-4.5" = { context = 200_000, max_output = 64_000, supports_vision = false, supports_reasoning = true }, "SSS-tier" = { context = 1_000_000, max_output = 64_000, supports_vision = false, supports_reasoning = true }, "SS-tier" = { context = 220_000, max_output = 32_000, supports_vision = false, supports_reasoning = true }, "S-tier" = { context = 200_000, max_output = 128_000, supports_vision = false, supports_reasoning = true }, "A-tier" = { context = 128_000, max_output = 64_000, supports_vision = false, supports_reasoning = false }, "B-tier" = { context = 128_000, max_output = 32_000, supports_vision = false, supports_reasoning = false }, "cx/gpt-5.5" = { context = 220_000, max_output = 32_000, supports_vision = false, supports_reasoning = true }, "cx/gpt-5.5-high" = { context = 220_000, max_output = 32_000, supports_vision = false, supports_reasoning = true }, "cx/gpt-5.5-xhigh" = { context = 220_000, max_output = 32_000, supports_vision = false, supports_reasoning = true }, "cx/gpt-5.5-medium" = { context = 220_000, max_output = 32_000, supports_vision = false, supports_reasoning = true } }
+    # per-model metadata removed — see fireworks provider comment above.
 
     # MCP servers — extend gptme's tool surface with Model Context
     # Protocol providers. Tools become available as `<server>.<tool>`
