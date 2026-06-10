@@ -1,0 +1,14 @@
+--- gptme/llm/llm_openai.py	2026-06-11 02:37:36.225097604 +0300
++++ gptme/llm/llm_openai.py	2026-06-11 02:37:37.232072090 +0300
+@@ -1649,6 +1649,11 @@
+     if spec.block_types:
+         name = spec.block_types[0]
+ 
++    # OpenAI tools API requires ^[a-zA-Z0-9_-]+$. MCP tool names
++    # contain dots (e.g. "nixos.nix"). Sanitize to underscores.
++    import re as _re
++    name = _re.sub(r'[^a-zA-Z0-9_-]', '_', name)
++
+     description = spec.get_instructions("tool") or spec.desc or ""
+     if len(description) > 1024:
+         logger.warning(

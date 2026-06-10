@@ -1,16 +1,16 @@
---- gptme/tools/mcp_adapter.py	2026-06-11 01:12:30.024294961 +0300
-+++ gptme/tools/mcp_adapter.py	2026-06-11 01:12:31.034269133 +0300
-@@ -281,8 +281,12 @@
+--- gptme/tools/mcp_adapter.py	2026-06-11 02:39:24.867334755 +0300
++++ gptme/tools/mcp_adapter.py	2026-06-11 02:39:25.382321613 +0300
+@@ -2,9 +2,12 @@
+         kwargs: dict[str, str] | None,
+     ):
          """Execute an MCP tool with confirmation"""
 -        if not code:
 +        if not code and not kwargs:
              yield Message("system", "No parameters provided")
              return
- 
 +        if not code and kwargs:
 +            # TOOL_FORMAT=tool puts params in kwargs, not code/content.
 +            code = json.dumps(kwargs)
-+
+ 
          # Use execute_with_confirmation like save tool does
          yield from execute_with_confirmation(
-             code,
