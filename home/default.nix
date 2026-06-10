@@ -36,6 +36,7 @@ in {
       ./btop.nix
       ./cleanup.nix
       ./imaging.nix
+      ./archives.nix
       ./keepassxc.nix
       ./obsidian.nix
       ./thunderbird.nix
