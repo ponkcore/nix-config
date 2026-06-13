@@ -1,0 +1,29 @@
+--- gptme/llm/llm_openai.py
++++ gptme/llm/llm_openai.py
+@@ -649,8 +649,21 @@
+     # Custom providers are OpenAI-compatible and support tools API
++    # NOTE: for custom providers (provider="unknown"), model.model
++    # carries the full qualified name (e.g. "omniroute/cx/gpt-5.5-high").
++    # is_custom_provider() expects just the provider prefix ("omniroute"),
++    # so we must extract it. Without this fix, _spec2tool raises
++    # ValueError("Provider doesn't support tools API") and the LLM
++    # session cannot use any tools through the OpenAI tools API.
++    _provider_name = model.model.split("/")[0] if "/" in model.model else model.model
++    # OpenAI tools API requires names matching ^[a-zA-Z0-9_-]+$.
++    # MCP tools use dots (e.g. "nixos.nix", "context7.resolve-library-id")
++    # which violate this pattern. Replace invalid chars with underscores.
++    # get_tool() is patched to also try the sanitized form.
++    import re as _re
++    name = _re.sub(r'[^a-zA-Z0-9_-]', '_', name)
+     if model.provider in [
+         "openai",
+         "azure",
+         "openrouter",
+         "deepseek",
+         "local",
+-    ] or is_custom_provider(model.model):
++    ] or is_custom_provider(_provider_name):
+         return {
+             "type": "function",
+             "function": {
+                 "name": name,

@@ -1,0 +1,13 @@
+{
+  "lastAgent": "agent-local-6f7ce9cd-15df-48d9-a234-3602917accfd",
+  "sessionsByServer": {
+    "local:/home/oonishi/.letta/lc-local-backend": {
+      "agentId": "agent-local-6f7ce9cd-15df-48d9-a234-3602917accfd",
+      "conversationId": "local-conv-12"
+    }
+  },
+  "lastSession": {
+    "agentId": "agent-local-6f7ce9cd-15df-48d9-a234-3602917accfd",
+    "conversationId": "local-conv-12"
+  }
+}

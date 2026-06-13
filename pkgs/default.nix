@@ -102,6 +102,11 @@
     throne-qtwayland = pkgsUnstable.qt6Packages.qtwayland;
   })
 
+  # bun2nix overlay — required by pkgs/letta-code for fetchBunDeps
+  # and the bun2nix build hook. Sourced from the letta-code flake's
+  # transitive bun2nix input so the version stays in sync.
+  inputs.letta-code.inputs.bun2nix.overlays.default
+
   # Local package derivations.
   (final: _prev: {
     donutbrowser = final.callPackage ./donutbrowser {};
@@ -120,6 +125,8 @@
       final.callPackage ./gptme {
         inherit (poetry2nix) mkPoetryApplication;
       };
+
+    letta-code = final.callPackage ./letta-code {inherit inputs;};
   })
 
   # NUR — Nix User Repository (community packages, e.g. Firefox extensions).

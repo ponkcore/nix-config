@@ -53,14 +53,11 @@
     open-design.url = "github:nexu-io/open-design";
 
     # letta-code — memory-first coding agent (letta-ai/letta-code).
-    # Pinned to 791051f (pi-ai@0.75.5, last commit where bun.nix is
-    # in sync with package.json). Bump when upstream regenerates
-    # bun.nix for pi-ai >=0.79.x or fixes the bun2nix stale-lock
-    # issue.
-    # nixpkgs.follows: the letta-code flake imports nixpkgs for
-    # bun2nix overlay only; our nixos-25.11 works fine for that.
+    # Pinned to v0.27.9 (pi-ai@^0.79.1, mods support). The upstream
+    # bun.nix is stale (still references pi-ai@0.75.5); our overlay
+    # pkgs/letta-code/ provides a regenerated bun.nix.
     letta-code = {
-      url = "github:letta-ai/letta-code/791051f9995a251a5c9dea4e2c85fd985f4fee36";
+      url = "github:letta-ai/letta-code/v0.27.9";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };

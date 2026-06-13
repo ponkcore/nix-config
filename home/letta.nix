@@ -6,8 +6,15 @@
 # Phase 2 (installation): adds the letta binary via
 # programs.letta-code, imports the upstream HM module.
 # Env vars and fish wrapper come in Phase 3/6.
-{inputs, ...}: {
+{
+  inputs,
+  pkgs,
+  ...
+}: {
   imports = [inputs.letta-code.homeManagerModules.default];
 
-  programs.letta-code.enable = true;
+  programs.letta-code = {
+    enable = true;
+    package = pkgs.letta-code;
+  };
 }
