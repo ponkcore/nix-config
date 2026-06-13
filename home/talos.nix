@@ -94,6 +94,15 @@
     default_model = "accounts/fireworks/models/glm-5p1"
     # Numbers come from the live Fireworks /v1/models endpoint
     # (context_length, supports_image_input). reasoning support is
+    # inferred from model family. Per-model metadata consumed by
+    # ProviderConfig.models (patch 0004/0005 in pkgs/gptme/patches/).
+    models = {
+      "accounts/fireworks/models/glm-5p1" = { context = 202_752; supports_vision = false; supports_reasoning = true; }
+      "accounts/fireworks/models/deepseek-v4-pro" = { context = 1_048_576; supports_vision = false; supports_reasoning = true; }
+      "accounts/fireworks/models/kimi-k2p6" = { context = 262_144; supports_vision = true; supports_reasoning = true; }
+      "accounts/fireworks/models/qwen3p6-plus" = { context = 256_000; supports_vision = false; supports_reasoning = true; }
+      "accounts/fireworks/models/minimax-m2p7" = { context = 200_000; supports_vision = false; supports_reasoning = true; }
+    }
     # marked true for all chat models in our roster — Fireworks tools
     # routing handles it whether we set it or not, but vision support
     # actually matters because it gates `view_image`.
@@ -127,7 +136,26 @@
     # supports_vision is forced false on every combo for the same Angie
     # 1 MiB cap reason as kr/claude-* — see decisions/0008-no-vision-
     # on-omniroute.md. Flip when Angie loosens.
-    # per-model metadata removed — see fireworks provider comment above.
+    # Per-model metadata. Keys are model IDs relative to the provider
+    # (the part after <provider>/). Without these, gptme assumes
+    # context = 128k and supports_vision/reasoning = false.
+    # Context/output from omniroute /v1/models capabilities + opencode tier table.
+    models = {
+      "kr/claude-opus-4.7" = { context = 1_000_000; max_output = 128_000; supports_vision = false; supports_reasoning = true; }
+      "kr/claude-opus-4.6" = { context = 1_000_000; max_output = 128_000; supports_vision = false; supports_reasoning = true; }
+      "kr/claude-sonnet-4.6" = { context = 1_000_000; max_output = 64_000; supports_vision = false; supports_reasoning = true; }
+      "kr/claude-sonnet-4.5" = { context = 200_000; max_output = 64_000; supports_vision = false; supports_reasoning = true; }
+      "kr/claude-haiku-4.5" = { context = 200_000; max_output = 64_000; supports_vision = false; supports_reasoning = true; }
+      "SSS-tier" = { context = 1_000_000; max_output = 64_000; supports_vision = false; supports_reasoning = true; }
+      "SS-tier" = { context = 220_000; max_output = 32_000; supports_vision = false; supports_reasoning = true; }
+      "S-tier" = { context = 200_000; max_output = 128_000; supports_vision = false; supports_reasoning = true; }
+      "A-tier" = { context = 128_000; max_output = 64_000; supports_vision = false; supports_reasoning = false; }
+      "B-tier" = { context = 128_000; max_output = 32_000; supports_vision = false; supports_reasoning = false; }
+      "cx/gpt-5.5" = { context = 220_000; max_output = 32_000; supports_vision = false; supports_reasoning = true; }
+      "cx/gpt-5.5-high" = { context = 220_000; max_output = 32_000; supports_vision = false; supports_reasoning = true; }
+      "cx/gpt-5.5-xhigh" = { context = 220_000; max_output = 32_000; supports_vision = false; supports_reasoning = true; }
+      "cx/gpt-5.5-medium" = { context = 220_000; max_output = 32_000; supports_vision = false; supports_reasoning = true; }
+    }
 
     # MCP servers — extend gptme's tool surface with Model Context
     # Protocol providers. Tools become available as `<server>.<tool>`

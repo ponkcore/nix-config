@@ -59,6 +59,7 @@ in {
       ./talos.nix
       ./ssh.nix
       ./open-design.nix
+      ./letta.nix
     ]
     # ── Layer 2: Wayland-only modules — gated by desktops ───────────────
     ++ lib.optionals hasDesktop [

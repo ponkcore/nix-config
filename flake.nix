@@ -51,6 +51,18 @@
     # Open Design — local-first design product (daemon + web frontend).
     # Ships its own Home Manager module via homeManagerModules.default.
     open-design.url = "github:nexu-io/open-design";
+
+    # letta-code — memory-first coding agent (letta-ai/letta-code).
+    # Pinned to 791051f (pi-ai@0.75.5, last commit where bun.nix is
+    # in sync with package.json). Bump when upstream regenerates
+    # bun.nix for pi-ai >=0.79.x or fixes the bun2nix stale-lock
+    # issue.
+    # nixpkgs.follows: the letta-code flake imports nixpkgs for
+    # bun2nix overlay only; our nixos-25.11 works fine for that.
+    letta-code = {
+      url = "github:letta-ai/letta-code/791051f9995a251a5c9dea4e2c85fd985f4fee36";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = {nixpkgs, ...} @ inputs: let
