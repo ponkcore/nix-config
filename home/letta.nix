@@ -25,6 +25,16 @@ in {
     package = pkgs.letta-code;
   };
 
+  home.packages = with pkgs; [
+    mcp-bridge
+    mcp-nixos
+    mcp-nix
+  ];
+
+  home.file.".letta/skills/nixos-options/SKILL.md" = {
+    source = ../skills/nixos-options/SKILL.md;
+  };
+
   programs.fish.functions.talos = lib.mkForce ''
     set -l brain "${brainDir}"
 

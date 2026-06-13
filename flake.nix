@@ -60,6 +60,11 @@
       url = "github:letta-ai/letta-code/v0.27.9";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # mcp-nix — felixdorn/mcp-nix: NixOS/Home Manager/Nix stdlib MCP
+    # server. Uses uv2nix + pyixx (Rust); pins its own nixpkgs because
+    # the Python 3.13 + fastmcp derivation chain is not on 25.11.
+    mcp-nix.url = "github:felixdorn/mcp-nix";
   };
 
   outputs = {nixpkgs, ...} @ inputs: let
