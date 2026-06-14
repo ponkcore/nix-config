@@ -39,37 +39,16 @@ mcp-bridge \
 
 ## Default safe surface
 
-Prefer read-only diagnostics/catalog/search tools:
+Only one OmniRoute MCP tool is allowed for talos:
 
-- `omniroute_get_health`
-- `omniroute_list_combos`
-- `omniroute_get_combo_metrics`
-- `omniroute_check_quota`
-- `omniroute_cost_report`
-- `omniroute_list_models_catalog`
-- `omniroute_simulate_route`
-- `omniroute_get_provider_metrics`
-- `omniroute_best_combo_for_task`
-- `omniroute_explain_route`
-- `omniroute_get_session_snapshot`
 - `omniroute_web_search`
-- `omniroute_cache_stats`
-- `omniroute_agent_skills_list`
-- `omniroute_agent_skills_get`
-- `omniroute_agent_skills_coverage`
-- `omniroute_compression_status`
-- `omniroute_list_compression_combos`
-- `omniroute_compression_combo_stats`
-- `gamification_leaderboard`
-- `gamification_rank`
-- `gamification_profile`
-- `gamification_badges`
-- `gamification_servers`
 
-Do not call write/admin/personal-data tools unless the user explicitly names the
-tool and approves the exact operation. This includes runtime routing changes,
-plugin install/activation, cache flush, memory add/clear, Notion, Obsidian, and
-gamification transfers/invites.
+Do not call any other tool from this MCP endpoint. This includes read-only
+OmniRoute diagnostics/catalog tools, runtime routing changes, plugin management,
+cache operations, memory operations, Notion, Obsidian, compression, oneproxy,
+skills, and gamification tools. If the user asks for another OmniRoute MCP tool,
+first explain that the local policy currently allows only `omniroute_web_search`
+and ask for an explicit temporary exception.
 
 ## Tool-surface maintenance
 
