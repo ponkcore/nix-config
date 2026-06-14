@@ -18,5 +18,5 @@ runCommand "mcp-nix-0.4.0" {
     --prefix PATH : ${lib.makeBinPath [python313 uv]} \
     --add-flags "--python" \
     --add-flags "${python313}/bin/python3.13" \
-    --add-flags "mcp-nix"
+    --add-flags "mcp-nix==0.4.0"
 ''
