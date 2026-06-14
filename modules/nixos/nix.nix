@@ -17,7 +17,10 @@ _: {
   nix.settings.auto-optimise-store = true;
   nix.optimise = {
     automatic = true;
-    dates = ["03:45"];
+    # A full store re-deduplication pass is I/O work. auto-optimise-store
+    # already hard-links duplicates as paths are added, so a weekly catch-up
+    # pass is enough and avoids a daily laptop wake/work item.
+    dates = ["weekly"];
   };
 
   # nix-direnv — keep derivations so GC doesn't break dev shells
@@ -54,6 +57,11 @@ _: {
   boot.tmp.useTmpfs = true;
   boot.tmp.tmpfsSize = "25%";
 
+  # Transparent Huge Pages are controlled by the kernel command line,
+  # not sysctl. `transparent_hugepage=madvise` keeps THP opt-in for
+  # workloads that request it without producing systemd-sysctl noise.
+  boot.kernelParams = ["transparent_hugepage=madvise"];
+
   # VM / sysctl tunables for dev + LLM/agent workload
   boot.kernel.sysctl = {
     # swappiness=180: zram is compressed RAM, not disk swap — kernel should
@@ -63,7 +71,6 @@ _: {
     "vm.vfs_cache_pressure" = 50;
     "vm.dirty_ratio" = 6;
     "vm.dirty_background_ratio" = 3;
-    "vm.transparent_hugepage" = "madvise";
     "fs.file-max" = 524288;
     "fs.inotify.max_user_watches" = 524288;
     "fs.inotify.max_user_instances" = 1024;

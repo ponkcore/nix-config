@@ -4,7 +4,6 @@
 # groups, touchpad gestures. The system-level Hyprland enable lives in
 # modules/nixos/desktop/sessions/hyprland.nix.
 {
-  config,
   pkgs,
   p,
   c,

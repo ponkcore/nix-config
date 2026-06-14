@@ -1,10 +1,6 @@
 # fastfetch.nix — system summary block (htop's faster alternative).
 # Palette via _module.args.p. Invoked manually on demand.
-{
-  pkgs,
-  p,
-  ...
-}: {
+{p, ...}: {
   programs.fastfetch = {
     enable = true;
     settings = {

@@ -99,8 +99,9 @@ in {
   #
   # Auto-switch on AC plug/unplug is driven by the udev rules below
   # (PPD itself is purely event-reactive — it does not poll battery
-  # state). The user can still override at any time via `powerprofilesctl
-  # set <profile>` or the waybar widget.
+  # state). Host-specific EC daemons may extend the same AC-edge rules
+  # with firmware-level TDP/fan profile changes; this generic laptop
+  # profile deliberately handles only the OS-level PPD side.
   services.power-profiles-daemon.enable = true;
 
   # ── Lid handling: defer to the lid-monitor user service ─────────────
@@ -165,10 +166,12 @@ in {
     # power-profiles-daemon does not watch power-supply state itself.
     # These rules drive `powerprofilesctl set <p>` from the AC adapter
     # online/offline edge so the system snaps to the right profile the
-    # instant the cable goes in or out. Manual overrides via the
-    # waybar widget / CLI are preserved until the next AC edge.
+    # instant the cable goes in or out. AC defaults to `balanced` rather
+    # than `performance`: performance remains available manually, while
+    # balanced avoids needless EPP=performance fan/heat on a plugged-in
+    # laptop sitting idle.
     SUBSYSTEM=="power_supply", KERNEL=="ADP1", ATTR{online}=="1", \
-      RUN+="${pkgs.power-profiles-daemon}/bin/powerprofilesctl set performance"
+      RUN+="${pkgs.power-profiles-daemon}/bin/powerprofilesctl set balanced"
     SUBSYSTEM=="power_supply", KERNEL=="ADP1", ATTR{online}=="0", \
       RUN+="${pkgs.power-profiles-daemon}/bin/powerprofilesctl set power-saver"
   '';

@@ -5,11 +5,7 @@
 #   sudo tailscale up --accept-routes
 # tailscale0 is added to firewall trustedInterfaces so tailnet traffic
 # is allowed without firewall rules.
-{
-  config,
-  lib,
-  ...
-}: {
+{lib, ...}: {
   # Tailscale — mesh (peer-to-peer) VPN. Every node runs `tailscaled`,
   # auths once against the coordination server, then talks directly to
   # other nodes in the same tailnet over WireGuard. Each node gets a

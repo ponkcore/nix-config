@@ -15,6 +15,7 @@
 {
   lib,
   app-status,
+  app-status-daemon,
   telegram-toggle,
   throne-toggle,
   spotify-toggle,
@@ -32,7 +33,10 @@
   # event loop is not yet dispatching — the subscription silently
   # dies, leaving a static workspace strip. Cf. lesson 0005.
   systemd.user.services.waybar = {
-    Unit.After = ["graphical-session.target" "wayland-wm@Hyprland.service"];
+    Unit = {
+      After = ["graphical-session.target" "wayland-wm@Hyprland.service" "app-status-daemon.service"];
+      Wants = ["app-status-daemon.service"];
+    };
     Service.ExecStartPre = "${pkgs.coreutils}/bin/timeout 30 ${pkgs.writeShellScript "waybar-wait-hyprland" ''
       # Wait until Hyprland IPC actually responds. The
       # wayland-wm unit becoming active is not enough — the
@@ -40,6 +44,7 @@
       until ${pkgs.hyprland}/bin/hyprctl monitors >/dev/null 2>&1; do
         ${pkgs.coreutils}/bin/sleep 0.2
       done
+      ${app-status-daemon}/bin/app-status-daemon --oneshot >/dev/null 2>&1 || true
     ''}";
   };
 
@@ -76,7 +81,7 @@
       format = "<span weight='heavy'></span>";
       exec = "${app-status}/bin/app-status com.ayugram.desktop";
       return-type = "json";
-      interval = 2;
+      signal = 8;
       on-click = "${telegram-toggle}/bin/telegram-toggle";
       tooltip = false;
     };
@@ -85,7 +90,7 @@
       format = "<span weight='heavy'></span>";
       exec = "${app-status}/bin/app-status spotify";
       return-type = "json";
-      interval = 2;
+      signal = 8;
       on-click = "${spotify-toggle}/bin/spotify-toggle";
       tooltip = false;
     };
@@ -102,7 +107,7 @@
       format = "<span weight='heavy'>󰦝</span>";
       exec = "${app-status}/bin/app-status Throne";
       return-type = "json";
-      interval = 2;
+      signal = 8;
       on-click = "${throne-toggle}/bin/throne-toggle";
       tooltip = false;
     };
@@ -124,7 +129,7 @@
       format = "<span weight='heavy'></span>";
       exec = "${app-status}/bin/app-status org.keepassxc.KeePassXC";
       return-type = "json";
-      interval = 2;
+      signal = 8;
       on-click = "${keepassxc-toggle}/bin/keepassxc-toggle";
       tooltip = false;
     };

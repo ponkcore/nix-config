@@ -48,6 +48,7 @@
 
   programs.ssh = {
     enable = true;
+    enableDefaultConfig = false;
 
     # Pull the private host catalogue into ~/.ssh/config without
     # exposing it to git. The file may not exist on a fresh
@@ -57,14 +58,12 @@
       "~/Documents/ssh-private/config"
     ];
 
-    matchBlocks = {
-      "*" = {
-        forwardAgent = false;
-        addKeysToAgent = "yes";
-        serverAliveInterval = 60;
-        serverAliveCountMax = 3;
-        hashKnownHosts = true;
-      };
+    matchBlocks."*" = {
+      forwardAgent = false;
+      addKeysToAgent = "yes";
+      serverAliveInterval = 60;
+      serverAliveCountMax = 3;
+      hashKnownHosts = true;
     };
   };
 }

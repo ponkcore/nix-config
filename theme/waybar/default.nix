@@ -19,9 +19,7 @@
 # filtered out at activation time so a host that opts out of a slot
 # does not need to redefine the layout.
 {
-  config,
   lib,
-  pkgs,
   p,
   cpu-mem,
   desktops ? [],

@@ -3,7 +3,6 @@
 # theme so colour changes propagate without editing two places.
 # Bound to SUPER+D in home/desktop/sessions/hyprland/session.nix.
 {
-  pkgs,
   p,
   c,
   ...

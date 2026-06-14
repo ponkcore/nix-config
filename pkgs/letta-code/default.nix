@@ -6,7 +6,7 @@
   source = inputs.letta-code;
   packageJson = builtins.fromJSON (builtins.readFile "${source}/package.json");
 in
-  pkgs.stdenv.mkDerivation rec {
+  pkgs.stdenv.mkDerivation {
     pname = "letta-code";
     inherit (packageJson) version;
     src = source;

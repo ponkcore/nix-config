@@ -1,11 +1,7 @@
 # yazi.nix — TUI file manager (Rust, fast).
 # Palette via _module.args.p. Fish integration provides yy command
 # that cd's into yazi's last directory on quit.
-{
-  pkgs,
-  p,
-  ...
-}: {
+{p, ...}: {
   programs.yazi = {
     enable = true;
     enableFishIntegration = true;

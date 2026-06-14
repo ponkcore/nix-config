@@ -12,7 +12,10 @@
 
   services.open-design = {
     enable = true;
-    autoStart = true;
+    # Keep Open Design installed but cold by default. The daemon and web
+    # frontend are still available through their systemd user units; the
+    # fish `od-ui` helper starts them on demand and opens the browser.
+    autoStart = false;
     webFrontend.enable = true;
     # zenity provides the native folder-picker dialog on Linux.
     # The daemon calls `zenity --file-selection --directory` when

@@ -44,7 +44,6 @@
 # one mkForce override, paid once for an exhibition-grade silent
 # boot.
 {
-  config,
   lib,
   pkgs,
   ...

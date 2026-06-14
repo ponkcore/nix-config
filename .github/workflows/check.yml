@@ -1,9 +1,10 @@
 name: check
 
-# Validate every push to main and every PR. Three checks:
+# Validate every push to main and every PR. Four checks:
 #   1. nix flake check — evaluation + fixed-output derivations are valid.
 #   2. alejandra --check — no formatting drift.
 #   3. statix check + deadnix --fail — no anti-patterns or dead code.
+#   4. nil diagnostics — Nix LSP eval diagnostics for handwritten files.
 #
 # Each job uses cachix/install-nix-action to provide a Nix daemon and
 # sets a magic-nix-cache step so derivations build once across PR runs.
@@ -62,6 +63,33 @@ jobs:
         run: nix run nixpkgs#statix -- check --config statix.toml
       - name: deadnix
         run: nix run nixpkgs#deadnix -- --no-lambda-pattern-names --fail
+
+  nil-diagnostics:
+    name: nil diagnostics
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v27
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            accept-flake-config = true
+      - name: nil diagnostics
+        run: |
+          nix shell nixpkgs#nil -c sh -eu -c '
+            out="$(
+              git ls-files "*.nix" \
+                ":(exclude)hosts/lecoo/hardware-configuration.nix" \
+                ":(exclude)pkgs/letta-code/bun.nix" \
+                | while IFS= read -r file; do
+                    nil diagnostics "$file"
+                  done
+            )"
+            if [ -n "$out" ]; then
+              printf "%s\n" "$out"
+              exit 1
+            fi
+          '
 
   secrets-scan:
     name: gitleaks

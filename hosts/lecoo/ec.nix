@@ -10,7 +10,20 @@
   pkgs,
   lib,
   ...
-}: {
+}: let
+  syncPowerProfile = pkgs.writeShellScript "lecoo-sync-power-profile" ''
+    set -eu
+
+    online=$(cat /sys/class/power_supply/ADP1/online 2>/dev/null || echo 0)
+    if [ "$online" = "1" ]; then
+      ${config.services.lecoo-ctrl.package}/bin/lecoo-ctrl power default >/dev/null 2>&1 || true
+      ${pkgs.power-profiles-daemon}/bin/powerprofilesctl set balanced >/dev/null 2>&1 || true
+    else
+      ${config.services.lecoo-ctrl.package}/bin/lecoo-ctrl power silent >/dev/null 2>&1 || true
+      ${pkgs.power-profiles-daemon}/bin/powerprofilesctl set power-saver >/dev/null 2>&1 || true
+    fi
+  '';
+in {
   options.services.lecoo-ctrl = with lib; {
     enable = mkEnableOption "Lecoo EC Control Daemon";
 
@@ -100,6 +113,32 @@
         # usage data to drive the daemon forward. The user has opted in.
       };
     };
+
+    # Keep OS-level and EC-level power policy aligned. PPD owns the
+    # kernel-facing side (platform_profile + amd-pstate EPP), while
+    # lecoo-ctrl owns the firmware-facing side (EC TDP / fan profile).
+    # On AC we default to balanced + EC default; on battery we switch to
+    # power-saver + EC silent. Full performance remains a manual choice.
+    systemd.services.lecoo-sync-power-profile = {
+      description = "Synchronise Lecoo EC and OS power profiles";
+      after = ["lecoo-ec-daemon.service" "power-profiles-daemon.service"];
+      wants = ["lecoo-ec-daemon.service" "power-profiles-daemon.service"];
+      wantedBy = ["multi-user.target"];
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = syncPowerProfile;
+        StandardOutput = "journal";
+        StandardError = "journal";
+      };
+    };
+
+    services.udev.extraRules = ''
+      # AC edge: sync EC firmware profile with power-profiles-daemon.
+      SUBSYSTEM=="power_supply", KERNEL=="ADP1", ATTR{online}=="1", \
+        RUN+="${pkgs.systemd}/bin/systemctl --no-block start lecoo-sync-power-profile.service"
+      SUBSYSTEM=="power_supply", KERNEL=="ADP1", ATTR{online}=="0", \
+        RUN+="${pkgs.systemd}/bin/systemctl --no-block start lecoo-sync-power-profile.service"
+    '';
 
     # CLI in system PATH — usable by both root (systemctl) and user.
     environment.systemPackages = [config.services.lecoo-ctrl.package];

@@ -2,11 +2,7 @@
 # Palette tokens come via _module.args.p (theme/default.nix injects).
 # Fish keybindings (Ctrl+E edit, Ctrl+G git files, Ctrl+B git branches)
 # live in fish.nix.
-{
-  pkgs,
-  p,
-  ...
-}: {
+{p, ...}: {
   programs.fzf = {
     enable = true;
     enableFishIntegration = true;

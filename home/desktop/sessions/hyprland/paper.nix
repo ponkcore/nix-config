@@ -1,17 +1,13 @@
 # paper.nix — Wayland wallpaper daemon (Hyprland session, hyprpaper).
-# Wallpaper path comes from _module.args (theme/default.nix) which
-# imports assets/wallpaper.jpg.
-{
-  config,
-  pkgs,
-  wallpaper,
-  ...
-}: {
+# Runtime wallpaper path comes from _module.args (theme/default.nix).
+# It is pre-scaled to the internal panel size at HM activation so
+# hyprpaper does not keep the original 6000x4000 image resident.
+{sessionWallpaper, ...}: {
   services.hyprpaper = {
     enable = true;
     settings = {
-      preload = ["${wallpaper}"];
-      wallpaper = [",${wallpaper}"];
+      preload = ["${sessionWallpaper}"];
+      wallpaper = [",${sessionWallpaper}"];
       splash = false;
     };
   };

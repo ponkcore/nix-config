@@ -110,6 +110,16 @@ _: {
         set -l updated (jq '.plugin = ((.plugin // []) | if any(.[]; test("^oh-my-open(agent|code)(@.*)?$")) then . else . + ["oh-my-openagent@latest"] end)' "$cfg")
         OPENCODE_CONFIG_CONTENT="$updated" opencode $argv
       '';
+      # od-ui — start Open Design only when needed and open its web UI.
+      # The HM service is installed but no longer autostarts, saving RAM
+      # and session CPU on normal boots.
+      od-ui = ''
+        systemctl --user start open-design.service open-design-web.service
+        xdg-open http://127.0.0.1:5174 >/dev/null 2>&1 &
+      '';
+      od-stop = ''
+        systemctl --user stop open-design-web.service open-design.service
+      '';
       # ── Tailscale helpers ───────────────────────────────────────────
       # Tailscaled and throne TUN cannot run together (DNS hijacking +
       # default-route conflict — see modules/nixos/tailscale.nix). The

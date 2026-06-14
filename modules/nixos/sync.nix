@@ -39,11 +39,7 @@
 #     workstation.
 #
 # username injected by lib/mkHost.nix.
-{
-  username,
-  lib,
-  ...
-}: let
+{username, ...}: let
   vpsDeviceId = "7TYSH4F-4G4BUUC-F5RVTAW-V4HHQNR-DKQR37A-BUBQBMG-TRKVKUT-2NIUFA7";
 
   # Trashcan defaults — cheap safety net against an "rm -rf" on

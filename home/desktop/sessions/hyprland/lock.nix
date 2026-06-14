@@ -5,7 +5,6 @@
 # timeout from ./idle.nix.
 {
   config,
-  pkgs,
   p,
   c,
   wallpaper,

@@ -14,23 +14,112 @@
   # present (regular workspace OR special:*). Glyph stays in the
   # waybar `format` field so this script just toggles the CSS hook.
   #
-  # Background services do not count: e.g. throne-core or telegram
-  # background fetchers may stay alive even when no GUI window
-  # exists, so probing the GUI class gives the right answer for
-  # "is the user-facing app open".
+  # The expensive part is `hyprctl clients -j`. Running it every 2 s
+  # per app made Waybar burn CPU while idle. The app-status-daemon below
+  # listens to Hyprland's event socket, writes cached JSON files under
+  # $XDG_RUNTIME_DIR, and wakes Waybar via SIGRTMIN+8. app-status only
+  # reads that cache; it falls back to a direct probe if the daemon is
+  # not ready yet.
   app-status = pkgs.writeShellScriptBin "app-status" ''
     HYPRCTL="${pkgs.hyprland}/bin/hyprctl"
     JQ="${pkgs.jq}/bin/jq"
+    COREUTILS="${pkgs.coreutils}/bin"
+
     if [ $# -lt 1 ]; then
       echo '{"text":"","class":""}'
       exit 0
     fi
+
     cls="$1"
+    key=$(printf '%s' "$cls" | "$COREUTILS/tr" -c 'A-Za-z0-9_.-' '_')
+    cache="''${XDG_RUNTIME_DIR:-/tmp}/waybar-app-status/$key.json"
+
+    if [ -r "$cache" ]; then
+      "$COREUTILS/cat" "$cache"
+      exit 0
+    fi
+
     if $HYPRCTL clients -j 2>/dev/null | $JQ -e --arg c "$cls" 'any(.[]; .class == $c)' >/dev/null; then
       echo '{"text":"","class":"running"}'
     else
       echo '{"text":"","class":""}'
     fi
+  '';
+
+  # ── App status daemon ──────────────────────────────────────────────
+  # One Hyprland event-socket listener for all Waybar app buttons. This
+  # replaces four independent 2-second polling loops with event-driven
+  # cache updates. Visual behaviour stays the same: same glyphs, same
+  # `.running` CSS class, same glow — only the update source changes.
+  app-status-daemon = pkgs.writeShellScriptBin "app-status-daemon" ''
+    set -eu
+
+    HYPRCTL="${pkgs.hyprland}/bin/hyprctl"
+    JQ="${pkgs.jq}/bin/jq"
+    SOCAT="${pkgs.socat}/bin/socat"
+    COREUTILS="${pkgs.coreutils}/bin"
+    PROCPS="${pkgs.procps}/bin"
+
+    runtime="''${XDG_RUNTIME_DIR:-/tmp}/waybar-app-status"
+    classes='com.ayugram.desktop spotify Throne org.keepassxc.KeePassXC'
+
+    write_status() {
+      cls="$1"
+      state="$2"
+      key=$(printf '%s' "$cls" | "$COREUTILS/tr" -c 'A-Za-z0-9_.-' '_')
+      printf '{"text":"","class":"%s"}\n' "$state" > "$runtime/$key.json"
+    }
+
+    refresh() {
+      "$COREUTILS/mkdir" -p "$runtime"
+      clients=$($HYPRCTL clients -j 2>/dev/null || printf '[]')
+
+      for cls in $classes; do
+        if printf '%s' "$clients" | $JQ -e --arg c "$cls" 'any(.[]; .class == $c)' >/dev/null; then
+          write_status "$cls" running
+        else
+          write_status "$cls" ""
+        fi
+      done
+
+      $PROCPS/pkill -RTMIN+8 -f '/bin/waybar' >/dev/null 2>&1 || true
+    }
+
+    if [ "''${1:-}" = "--oneshot" ]; then
+      refresh
+      exit 0
+    fi
+
+    if [ -z "''${HYPRLAND_INSTANCE_SIGNATURE:-}" ]; then
+      for _ in $(${pkgs.coreutils}/bin/seq 1 150); do
+        HYPRLAND_INSTANCE_SIGNATURE=$($HYPRCTL instances -j 2>/dev/null | $JQ -r '.[0].instance // empty' 2>/dev/null || true)
+        if [ -n "$HYPRLAND_INSTANCE_SIGNATURE" ]; then
+          export HYPRLAND_INSTANCE_SIGNATURE
+          break
+        fi
+        "$COREUTILS/sleep" 0.2
+      done
+    fi
+
+    while [ -z "''${HYPRLAND_INSTANCE_SIGNATURE:-}" ]; do
+      "$COREUTILS/sleep" 0.2
+    done
+
+    socket="''${XDG_RUNTIME_DIR:-/tmp}/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket2.sock"
+    until [ -S "$socket" ]; do
+      "$COREUTILS/sleep" 0.2
+    done
+
+    refresh
+
+    while true; do
+      $SOCAT -u UNIX-CONNECT:"$socket" - 2>/dev/null | while IFS= read -r event; do
+        case "$event" in
+          openwindow*|closewindow*) refresh ;;
+        esac
+      done
+      "$COREUTILS/sleep" 1
+    done
   '';
 
   # ── Telegram/Ayugram toggle ─────────────────────────────────────────
@@ -346,6 +435,7 @@ in {
   _module.args = {
     inherit
       app-status
+      app-status-daemon
       telegram-toggle
       throne-toggle
       spotify-toggle
@@ -359,8 +449,23 @@ in {
       ;
   };
 
+  systemd.user.services.app-status-daemon = {
+    Unit = {
+      Description = "Cache Hyprland app status for Waybar";
+      After = ["graphical-session.target" "wayland-wm@Hyprland.service"];
+      PartOf = ["graphical-session.target"];
+    };
+    Service = {
+      ExecStart = "${app-status-daemon}/bin/app-status-daemon";
+      Restart = "always";
+      RestartSec = 3;
+    };
+    Install.WantedBy = ["graphical-session.target"];
+  };
+
   home.packages = [
     app-status
+    app-status-daemon
     telegram-toggle
     throne-toggle
     spotify-toggle

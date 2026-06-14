@@ -14,12 +14,7 @@
 #
 # Imported from home/desktop/default.nix when desktops is non-empty.
 # Headless/server hosts never see this file.
-{
-  config,
-  pkgs,
-  lib,
-  ...
-}: let
+{pkgs, ...}: let
   # Palette derived from Gruvbox warm tones: amber, parchment, burnt umber.
   p = import ../lib/palette.nix;
 
@@ -29,16 +24,27 @@
   # converters previously inlined in session.nix, lock.nix and rofi.nix.
   c = import ../lib/color.nix;
 
-  # Wallpaper path (consumed by hyprlock and hyprpaper from the session
-  # modules under home/desktop/sessions/<name>/).
-  wallpaper = "${config.xdg.dataHome}/wallpapers/BG1.jpg";
+  # Wallpaper paths. `wallpaper` remains the original full-resolution
+  # asset for lock-screen use; `sessionWallpaper` is a pre-scaled copy
+  # for the live Hyprland wallpaper daemon so hyprpaper does not keep a
+  # 6000x4000 image resident just to paint a 2880x1800 panel.
+  wallpaper = "${../assets/wallpaper.jpg}";
+  sessionWallpaper = "${sessionWallpaperAsset}";
+  sessionWallpaperAsset = pkgs.runCommand "wallpaper-session.jpg" {nativeBuildInputs = [pkgs.imagemagick];} ''
+    magick \
+      ${../assets/wallpaper.jpg} \
+      -resize 2880x1800^ \
+      -gravity center \
+      -extent 2880x1800 \
+      "$out"
+  '';
 in {
-  # _module.args makes p, c, and wallpaper available as function
+  # _module.args makes p, c, and wallpaper paths available as function
   # arguments to ALL submodules imported below (e.g.,
   # `{ pkgs, p, c, wallpaper, ... }:`). The script bin args are wired up
   # in scripts.nix.
   _module.args = {
-    inherit p c wallpaper;
+    inherit p c wallpaper sessionWallpaper;
   };
 
   imports = [

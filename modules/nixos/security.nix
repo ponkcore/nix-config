@@ -7,12 +7,7 @@
 #   - PAM nullok forced off everywhere.
 #   - Sysctl hardening pass — kexec lockout, redirects refused,
 #     rp_filter strict, log_martians, tcp_rfc1337, etc.
-{
-  config,
-  pkgs,
-  lib,
-  ...
-}: {
+{lib, ...}: {
   # SSH
   services.openssh = {
     enable = true;
