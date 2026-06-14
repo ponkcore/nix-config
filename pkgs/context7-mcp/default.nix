@@ -1,32 +1,22 @@
 {
   lib,
-  buildNpmPackage,
-  fetchurl,
+  nodejs,
+  makeWrapper,
+  runCommand,
 }:
-buildNpmPackage rec {
-  pname = "context7-mcp";
-  version = "3.2.1";
-
-  src = fetchurl {
-    url = "https://registry.npmjs.org/@upstash/context7-mcp/-/context7-mcp-${version}.tgz";
-    hash = "sha512-ZVh1OAeOd5C4ORvPKYUgZSIwm+ofmofLyXS8p2Vvm0WH29axgNwhcc7sCr3aMzNX7oPKL9zH+1lb17W+AeMKtQ==";
-  };
-
-  npmDepsHash = "sha256-habUQTjfpFrq5KuixEnrzGS7Xc+RjnpF1LaGxr+yFTs=";
-
-  postPatch = ''
-    cp ${./package-lock.json} package-lock.json
-  '';
-
-  buildPhase = ''
-    runHook preBuild
-    npm run build || true
-    runHook postBuild
-  '';
-
+runCommand "context7-mcp-3.2.1" {
+  nativeBuildInputs = [makeWrapper];
   meta = with lib; {
-    description = "Context7 MCP server — hosted documentation lookup";
+    description = "Context7 MCP server - hosted documentation lookup (stdio)";
     license = licenses.mit;
     platforms = platforms.linux;
   };
-}
+} ''
+  mkdir -p $out/bin
+  makeWrapper ${nodejs}/bin/npx $out/bin/context7-mcp \
+    --prefix PATH : ${lib.makeBinPath [nodejs]} \
+    --add-flags "-y" \
+    --add-flags "@upstash/context7-mcp@3.2.1" \
+    --add-flags "--transport" \
+    --add-flags "stdio"
+''

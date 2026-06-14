@@ -128,11 +128,9 @@
 
     letta-code = final.callPackage ./letta-code {inherit inputs;};
     mcp-bridge = final.callPackage ./mcp-bridge {};
-    mcp-nix = inputs.mcp-nix.packages.${final.stdenv.hostPlatform.system}.default;
-    # context7-mcp — WIP: HTTP/SSE server, not usable with mcp-bridge (stdio).
-    # Needs an SSE→stdio proxy or native Letta MCP support. Package skeleton
-    # kept in pkgs/context7-mcp/ for when the bridge is extended.
-    # context7-mcp = final.callPackage ./context7-mcp {};
+    mcp-nix = final.callPackage ./mcp-nix {};
+    context7-mcp = final.callPackage ./context7-mcp {};
+    fetch-py = final.callPackage ./fetch-py {};
   })
 
   # NUR — Nix User Repository (community packages, e.g. Firefox extensions).

@@ -29,10 +29,23 @@ in {
     mcp-bridge
     mcp-nixos
     mcp-nix
+    context7-mcp
+    fetch-py
   ];
 
-  home.file.".letta/skills/nixos-options/SKILL.md" = {
-    source = ../skills/nixos-options/SKILL.md;
+  home.file = {
+    ".letta/skills/nixos-options/SKILL.md" = {
+      source = ../skills/nixos-options/SKILL.md;
+    };
+    ".letta/skills/nix-lang/SKILL.md" = {
+      source = ../skills/nix-lang/SKILL.md;
+    };
+    ".letta/skills/context7-docs/SKILL.md" = {
+      source = ../skills/context7-docs/SKILL.md;
+    };
+    ".letta/skills/web-fetch/SKILL.md" = {
+      source = ../skills/web-fetch/SKILL.md;
+    };
   };
 
   programs.fish.functions.talos = lib.mkForce ''
@@ -58,10 +71,10 @@ in {
       return 1
     end
 
-    # Source agenix secrets (OMNIROUTE_API_KEY, FIREWORKS_API_KEY)
-    # into the letta process environment. The keys live in
-    # /run/agenix/tokens (decrypted at boot, mode 400, owner=oonishi)
-    # and are never written to /nix/store.
+    # Source agenix secrets (OMNIROUTE_API_KEY, FIREWORKS_API_KEY,
+    # CONTEXT7_API_KEY, LAZYWEB_MCP_TOKEN) into the letta process
+    # environment. The keys live in /run/agenix/tokens (decrypted at
+    # boot, mode 400, owner=oonishi) and are never written to /nix/store.
     set -l tokens "/run/agenix/tokens"
     if not test -r "$tokens"
       echo "talos: $tokens missing or unreadable." >&2
