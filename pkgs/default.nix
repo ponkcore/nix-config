@@ -113,19 +113,6 @@
     orbit = final.callPackage ./orbit {};
     antigravity-cli = final.callPackage ./antigravity-cli {};
 
-    # gptme — terminal-first AI agent built from the upstream Poetry
-    # project. poetry2nix is constructed against the host pkgs set
-    # (`final`) so the resulting Python interpreter and runtime
-    # libraries come from nixpkgs-25.11; only the build glue is
-    # poetry2nix's own. See pkgs/gptme/default.nix for the closure
-    # rationale and pkgs/gptme/update.sh for the bump workflow.
-    gptme = let
-      poetry2nix = inputs.poetry2nix.lib.mkPoetry2Nix {pkgs = final;};
-    in
-      final.callPackage ./gptme {
-        inherit (poetry2nix) mkPoetryApplication;
-      };
-
     letta-code = final.callPackage ./letta-code {inherit inputs;};
     mcp-bridge = final.callPackage ./mcp-bridge {};
     mcp-nix = final.callPackage ./mcp-nix {inherit inputs;};

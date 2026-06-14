@@ -29,7 +29,7 @@
   # Rules of the road:
   #   - A category exists when ≥2 windows share the same visual
   #     contract. One-off windows stay as hand-written rules below.
-  #   - `tool` is sized so a fullscreen TUI (btop, gptme, etc.) lands
+  #   - `tool` is sized so a fullscreen TUI (btop, talos, etc.) lands
   #     above the 80×24-char minimum; do not shrink it without
   #     re-checking that floor.
   #   - Override is for "almost the same, but slightly off"

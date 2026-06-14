@@ -29,14 +29,14 @@ let
   all = hosts ++ users;
 in {
   # tokens.age — bundle of all third-party API tokens consumed by user-
-  # space agent tooling (gptme, opencode runtime, opencode MCP clients).
+  # space agent tooling (letta runtime, opencode runtime, opencode MCP clients).
   # Decrypted at activation time into /run/agenix/tokens (chmod 400,
-  # owner=oonishi). Read by home/talos.nix and home/opencode.nix when
-  # rendering their config files.
+  # owner=oonishi). Read by home/letta.nix at runtime and home/opencode.nix
+  # when rendering its config file.
   #
   # Current contents:
-  #   OMNIROUTE_API_KEY     — gptme + opencode omniroute provider
-  #   FIREWORKS_API_KEY     — gptme fireworks provider (direct)
+  #   OMNIROUTE_API_KEY     — opencode omniroute provider, letta provider env
+  #   FIREWORKS_API_KEY     — letta fireworks provider env, opencode login flow
   #   LAZYWEB_MCP_TOKEN     — opencode lazyweb MCP server (Bearer header)
   #   CONTEXT7_API_KEY      — context7 MCP server (X-Context7-API-Key header)
   #   OMNIROUTE_MCP_API_KEY — OmniRoute MCP server (X-API-Key header)

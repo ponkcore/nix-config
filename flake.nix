@@ -40,14 +40,6 @@
     # breaks the build.
     llm-agents.url = "github:numtide/llm-agents.nix";
 
-    # poetry2nix — builds Poetry-managed Python applications without an
-    # imperative `poetry install`. Used by pkgs/gptme/ since gptme is
-    # not in nixpkgs and ships a poetry.lock at every release.
-    poetry2nix = {
-      url = "github:nix-community/poetry2nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     # Open Design — local-first design product (daemon + web frontend).
     # Ships its own Home Manager module via homeManagerModules.default.
     open-design.url = "github:nexu-io/open-design";

@@ -56,7 +56,6 @@ in {
 
       ./direnv.nix
       ./yazi.nix
-      ./talos.nix
       ./ssh.nix
       ./open-design.nix
       ./letta.nix

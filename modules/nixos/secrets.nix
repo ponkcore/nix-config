@@ -124,7 +124,7 @@ in {
     identityPaths = ["/etc/ssh/ssh_host_ed25519_key"];
 
     # tokens.age — bundle of all third-party API tokens consumed by
-    # user-space agent tooling (gptme runtime, opencode runtime,
+    # user-space agent tooling (letta runtime, opencode runtime,
     # opencode MCP clients). Decrypted to /run/agenix/tokens at
     # activation, owner = primary user, mode 400.
     secrets.tokens = {

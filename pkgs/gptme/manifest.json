@@ -1,9 +1,0 @@
-{
-  "version": "0.31.0-unstable-2026-06-11",
-  "src": {
-    "owner": "gptme",
-    "repo": "gptme",
-    "rev": "c5cc335867935b4e4af33a901af1a298a0e19928",
-    "hash": "sha256-2VtX+tDoh0FHm9jZNFaNcemdKx2CbaemhbBw8smQT1I="
-  }
-}
