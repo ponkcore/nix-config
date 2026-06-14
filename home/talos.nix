@@ -199,7 +199,7 @@
 
   # Fish function — defined as a separate file so home-manager picks
   # it up via programs.fish.functions cleanly. The function lives in
-  # XDG_CONFIG_HOME/fish/functions/talos.fish at activation.
+  # XDG_CONFIG_HOME/fish/functions/gptme.fish at activation.
   #
   # YOLO mode: every `command gptme` call passes `-y` (--no-confirm)
   # so the runtime never blocks on patch / shell / save confirmations.
@@ -225,28 +225,28 @@
     if test (count $argv) -ge 1
       switch $argv[1]
         case 'help' '--help' '-h'
-          echo "talos — sysadmin agent (gptme + brain workdir)"
+          echo "gptme — sysadmin agent rollback (gptme + brain workdir)"
           echo ""
           echo "Usage:"
-          echo "  talos                  Start TUI in $brain"
-          echo "  talos help             This message"
-          echo "  talos journal          Open today's journal entry"
-          echo "  talos system <prompt>  Run with workdir = /etc/nixos"
-          echo "  talos <prompt...>      Run in brain with prompt"
+          echo "  gptme                  Start TUI in $brain"
+          echo "  gptme help             This message"
+          echo "  gptme journal          Open today's journal entry"
+          echo "  gptme system <prompt>  Run with workdir = /etc/nixos"
+          echo "  gptme <prompt...>      Run in brain with prompt"
           return 0
       end
     end
 
     if not test -d "$brain"
-      echo "talos: brain directory $brain not found." >&2
-      echo "       Clone ponkcore/talos-brain to $brain before invoking talos." >&2
+      echo "gptme: brain directory $brain not found." >&2
+      echo "       Clone ponkcore/talos-brain to $brain before invoking gptme." >&2
       return 1
     end
 
     # Refresh RUNTIME_CONTEXT.md before launching gptme. Non-fatal:
     # a broken prehook must never prevent talos from starting.
     if test -x "$prehook"
-      bash "$prehook"; or echo "talos: prehook $prehook failed; continuing" >&2
+      bash "$prehook"; or echo "gptme: prehook $prehook failed; continuing" >&2
     end
 
     # No args — open TUI in brain workdir.
@@ -279,7 +279,7 @@ in {
   # entry for that python package).
   home.packages = [pkgs.gptme pkgs.uv];
 
-  programs.fish.functions.talos = talosFish;
+  programs.fish.functions.gptme = talosFish;
 
   # Render ~/.config/gptme/config.toml from configTemplate, substituting
   # the secrets read from /run/agenix/tokens. Mirrors the opencode-

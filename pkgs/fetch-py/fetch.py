@@ -88,15 +88,17 @@ def fetch(url, timeout):
             continue
         # 2xx: read with hard cap
         raw = resp.read(MAX_BYTES + 1)
-        truncated_cap = len(raw) > MAX_BYTES
-        raw = raw[:MAX_BYTES]
+        if len(raw) > MAX_BYTES:
+            raise ValueError("response exceeds 1 MiB hard cap")
         if resp.headers.get("Content-Encoding", "").lower() == "gzip":
             try:
-                raw = gzip.GzipFile(fileobj=io.BytesIO(raw)).read(MAX_BYTES)
+                raw = gzip.GzipFile(fileobj=io.BytesIO(raw)).read(MAX_BYTES + 1)
+                if len(raw) > MAX_BYTES:
+                    raise ValueError("response exceeds 1 MiB hard cap")
             except OSError:
                 pass
         ctype = resp.headers.get("Content-Type", "")
-        return url, ctype, raw, truncated_cap
+        return url, ctype, raw, False
     raise ValueError("too many redirects")
 
 

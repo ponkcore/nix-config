@@ -6,17 +6,16 @@
 # Phase 3 (providers): fish wrapper with agenix secrets,
 # environment variables for omniroute + fireworks.
 #
-# home/talos.nix (gptme) is NOT modified — rollback is a revert
-# of this module. The talos fish function here uses mkForce
-# to override the gptme-era definition from home/talos.nix.
+# home/talos.nix (gptme) is kept as rollback. This module owns
+# the `talos` fish function; home/talos.nix owns `gptme`.
 {
   config,
   inputs,
-  lib,
   pkgs,
   ...
 }: let
   brainDir = "${config.home.homeDirectory}/Documents/talos-brain";
+  talosAgentId = "agent-local-686d5667-5fc0-45c2-ab97-f3e984b22a27";
 in {
   imports = [inputs.letta-code.homeManagerModules.default];
 
@@ -48,7 +47,7 @@ in {
     };
   };
 
-  programs.fish.functions.talos = lib.mkForce ''
+  programs.fish.functions.talos = ''
     set -l brain "${brainDir}"
 
     if test (count $argv) -ge 1
@@ -89,27 +88,29 @@ in {
       end
     end
 
+    set -gx LETTA_LOCAL_BACKEND_EXPERIMENTAL 1
+
     cd "$brain"
 
-    # No args — open TUI with default agent
+    # No args — open TUI with talos agent
     if test (count $argv) -eq 0
-      command letta --backend local
+      command letta --backend local --agent ${talosAgentId}
       return $status
     end
 
     switch $argv[1]
       case 'journal'
-        command letta --backend local -p \
+        command letta --backend local --agent ${talosAgentId} -p \
           "Open journal/"(date +%Y-%m-%d)".md and summarise what I did today. If the file does not exist, create it with a short opening note. Reply to me in Russian."
       case 'system'
         cd /etc/nixos
         if test (count $argv) -ge 2
-          command letta --backend local $argv[2..]
+          command letta --backend local --agent ${talosAgentId} $argv[2..]
         else
-          command letta --backend local
+          command letta --backend local --agent ${talosAgentId}
         end
       case '*'
-        command letta --backend local $argv
+        command letta --backend local --agent ${talosAgentId} $argv
     end
   '';
 }

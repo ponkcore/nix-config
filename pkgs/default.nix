@@ -128,7 +128,7 @@
 
     letta-code = final.callPackage ./letta-code {inherit inputs;};
     mcp-bridge = final.callPackage ./mcp-bridge {};
-    mcp-nix = final.callPackage ./mcp-nix {};
+    mcp-nix = final.callPackage ./mcp-nix {inherit inputs;};
     context7-mcp = final.callPackage ./context7-mcp {};
     fetch-py = final.callPackage ./fetch-py {};
   })
