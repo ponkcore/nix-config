@@ -1,32 +1,26 @@
 # idle.nix — Hyprland idle manager (hypridle).
 #
-# Policy: hypridle owns lock-on-sleep only. No idle-driven DPMS, no
-# idle-driven suspend. Screen blanking is exclusively driven by the
-# lid switch (see bindl in session.nix), and the box never suspends
-# on a timer — battery state is the operator's responsibility.
+# Policy:
+#   - lock on sleep (before_sleep_cmd)
+#   - idle-driven DPMS off, but ONLY on battery. On AC the screen
+#     never blanks on a timer. Driven by the `on-battery` helper from
+#     the laptop form-factor profile: `on-battery` exits 0 when on
+#     battery, so `on-battery && <blank>` only fires unplugged.
+#   - never idle-suspend: the laptop only sleeps on lid close (handled
+#     by logind/Hyprland bindl, not here).
 #
-# Why no idle DPMS:
-# AOC 24G2W1G4 on HDMI-A-1 mis-handles DPMS off — the panel drops
-# the HDMI link entirely, Hyprland sees a monitor hot-unplug and
-# translates every HDMI-pinned floating-window X coordinate by
-# -monitor.x. On the subsequent monitoradded the coordinates are
-# not restored, so windows end up stacked on eDP-1. Even targeting
-# only eDP-1 leaves a footgun: any future revert to "dpms off"
-# without a monitor argument re-arms the bug. Removing all DPMS
-# listeners is the durable fix.
-#
-# Why no idle suspend:
-# Per operator policy: the laptop only sleeps on lid close (handled
-# by logind/Hyprland bindl, not here). Idle-suspend would also
-# expose the Hyprland 0.52.1 multi-monitor resume bug
-# (mis-recomputed floating coords + hyprlock scale on
-# eDP-1@scale2 + HDMI-A-1@scale1).
-#
-# This module currently consumes no _module.args from the laptop
-# form-factor profile. If a battery-only listener is reintroduced,
-# add `on-battery` back to the argument set — the helper is
-# already exported by modules/hardware/form-factor/laptop.nix.
-_: {
+# DPMS targets eDP-1 explicitly rather than a bare `dpms off`. A bare
+# blank would also turn off any external monitor that happens to be
+# plugged in; eDP-1 is always the internal panel on this host.
+{
+  pkgs,
+  on-battery,
+  ...
+}: let
+  # 5 min idle on battery → blank eDP-1; restore on activity.
+  dpmsOff = "${on-battery}/bin/on-battery && ${pkgs.hyprland}/bin/hyprctl dispatch dpms off eDP-1";
+  dpmsOn = "${pkgs.hyprland}/bin/hyprctl dispatch dpms on eDP-1";
+in {
   services.hypridle = {
     enable = true;
     settings = {
@@ -35,7 +29,13 @@ _: {
         before_sleep_cmd = "loginctl lock-session";
         after_sleep_cmd = "hyprctl dispatch dpms on";
       };
-      listener = [];
+      listener = [
+        {
+          timeout = 300;
+          on-timeout = dpmsOff;
+          on-resume = dpmsOn;
+        }
+      ];
     };
   };
 }

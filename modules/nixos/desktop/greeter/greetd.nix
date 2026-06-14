@@ -97,20 +97,22 @@
   # functional via kernel VT switching, independent of sway.
   # ── sway kiosk config ────────────────────────────────────────────
   # eDP-1 is forced as the only active output during the greeter.
-  # Why disable HDMI-A-1 here:
-  #   - nwg-hello picks the form's monitor via `form_on_monitors=[N]`
-  #     where N is the index in sway's wl_output enumeration order.
-  #     Order is not stable across boots; with HDMI plugged the form
-  #     can land on the external panel.
-  #   - The greeter is a 1-second-of-attention surface; running it
-  #     on both panels has no functional value, only failure modes.
-  #   - The user-session Hyprland reconfigures both outputs from
-  #     scratch when it starts, so disabling HDMI here has zero
-  #     carry-over.
-  # `output * bg` paints the (single) active output. HDMI stays dark
-  # until Hyprland claims it post-login.
+  # `output * disable` first turns off EVERY output, then eDP-1 is
+  # explicitly re-enabled — so the greeter is deterministically on the
+  # internal panel regardless of what external monitor (HDMI / DP /
+  # USB-C) happens to be plugged in or how sway enumerates outputs.
+  # Rationale:
+  #   - nwg-hello picks the form's monitor by wl_output index, which is
+  #     not stable across boots; pinning to the single active output
+  #     removes that nondeterminism entirely.
+  #   - The greeter is a brief attention surface; running it on a
+  #     second panel has no value, only failure modes.
+  #   - The user-session Hyprland reconfigures all outputs from scratch
+  #     post-login, so any external panel comes up there with zero
+  #     carry-over from the greeter.
+  # `output * bg` then paints the single active output (eDP-1).
   swayGreeterConfig = pkgs.writeText "sway-greeter-config" ''
-    output HDMI-A-1 disable
+    output * disable
     output eDP-1 enable
     output * bg /etc/greetd/wallpaper.jpg fill
 
@@ -147,11 +149,10 @@
   '';
 
   # ── nwg-hello config (JSON) ──────────────────────────────────────
-  # monitor_nums = [] → surface on every monitor.
-  # form_on_monitors = [0] → form only on the first enumerated
-  # monitor (eDP-1 in current cabling). HDMI-A-1 shows wallpaper
-  # only. If sway enumerates outputs in a different order on a
-  # future hardware change, swap to [1] or [].
+  # monitor_nums = [] → surface on every active output.
+  # form_on_monitors = [0] → form on the first (and, with the sway
+  # `output * disable` + `output eDP-1 enable` policy above, only)
+  # enumerated output, i.e. the internal eDP-1 panel.
   #
   # session_dirs uses /run/current-system/sw/share for nixos-style
   # path layout. The greetd systemd unit re-asserts XDG_DATA_DIRS

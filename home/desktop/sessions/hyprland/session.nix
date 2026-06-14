@@ -100,21 +100,16 @@ in {
       # Pin native panel mode + scale explicitly. The panel
       # (China Star SNE007ZA2-1, 14" 2.8K) advertises 120 Hz preferred
       # via EDID, but firmware can downshift to 60 Hz on certain BIOS
-      # cold-boot paths — we hard-pin to avoid the drift. Fallback line
-      # keeps any other monitor (HDMI dock, external DP) at preferred
-      # mode and auto-position.
-      # `vrr` here applies globally as a default; per-monitor we
-      # override on the HDMI line below because the AOC 24G2W1G4
-      # over HDMI 1.4 advertises FreeSync but flickers / drops the
-      # signal when Hyprland actually drives VRR — disable it on
-      # that output specifically.
+      # cold-boot paths — we hard-pin to avoid the drift.
+      #
+      # The generic fallback line keeps ANY future external monitor
+      # (HDMI / USB-C / DP) at its preferred mode, auto-position,
+      # scale 1, hot-pluggable. This host is normally driven as a
+      # single-panel laptop; no monitor is hard-pinned by model. If a
+      # specific external panel ever needs a per-output quirk (mode,
+      # scale, or `vrr, 0`), add a dedicated line ABOVE the fallback.
       monitor = [
         "eDP-1, 2880x1800@120, 0x0, 2"
-        # AOC 24G2W1G4: pin 1080p144 explicitly — `preferred` lands
-        # on 60 Hz from EDID's preferred timing block. `vrr, 0`
-        # disables FreeSync on this output (HDMI 1.4 + Hyprland VRR
-        # flickers / drops the signal on this panel).
-        "HDMI-A-1, 1920x1080@144, auto, 1, vrr, 0"
         ", preferred, auto, 1"
       ];
 
@@ -284,14 +279,13 @@ in {
         "$mainMod, mouse:273, resizewindow"
       ];
 
-      # Lid switch — DPMS-off the internal panel only. Going through
-      # `monitor disable` works but evacuates eDP-1's workspaces to
-      # HDMI and never moves them back; DPMS just blanks the panel
-      # while leaving the monitor object (and its workspaces) in
-      # place, so HDMI is untouched and reopening the lid restores
-      # everything exactly. logind already ignores lid events
-      # (HandleLidSwitch=ignore at the system level), so suspend
-      # never enters the picture either.
+      # Lid switch — DPMS-off the internal panel (eDP-1) only. DPMS
+      # just blanks the panel while leaving the monitor object and its
+      # workspaces in place, so reopening the lid restores everything
+      # exactly. Targeting eDP-1 explicitly also keeps any external
+      # monitor untouched if one is ever plugged in. logind already
+      # ignores lid events (HandleLidSwitch=ignore at the system
+      # level), so suspend never enters the picture either.
       bindl = [
         ", switch:on:Lid Switch, exec, hyprctl dispatch dpms off eDP-1"
         ", switch:off:Lid Switch, exec, hyprctl dispatch dpms on eDP-1"
@@ -351,18 +345,13 @@ in {
       # own current workspace independently — Super+1..9 cycles the
       # focused monitor's workspaces, not a global pool.
       #
-      # Why no monitor-pinning: the previous policy hard-pinned
-      # ws 1-8 to HDMI-A-1 and ws9 to eDP-1 to optimise the docked
-      # path (HDMI primary, eDP-1 ancillary). On the unplugged path
-      # (laptop on the move) Hyprland still evacuated ws 1-8 to
-      # eDP-1, but eDP-1 booted to ws9 because of `default:true`
-      # there — landing on ws9 instead of ws1 was disorienting, and
-      # re-plugging HDMI yanked ws 1-8 back instantly with all the
-      # windows opened in lap-only mode. Removing the pin restores
-      # the conventional dynamic flow at the cost of losing the
-      # docking automation; if/when docking becomes the dominant
-      # mode again we can revive the pin behind a host-condition
-      # script.
+      # Why no monitor-pinning: workspaces stay dynamic and unpinned,
+      # which is the right default for a single-panel laptop. (An
+      # earlier revision pinned workspaces across an external monitor
+      # for a docked layout; that monitor is no longer used, so the
+      # pinning was dropped along with the rest of the dual-head
+      # setup. If docking ever returns, revive the pin behind a
+      # host-condition script.)
       #
       # Smart-gaps rules retained: no gaps/border when a single
       # tiled or fullscreen window is visible — maximises usable

@@ -31,13 +31,6 @@ _: {
       ports = "ss -tlnp";
       sizeof = "du -sh";
       md = "mkdir -p";
-
-      # Hyprland floating-window rescue — manually re-center any
-      # floating window whose `at` fell outside its monitor's
-      # logical rectangle (drift bug on mixed-scale eDP-1 + HDMI-A-1
-      # under 0.52.1; see journal/2026-05-25, journal/2026-05-26).
-      rc = "recenter-floating";
-      rca = "recenter-floating --all";
     };
 
     interactiveShellInit = ''

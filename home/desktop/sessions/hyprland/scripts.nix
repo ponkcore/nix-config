@@ -306,104 +306,6 @@
     fi
   '';
 
-  # ── recenter-floating ────────────────────────────────────────────────
-  # Walks every floating client and re-centers any whose top-left
-  # `at` falls outside the logical rectangle of the monitor that
-  # currently hosts its workspace. Used as a manual rescue when
-  # Hyprland 0.52.1 mis-recomputes floating-window coordinates after
-  # a long idle period (mixed-scale eDP-1 + HDMI-A-1; see
-  # journal/2026-05-25 and journal/2026-05-26).
-  #
-  # Two modes:
-  #   recenter-floating         — drift-only: only off-monitor windows
-  #   recenter-floating --all   — center every floating window
-  #
-  # Idempotent: a window already inside its monitor is left alone in
-  # the default mode.
-  recenter-floating = pkgs.writeShellScriptBin "recenter-floating" ''
-    set -euo pipefail
-    HYPRCTL="${pkgs.hyprland}/bin/hyprctl"
-    JQ="${pkgs.jq}/bin/jq"
-
-    mode="drift"
-    if [ "''${1:-}" = "--all" ]; then
-      mode="all"
-    fi
-
-    monitors=$($HYPRCTL monitors -j)
-    clients=$($HYPRCTL clients -j)
-
-    # Build a tab-separated table of floating windows joined with the
-    # logical bounds of the monitor hosting their workspace:
-    #   addr  ws  cx  cy  cw  ch  mon_x  mon_y  mon_w  mon_h
-    # Logical width/height = physical / scale.
-    rows=$(echo "$clients" | $JQ -r --argjson mons "$monitors" '
-      [
-        $mons[] | {
-          id: .id,
-          x: .x,
-          y: .y,
-          w: (.width / .scale | floor),
-          h: (.height / .scale | floor)
-        }
-      ] as $mlist
-      | .[]
-      | select(.floating == true)
-      | . as $c
-      | ($mlist[] | select(.id == $c.monitor)) as $m
-      | [
-          $c.address,
-          ($c.workspace.id | tostring),
-          ($c.at[0] | tostring),
-          ($c.at[1] | tostring),
-          ($c.size[0] | tostring),
-          ($c.size[1] | tostring),
-          ($m.x | tostring),
-          ($m.y | tostring),
-          ($m.w | tostring),
-          ($m.h | tostring)
-        ]
-      | @tsv
-    ')
-
-    moved=0
-    skipped=0
-    cmds=""
-    while IFS=$'\t' read -r addr ws cx cy cw ch mx my mw mh; do
-      [ -z "$addr" ] && continue
-      out_of_bounds=0
-      if [ "$cx" -lt "$mx" ] || [ "$cy" -lt "$my" ]; then
-        out_of_bounds=1
-      fi
-      right=$((mx + mw))
-      bottom=$((my + mh))
-      if [ "$cx" -ge "$right" ] || [ "$cy" -ge "$bottom" ]; then
-        out_of_bounds=1
-      fi
-
-      if [ "$mode" = "drift" ] && [ "$out_of_bounds" -eq 0 ]; then
-        skipped=$((skipped + 1))
-        continue
-      fi
-
-      # Center in the logical monitor rectangle.
-      tx=$((mx + (mw - cw) / 2))
-      ty=$((my + (mh - ch) / 2))
-      cmds="''${cmds}dispatch movewindowpixel exact $tx $ty,address:$addr ; "
-      moved=$((moved + 1))
-    done <<<"$rows"
-
-    if [ "$moved" -eq 0 ]; then
-      echo "recenter-floating: nothing to move ($skipped already in bounds)"
-      exit 0
-    fi
-
-    # Strip trailing " ; " before passing to --batch.
-    cmds=''${cmds% ; }
-    $HYPRCTL --batch "$cmds" >/dev/null
-    echo "recenter-floating: moved=$moved skipped=$skipped mode=$mode"
-  '';
-
   # ── pwvucontrol toggle ──────────────────────────────────────────────
   # GTK4 / libadwaita PipeWire volume mixer. Same hide/show contract as
   # the other tray-style toggles: special:audio is the hide target,
@@ -445,7 +347,6 @@ in {
       network-toggle
       pwvucontrol-toggle
       btop-toggle
-      recenter-floating
       ;
   };
 
@@ -475,6 +376,5 @@ in {
     network-toggle
     pwvucontrol-toggle
     btop-toggle
-    recenter-floating
   ];
 }

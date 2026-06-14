@@ -41,9 +41,9 @@ hardware profiles to import, run `nixos-install`. That's it.
   document mirror).
 - **Custom Lecoo EC daemon** — fan curves, charge thresholds via the
   ITE IT5571 Super-I/O chip.
-- **Aggressive boot quieting** — Plymouth abstract_ring theme on
-  eDP only via `video=HDMI-A-1:d`, systemd quiet flags, sway-kiosk
-  hosting nwg-hello as the greeter.
+- **Aggressive boot quieting** — Plymouth abstract_ring theme on the
+  internal eDP panel, systemd quiet flags, sway-kiosk hosting
+  nwg-hello as the greeter.
 - **Reaper timers** — donut-proxy zombies (15-min sweep), HM-backup
   files (weekly purge).
 - **Sysctl hardening pass** — `kexec_load_disabled`, redirect/source-
