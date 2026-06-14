@@ -6,10 +6,10 @@
 #   - amd_iommu / iommu=pt for KVM passthrough overhead reduction
 #   - kvm-amd kernel module (so libvirt can spawn HVM guests)
 #
-# auto-cpufreq tuning (governor, EPP, turbo) lives in
-# modules/hardware/form-factor/laptop.nix because the policy
-# (powersave on battery / performance on AC) is laptop-specific.
-# Desktops and servers want different profiles.
+# Power-state tuning (EPP via power-profiles-daemon, AC/battery
+# profile switching) lives in modules/hardware/form-factor/laptop.nix
+# because the policy (power-saver on battery / balanced on AC) is
+# laptop-specific. Desktops and servers want different profiles.
 _: {
   hardware.cpu.amd.updateMicrocode = true;
 

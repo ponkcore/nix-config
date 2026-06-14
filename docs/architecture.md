@@ -85,7 +85,7 @@ Opt-in profiles. A host imports the ones that match its physical reality.
 |---------|----------|
 | `cpu/amd.nix` | `amd_pstate=active`, microcode, `kvm-amd`, IOMMU |
 | `gpu/amd.nix` | `amdgpu` initrd module, Mesa, VAAPI, VDPAU bridge |
-| `form-factor/laptop.nix` | `auto-cpufreq` battery/charger profiles, lid handling (logind ignore + `acpid` + `lid-monitor` user service for Hyprland DPMS), USB autosuspend rules, NVMe scheduler tuning, XHCI/I2C wakeup disable |
+| `form-factor/laptop.nix` | `power-profiles-daemon` battery/charger profiles (AC-edge udev switching), lid handling (logind ignore + `lid-monitor` user service polling `/proc/acpi` for Hyprland DPMS), USB autosuspend rules, NVMe scheduler tuning, XHCI/I2C wakeup disable |
 
 Future profiles slot in cleanly: `cpu/intel.nix` (intel_pstate, microcode,
 kvm-intel), `gpu/nvidia.nix` (proprietary driver, Optimus), `gpu/intel.nix`

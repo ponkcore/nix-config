@@ -32,7 +32,7 @@
   ];
 
   # sp5100_tco — AMD southbridge watchdog, causes "shutdown" warnings
-  # on this platform and provides no value (auto-cpufreq + lecoo-ec-daemon
-  # handle thermal/power policy already).
+  # on this platform and provides no value (power-profiles-daemon +
+  # lecoo-ec-daemon handle thermal/power policy already).
   boot.blacklistedKernelModules = ["sp5100_tco"];
 }

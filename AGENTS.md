@@ -64,8 +64,8 @@ modules/
   hardware/                  Opt-in hardware-class profiles
     cpu/amd.nix              amd_pstate, microcode, kvm-amd, IOMMU
     gpu/amd.nix              amdgpu, Mesa, VAAPI, VDPAU bridge
-    form-factor/laptop.nix   auto-cpufreq, lid handling, USB autosuspend,
-                             NVMe scheduler, acpid + lid-monitor user svc
+    form-factor/laptop.nix   power-profiles-daemon, lid handling, USB
+                             autosuspend, NVMe scheduler, lid-monitor user svc
 home/                        Home Manager modules (per-user config)
 theme/                       Wayland theme bundle (palette via _module.args.p)
 pkgs/                        Local package derivations (overlay)
