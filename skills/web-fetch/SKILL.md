@@ -16,6 +16,11 @@ Last resort, only with a concrete URL, after `nixos-options` / `nix-lang` /
 context7-docs → **web-fetch** → delegate/ask.
 
 ## How to call
+
+`fetch.py` is a system-wide binary (package `fetch-py` in `home.packages`),
+always on PATH. **Do not `cd` into the skill directory** — the directory
+contains only `SKILL.md` (symlinked), not the script.
+
 ```bash
 fetch.py <url> [--max-length N] [--start-index N] [--raw] [--timeout S]
 
@@ -30,6 +35,17 @@ fetch.py https://raw.githubusercontent.com/owner/repo/main/flake.nix --raw
 ```
 The output header reports total length and the next `--start-index` when there
 is more to read.
+
+## Limitations
+
+- **No JavaScript rendering.** `fetch.py` uses `urllib` (stdlib only). Sites
+  that are pure SPA/JS-rendered (e.g. Arch Wiki, GitHub Issues, Discourse,
+  Notion) will return an empty container or minimal text. Prefer canonical
+  raw sources: `raw.githubusercontent.com`, `freedesktop.org` man pages,
+  `kernel.org` docs, official `.md` mirrors.
+- When a URL returns `<script>`-heavy content with little text, `fetch.py`
+  emits `[warn] this page may be client-rendered` — find a static mirror
+  instead.
 
 ## Hard guardrails (enforced in fetch.py — §7)
 - **http/https only** (no file://, ftp://, etc.).

@@ -14,6 +14,24 @@ Connects to the operator-hosted OmniRoute MCP endpoint:
 The API key comes from agenix (`/run/agenix/tokens`) and is exported by the
 `talos` fish wrapper. Never put it on the command line or into `--args`.
 
+## Timing (cold-start, SSE)
+
+The remote SSE endpoint can take **up to 75 s** on the first call in a session
+(TLS handshake + MCP initialize + tool discovery). Every call after that in the
+same session completes in ~1–5 s.
+
+**Rules:**
+- **Always use `--timeout 75`** (not the default 60) for the first call. For
+  `omniroute_web_search` queries (which may take up to 10 s internally), use
+  `--timeout 90`.
+- The outer `bash` `timeout` must be **at least 15 s larger** than the inner
+  `--timeout`. If you wrap the call in `timeout <N> bash -c '...'`, make N
+  large enough.
+- Two consecutive timeouts (not HTTP/auth errors) → record in today's journal
+  and stop trying. The server is likely down or network-partitioned.
+- Cold start is once per MCP session. If `--list` succeeds, subsequent tool
+  calls in the same agent turn are already warm.
+
 ## How to call
 
 List tools:
@@ -23,6 +41,7 @@ mcp-bridge \
   --url 'https://mcp.infinitycore.space:8443/sse' \
   --transport sse \
   --header-env 'X-API-Key=OMNIROUTE_MCP_API_KEY' \
+  --timeout 90 \
   --list
 ```
 
@@ -33,6 +52,7 @@ mcp-bridge \
   --url 'https://mcp.infinitycore.space:8443/sse' \
   --transport sse \
   --header-env 'X-API-Key=OMNIROUTE_MCP_API_KEY' \
+  --timeout 90 \
   --tool '<tool_name>' \
   --args '{"key":"value"}'
 ```
