@@ -45,6 +45,9 @@ in {
     ".letta/skills/web-fetch/SKILL.md" = {
       source = ../skills/web-fetch/SKILL.md;
     };
+    ".letta/skills/omniroute-mcp/SKILL.md" = {
+      source = ../skills/omniroute-mcp/SKILL.md;
+    };
   };
 
   programs.fish.functions.talos = ''
@@ -71,8 +74,8 @@ in {
     end
 
     # Source agenix secrets (OMNIROUTE_API_KEY, FIREWORKS_API_KEY,
-    # CONTEXT7_API_KEY, LAZYWEB_MCP_TOKEN) into the letta process
-    # environment. The keys live in /run/agenix/tokens (decrypted at
+    # CONTEXT7_API_KEY, LAZYWEB_MCP_TOKEN, OMNIROUTE_MCP_API_KEY) into
+    # the letta process environment. The keys live in /run/agenix/tokens (decrypted at
     # boot, mode 400, owner=oonishi) and are never written to /nix/store.
     set -l tokens "/run/agenix/tokens"
     if not test -r "$tokens"

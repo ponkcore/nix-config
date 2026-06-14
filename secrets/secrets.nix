@@ -35,8 +35,10 @@ in {
   # rendering their config files.
   #
   # Current contents:
-  #   OMNIROUTE_API_KEY  — gptme + opencode omniroute provider
-  #   FIREWORKS_API_KEY  — gptme fireworks provider (direct)
-  #   LAZYWEB_MCP_TOKEN  — opencode lazyweb MCP server (Bearer header)
+  #   OMNIROUTE_API_KEY     — gptme + opencode omniroute provider
+  #   FIREWORKS_API_KEY     — gptme fireworks provider (direct)
+  #   LAZYWEB_MCP_TOKEN     — opencode lazyweb MCP server (Bearer header)
+  #   CONTEXT7_API_KEY      — context7 MCP server (X-Context7-API-Key header)
+  #   OMNIROUTE_MCP_API_KEY — OmniRoute MCP server (X-API-Key header)
   "tokens.age".publicKeys = all;
 }

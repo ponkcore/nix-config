@@ -253,6 +253,71 @@
       prune = true;
       reserved = 32000;
     };
+    # Conservative MCP tool filter. OpenCode has no per-server MCP
+    # allowlist in `mcp.<name>`; top-level `tools` is the available
+    # client-side switch for individual tool names. Keep read-only
+    # OmniRoute diagnostics/search tools available, but disable writes,
+    # runtime admin, money-moving, plugin management, and personal-data
+    # integrations until the operator explicitly enables a narrower set.
+    tools = {
+      omniroute_switch_combo = false;
+      omniroute_route_request = false;
+      omniroute_set_budget_guard = false;
+      omniroute_set_routing_strategy = false;
+      omniroute_set_resilience_profile = false;
+      omniroute_test_combo = false;
+      omniroute_db_health_check = false;
+      omniroute_sync_pricing = false;
+      omniroute_cache_flush = false;
+      omniroute_oneproxy_fetch = false;
+      omniroute_oneproxy_rotate = false;
+      omniroute_memory_search = false;
+      omniroute_memory_add = false;
+      omniroute_memory_clear = false;
+      omniroute_skills_enable = false;
+      omniroute_skills_execute = false;
+      omniroute_skills_executions = false;
+      plugin_install = false;
+      plugin_activate = false;
+      plugin_deactivate = false;
+      plugin_uninstall = false;
+      plugin_configure = false;
+      plugin_executions = false;
+      plugin_scan = false;
+      omniroute_compression_configure = false;
+      omniroute_set_compression_engine = false;
+      gamification_transfer = false;
+      gamification_invite = false;
+      gamification_anomalies = false;
+      notion_search = false;
+      notion_get_page = false;
+      notion_list_block_children = false;
+      notion_query_database = false;
+      notion_get_database = false;
+      notion_append_blocks = false;
+      obsidian_check_status = false;
+      obsidian_search_simple = false;
+      obsidian_search_structured = false;
+      obsidian_read_note = false;
+      obsidian_list_vault = false;
+      obsidian_get_document_map = false;
+      obsidian_get_note_metadata = false;
+      obsidian_get_active_file = false;
+      obsidian_get_periodic_note = false;
+      obsidian_get_tags = false;
+      obsidian_list_commands = false;
+      obsidian_write_note = false;
+      obsidian_append_note = false;
+      obsidian_patch_note = false;
+      obsidian_delete_note = false;
+      obsidian_move_note = false;
+      obsidian_execute_command = false;
+      obsidian_open_file = false;
+      obsidian_sync_status = false;
+      obsidian_sync_trigger = false;
+      obsidian_sync_conflicts = false;
+      obsidian_sync_resolve_conflict = false;
+    };
     provider.omniroute = {
       npm = "@ai-sdk/openai-compatible";
       options = {
@@ -261,9 +326,9 @@
       };
       models = omnirouteModels;
     };
-    # MCP servers — opencode-native remote transport. Bearer token is a
-    # placeholder in the nix-store template; the activation script
-    # below substitutes it from /run/agenix/tokens.
+    # MCP servers — opencode-native remote transport. Tokens are
+    # placeholders in the nix-store template; the activation script
+    # below substitutes them from /run/agenix/tokens.
     mcp = {
       lazyweb = {
         type = "remote";
@@ -284,6 +349,17 @@
         enabled = true;
         headers = {
           X-Context7-API-Key = "REPLACE_CONTEXT7_KEY";
+        };
+      };
+      # OmniRoute MCP — operator-hosted remote MCP endpoint. The key is
+      # separate from the OpenAI-compatible provider key and is injected
+      # from OMNIROUTE_MCP_API_KEY at activation.
+      omniroute = {
+        type = "remote";
+        url = "https://mcp.infinitycore.space:8443/sse";
+        enabled = true;
+        headers = {
+          X-API-Key = "REPLACE_OMNIROUTE_MCP_KEY";
         };
       };
     };
@@ -391,8 +467,9 @@ in {
   # The .age file bundles:
   #   OMNIROUTE_API_KEY  — opencode omniroute provider apiKey
   #   FIREWORKS_API_KEY  — `opencode providers login` flow
-  #   LAZYWEB_MCP_TOKEN  — Bearer header for the lazyweb MCP server
-  #   CONTEXT7_API_KEY   — X-Context7-API-Key header for context7 MCP
+  #   LAZYWEB_MCP_TOKEN    — Bearer header for the lazyweb MCP server
+  #   CONTEXT7_API_KEY     — X-Context7-API-Key header for context7 MCP
+  #   OMNIROUTE_MCP_API_KEY — X-API-Key header for OmniRoute MCP
   #
   # If /run/agenix/tokens is missing or unreadable, activation fails
   # loudly with the message below. To recover: re-encrypt the file
@@ -421,15 +498,21 @@ in {
       echo "ERROR: CONTEXT7_API_KEY missing in $SECRETS" >&2
       exit 1
     fi
+    if [ -z "''${OMNIROUTE_MCP_API_KEY:-}" ]; then
+      echo "ERROR: OMNIROUTE_MCP_API_KEY missing in $SECRETS" >&2
+      exit 1
+    fi
     mkdir -p "${config.xdg.configHome}/opencode"
     umask 077
     ${pkgs.jq}/bin/jq \
       --arg key "$OMNIROUTE_API_KEY" \
       --arg lz  "Bearer $LAZYWEB_MCP_TOKEN" \
       --arg c7  "$CONTEXT7_API_KEY" \
+      --arg omcp "$OMNIROUTE_MCP_API_KEY" \
       '.provider.omniroute.options.apiKey = $key
        | .mcp.lazyweb.headers.Authorization = $lz
-       | .mcp.context7.headers["X-Context7-API-Key"] = $c7' \
+       | .mcp.context7.headers["X-Context7-API-Key"] = $c7
+       | .mcp.omniroute.headers["X-API-Key"] = $omcp' \
       ${opencodeJsonTemplate} \
       > "$OUT.tmp"
     chmod 600 "$OUT.tmp"
