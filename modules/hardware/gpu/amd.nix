@@ -5,10 +5,8 @@
 #   - Mesa drivers with 32-bit support for Steam / Wine
 #   - VA-API (libva) and VDPAU→VA-API bridge for hardware video decode
 #   - Power & display feature masks tuned for Phoenix/Strix-class APUs:
-#       · ABM (Adaptive Backlight Modulation) on level 2 — battery saver
-#         that dims the LED panel proportionally to dark scene content.
-#       · dcfeaturemask=0x8 — enable PSR-SU (Selective Update); cuts panel
-#         self-refresh power draw on static content (terminal, code review).
+#       · ABM (Adaptive Backlight Modulation) disabled — avoids the slow
+#         backlight ramp after eDP DPMS-on / lid-open on this panel.
 #       · ppfeaturemask=0xfff7ffff — unmasks GPU OD / power-profile control
 #         (matches upstream amd-power-profiles defaults; safe on Phoenix2).
 #       · sg_display=0 — disables scatter-gather display path; works around
@@ -24,8 +22,7 @@
     kernelModules = ["amdgpu"];
 
     kernelParams = [
-      "amdgpu.abmlevel=2"
-      "amdgpu.dcfeaturemask=0x8"
+      "amdgpu.abmlevel=0"
       "amdgpu.ppfeaturemask=0xfff7ffff"
       "amdgpu.sg_display=0"
     ];

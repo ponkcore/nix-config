@@ -279,17 +279,9 @@ in {
         "$mainMod, mouse:273, resizewindow"
       ];
 
-      # Lid switch — DPMS-off the internal panel (eDP-1) only. DPMS
-      # just blanks the panel while leaving the monitor object and its
-      # workspaces in place, so reopening the lid restores everything
-      # exactly. Targeting eDP-1 explicitly also keeps any external
-      # monitor untouched if one is ever plugged in. logind already
-      # ignores lid events (HandleLidSwitch=ignore at the system
-      # level), so suspend never enters the picture either.
-      bindl = [
-        ", switch:on:Lid Switch, exec, hyprctl dispatch dpms off eDP-1"
-        ", switch:off:Lid Switch, exec, hyprctl dispatch dpms on eDP-1"
-      ];
+      # Lid switch is handled by the laptop hardware profile's polling
+      # service. This firmware does not reliably emit SW_LID events, so
+      # Hyprland switch binds are intentionally not used here.
 
       input = {
         kb_layout = "us,ru";

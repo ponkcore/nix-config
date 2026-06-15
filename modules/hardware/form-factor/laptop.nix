@@ -12,28 +12,28 @@
 #     energy_performance_preference. Replaces auto-cpufreq's battery↔AC
 #     binary with the firmware-defined three-state ladder
 #     (power-saver / balanced / performance).
-#   - logind: ignore lid switch (lid-monitor handles DPMS on its own).
-#   - acpi.lid_init_state=open: works around Emdoor N155A firmware that
-#     caches a stale "closed" state from cold boot. Without this the
-#     kernel logs "The lid device is not compliant to SW_LID" and the
-#     /proc/acpi/button/lid/LID0/state file is stuck at "closed".
+#   - logind: ignore lid switch (lid-monitor handles blanking on its own).
+#   - button.lid_init_state=ignore: do not trust the firmware's initial
+#     _LID value. Emdoor N155A firmware is not SW_LID-compliant and the
+#     kernel's button driver has no polling path for missing Notify(LID).
 #   - lid-monitor user service: polls /proc/acpi/button/lid/LID0/state
-#     once a second to drive Hyprland DPMS. Polling is the only reliable
-#     channel on firmware that does not reliably fire ACPI Notify(LID).
+#     five times a second and drives Hyprland DPMS for the internal
+#     panel. Polling is the only reliable channel on firmware that does
+#     not fire ACPI Notify(LID).
 #   - udev rules: USB autosuspend, NVMe scheduler tuning,
 #     XHCI/I2C wakeup disable to prevent spurious wake-from-suspend.
 #   - exposes the `on-battery` helper script to consumers (e.g. hypridle)
 #     via _module.args so they don't reach for /sys directly.
 {pkgs, ...}: let
   # Lid-state polling loop. Reads /proc/acpi/button/lid/LID0/state every
-  # second and drives Hyprland DPMS on edge transitions only. Initial
-  # state read primes `prev` so we never fire DPMS on service startup.
+  # 200 ms and drives Hyprland DPMS on edge transitions only. Initial
+  # state read primes `prev` so we never fire actions on service startup.
   #
   # Why polling rather than acpi_listen/inotify:
   #   - acpid: depends on firmware firing Notify(LID, 0x80). Emdoor N155A
   #     does NOT fire it on every transition. Lost events = stuck DPMS.
   #   - inotify: /proc is synthesised — inotify never triggers on it.
-  #   - polling: ~1 ms CPU per minute, guaranteed to catch every state.
+  #   - polling: cheap at 5 Hz, guaranteed to catch every state.
   lidMonitorScript = pkgs.writeShellScript "lid-monitor" ''
     LID=/proc/acpi/button/lid/LID0/state
     HYPRCTL=${pkgs.hyprland}/bin/hyprctl
@@ -43,18 +43,18 @@
       exit 1
     fi
 
-    # Prime previous state so the first iteration does not fire DPMS.
+    # Prime previous state so the first iteration does not fire actions.
     read -r _ prev < "$LID"
 
-    while sleep 1; do
+    while sleep 0.2; do
       read -r _ state < "$LID" || continue
       if [ "$state" != "$prev" ]; then
-        # Target eDP-1 explicitly — bare `dpms off` blanks every
-        # output, which would also kill any external HDMI/DP screen
-        # the user is actively working on with the lid closed.
+        # Target eDP-1 explicitly — bare `dpms off` blanks every output,
+        # which would also kill any external HDMI/DP screen the user is
+        # actively working on with the lid closed.
         case "$state" in
           closed) "$HYPRCTL" dispatch dpms off eDP-1 || true ;;
-          open)   "$HYPRCTL" dispatch dpms on  eDP-1 || true ;;
+          open) "$HYPRCTL" dispatch dpms on eDP-1 || true ;;
         esac
         prev="$state"
       fi
@@ -116,14 +116,12 @@ in {
     HandleLidSwitchExternalPower = "ignore";
   };
 
-  # acpi.lid_init_state=open: Emdoor N155A firmware reports the lid as
-  # closed on cold boot regardless of physical state, and never fires
-  # Notify(LID, 0x80) on subsequent transitions. The kernel emits
-  # "ACPI: button: The lid device is not compliant to SW_LID." in dmesg
-  # to flag this. Forcing the initial state to "open" stops the kernel
-  # from caching the bogus closed state and lets /proc/acpi/button/lid/
-  # LID0/state track the real lid position once the polling loop starts.
-  boot.kernelParams = ["acpi.lid_init_state=open"];
+  # button.lid_init_state=ignore: do not emit a bogus initial SW_LID state
+  # from the firmware's cached _LID value. The button driver still depends
+  # on Notify(LID, 0x80), which this firmware does not reliably send, so
+  # the user service below remains the source of truth via direct _LID
+  # evaluation through /proc/acpi/button/lid/LID0/state.
+  boot.kernelParams = ["button.lid_init_state=ignore"];
 
   systemd.user.services.lid-monitor = {
     description = "Poll /proc/acpi lid state and drive Hyprland DPMS";
