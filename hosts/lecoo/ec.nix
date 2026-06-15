@@ -123,7 +123,11 @@ in {
       description = "Synchronise Lecoo EC and OS power profiles";
       after = ["lecoo-ec-daemon.service" "power-profiles-daemon.service"];
       wants = ["lecoo-ec-daemon.service" "power-profiles-daemon.service"];
-      wantedBy = ["multi-user.target"];
+      # power-profiles-daemon itself starts after multi-user/display-manager;
+      # binding this sync unit to multi-user creates an ordering cycle.
+      # graphical.target keeps the boot-time sync late enough without
+      # delaying the greeter path.
+      wantedBy = ["graphical.target"];
       serviceConfig = {
         Type = "oneshot";
         ExecStart = syncPowerProfile;
