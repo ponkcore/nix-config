@@ -1,11 +1,17 @@
-# wlogout.nix — graphical session-action menu (lock/logout/suspend/reboot/poweroff).
-# Triggered manually; no keybind by default. Palette via _module.args.p.
+# wlogout.nix — graphical session-action menu.
+#
+# Opened from the Waybar power button. The four-button grid is adapted
+# from the local HyDE-style reference, but actions stay native to this
+# Hyprland session and icon assets are pinned through the Nix store.
 {
   pkgs,
   p,
   ...
-}: {
+}: let
+  icons = ../assets/wlogout-icons;
+in {
   home.packages = [pkgs.wlogout];
+
   xdg.configFile."wlogout/layout".text = ''
     {
       "label"    : "lock",
@@ -20,9 +26,9 @@
       "keybind"  : "e"
     }
     {
-      "label"    : "suspend",
-      "action"   : "systemctl suspend",
-      "text"     : "Suspend",
+      "label"    : "shutdown",
+      "action"   : "systemctl poweroff",
+      "text"     : "Shutdown",
       "keybind"  : "s"
     }
     {
@@ -31,60 +37,70 @@
       "text"     : "Reboot",
       "keybind"  : "r"
     }
-    {
-      "label"    : "shutdown",
-      "action"   : "systemctl poweroff",
-      "text"     : "Shutdown",
-      "keybind"  : "p"
-    }
   '';
+
   xdg.configFile."wlogout/style.css".text = ''
     * {
+      background-image: none;
       font-family: 'CaskaydiaCove Nerd Font Propo';
       font-size: 20px;
     }
+
     window {
-      background-color: ${p.bg};
+      background-color: transparent;
     }
+
     button {
-      background-color: ${p.bg_mid};
       color: ${p.fg};
-      border: 2px solid ${p.border_inact};
-      border-radius: 8px;
-      margin: 12px;
-      padding: 20px;
+      background-color: ${p.bg};
+      outline-style: none;
+      border: none;
+      border-width: 0;
       background-repeat: no-repeat;
-      background-size: contain;
       background-position: center;
+      background-size: 10%;
+      border-radius: 0;
+      box-shadow: none;
+      text-shadow: none;
+      transition: background-color 0.15s ease, color 0.15s ease, background-size 0.2s ease;
     }
-    button:hover {
-      background-color: ${p.hover_bg};
-      color: ${p.hover_fg};
-      border-color: ${p.accent_warm};
-    }
+
     button:focus {
-      border-color: ${p.accent_warm};
-      box-shadow: 0 0 0 2px ${p.accent_warm};
+      color: ${p.hover_fg};
+      background-color: ${p.accent_warm};
+      background-size: 18%;
+      box-shadow: none;
+      outline-style: none;
     }
-    #lock, #logout, #suspend, #reboot, #shutdown {
-      color: ${p.fg};
-      font-weight: bold;
+
+    button:hover {
+      color: ${p.hover_fg};
+      background-color: ${p.hover_bg};
+      background-size: 18%;
     }
+
+    #lock {
+      background-image: image(url("${icons}/lock.png"));
+      border-radius: 20px 0 0 0;
+      margin: 8px 0 0 8px;
+    }
+
+    #logout {
+      background-image: image(url("${icons}/logout.png"));
+      border-radius: 0 0 0 20px;
+      margin: 0 0 8px 8px;
+    }
+
     #shutdown {
-      color: ${p.bright_red};
-      border-color: alpha(${p.red}, 0.4);
+      background-image: image(url("${icons}/shutdown.png"));
+      border-radius: 0 20px 0 0;
+      margin: 8px 8px 0 0;
     }
-    #shutdown:hover {
-      background-color: alpha(${p.red}, 0.2);
-      color: ${p.bright_red};
-      border-color: ${p.bright_red};
-    }
+
     #reboot {
-      color: ${p.bright_yellow};
-      border-color: alpha(${p.bright_yellow}, 0.3);
-    }
-    #suspend {
-      color: ${p.bright_blue};
+      background-image: image(url("${icons}/reboot.png"));
+      border-radius: 0 0 20px 0;
+      margin: 0 8px 8px 0;
     }
   '';
 }

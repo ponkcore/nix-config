@@ -471,7 +471,7 @@ in {
 
       "custom/power" = {
         format = "<span weight='heavy'></span>";
-        on-click = "wlogout";
+        on-click = "wlogout --buttons-per-row 2";
         tooltip = false;
       };
 
