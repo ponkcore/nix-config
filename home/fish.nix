@@ -156,7 +156,22 @@ _: {
     enable = true;
     settings = {
       add_newline = true;
-      format = "$directory$git_branch$git_status$nix_shell$python$nodejs$rust$golang$cmd_duration$line_break$character";
+      format = "╭─$username$hostname in $directory$git_branch$git_status$nix_shell$cmd_duration$fill$time\n╰─$character";
+
+      username = {
+        disabled = false;
+        show_always = true;
+        style_user = "bold #d4bd99";
+        style_root = "bold #fb4934";
+        format = "[$user]($style)";
+      };
+
+      hostname = {
+        disabled = false;
+        ssh_only = false;
+        style = "bold #83a598";
+        format = "[@$hostname]($style)";
+      };
 
       character = {
         success_symbol = "[➜](bold #b8bb26)";
@@ -167,23 +182,24 @@ _: {
         style = "bold #d4bd99";
         truncation_length = 4;
         truncation_symbol = ".../";
+        format = "[$path]($style)";
       };
 
       git_branch = {
         style = "bold #83a598";
-        symbol = " ";
-        format = "[$symbol$branch(:$remote_branch)]($style) ";
+        symbol = "";
+        format = " on [$branch(:$remote_branch)]($style)";
       };
 
       git_status = {
         style = "#fabd2f";
-        format = "[$all_status$ahead_behind]($style)";
+        format = " [$all_status$ahead_behind]($style)";
       };
 
       nix_shell = {
-        symbol = " ";
+        symbol = "󱄅";
         style = "bold #8ec07c";
-        format = "[$symbol$state]($style) ";
+        format = " [$symbol $state]($style)";
       };
 
       python = {
@@ -213,7 +229,18 @@ _: {
       cmd_duration = {
         style = "#a89984";
         min_time = 2000;
-        format = "[$duration]($style) ";
+        format = " took [$duration]($style)";
+      };
+
+      fill = {
+        symbol = " ";
+      };
+
+      time = {
+        disabled = false;
+        style = "#a89984";
+        time_format = "%R";
+        format = "[$time]($style)";
       };
     };
   };

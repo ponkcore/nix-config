@@ -128,7 +128,7 @@
     if [ "$(cat "$state" 2>/dev/null || true)" = "on" ]; then
       # Leave ultra economy. Restore the normal 120 Hz panel mode and
       # return power policy to the current AC/battery baseline.
-      ${pkgs.hyprland}/bin/hyprctl keyword monitor "eDP-1, 2880x1800@120, 0x0, 2" >/dev/null 2>&1 || true
+      ${pkgs.hyprland}/bin/hyprctl keyword monitor "eDP-1, 2880x1800@120, 0x0, 1.8" >/dev/null 2>&1 || true
 
       if [ -r "$saved_brightness" ]; then
         brightness=$(cat "$saved_brightness")
@@ -163,7 +163,7 @@
     set_gpu_level low
     ${pkgs.brightnessctl}/bin/brightnessctl -d amdgpu_bl1 set 25% >/dev/null 2>&1 || true
     ${pkgs.hyprland}/bin/hyprctl keyword animations:enabled 0 >/dev/null 2>&1 || true
-    ${pkgs.hyprland}/bin/hyprctl keyword monitor "eDP-1, 2880x1800@60, 0x0, 2" >/dev/null 2>&1 || true
+    ${pkgs.hyprland}/bin/hyprctl keyword monitor "eDP-1, 2880x1800@60, 0x0, 1.8" >/dev/null 2>&1 || true
 
     echo on > "$state"
     notify_waybar
