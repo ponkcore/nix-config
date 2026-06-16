@@ -39,6 +39,12 @@ This prevents the `hyprland/workspaces` module from keeping stale IPC
 state after a compositor reload; see
 `lessons/0005-waybar-workspace-stale-after-hyprland-reload.md`.
 
+Before a full `nixos-rebuild test` or `switch`, turn off Throne/TUN mode.
+A controlled rebuild with Throne off kept Wi-Fi, route, DNS, and ping stable
+for 166 consecutive samples; previous long-lived "internet down" incidents
+occurred with `throne-tun` active. Re-enable Throne after the rebuild if
+needed.
+
 ### Failure modes
 
 | Symptom | Cause | Fix |
