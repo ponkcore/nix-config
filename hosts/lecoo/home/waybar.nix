@@ -8,6 +8,8 @@
 {
   battery-lecoo,
   lecoo-toggle,
+  ultra-economy-status,
+  ultra-economy-toggle,
   ...
 }: {
   programs.waybar.settings.mainBar = {
@@ -24,6 +26,16 @@
       };
       on-click-right = "${lecoo-toggle}/bin/lecoo-toggle";
       tooltip = true;
+    };
+
+    "custom/ultra-economy" = {
+      exec = "${ultra-economy-status}/bin/ultra-economy-status";
+      return-type = "json";
+      interval = "once";
+      signal = 8;
+      format = "{text}";
+      on-click = "${ultra-economy-toggle}/bin/ultra-economy-toggle";
+      tooltip = false;
     };
   };
 }

@@ -82,6 +82,104 @@
     esac
   '';
 
+  # ── Ultra economy toggle ───────────────────────────────────────────
+  # Manual, explicit battery-saving profile. This intentionally does
+  # NOT run on AC plug/unplug: fixed 120↔60 Hz switches are DRM modesets
+  # and blank the eDP panel for ~1 s. As a user-clicked mode that blink is
+  # expected; as an automatic power-edge side effect it is not.
+  #
+  # Does not touch Bluetooth, Wi-Fi, or user applications.
+  ultra-economy-toggle = pkgs.writeShellScriptBin "ultra-economy-toggle" ''
+    set -eu
+
+    runtime="''${XDG_RUNTIME_DIR:-/tmp}/ultra-economy"
+    state="$runtime/state"
+    saved_brightness="$runtime/brightness"
+    saved_animations="$runtime/animations"
+
+    mkdir -p "$runtime"
+
+    notify_waybar() {
+      ${pkgs.procps}/bin/pkill -RTMIN+8 -f '/bin/waybar' >/dev/null 2>&1 || true
+    }
+
+    set_gpu_level() {
+      level=$1
+      case "$level" in
+        low|auto) ;;
+        *) return 0 ;;
+      esac
+      printf '%s\n' "$level" | sudo -n ${pkgs.coreutils}/bin/tee /sys/class/drm/card1/device/power_dpm_force_performance_level >/dev/null 2>&1 || true
+    }
+
+    apply_power_baseline() {
+      online=$(cat /sys/class/power_supply/ADP1/online 2>/dev/null || echo 0)
+      if [ "$online" = "1" ]; then
+        ${pkgs.power-profiles-daemon}/bin/powerprofilesctl set balanced >/dev/null 2>&1 || true
+        ${pkgs.lecoo-ctrl}/bin/lecoo-ctrl power default >/dev/null 2>&1 || true
+        set_gpu_level auto
+      else
+        ${pkgs.power-profiles-daemon}/bin/powerprofilesctl set power-saver >/dev/null 2>&1 || true
+        ${pkgs.lecoo-ctrl}/bin/lecoo-ctrl power silent >/dev/null 2>&1 || true
+        set_gpu_level low
+      fi
+    }
+
+    if [ "$(cat "$state" 2>/dev/null || true)" = "on" ]; then
+      # Leave ultra economy. Restore the normal 120 Hz panel mode and
+      # return power policy to the current AC/battery baseline.
+      ${pkgs.hyprland}/bin/hyprctl keyword monitor "eDP-1, 2880x1800@120, 0x0, 2" >/dev/null 2>&1 || true
+
+      if [ -r "$saved_brightness" ]; then
+        brightness=$(cat "$saved_brightness")
+        ${pkgs.brightnessctl}/bin/brightnessctl -d amdgpu_bl1 set "$brightness" >/dev/null 2>&1 || true
+        rm -f "$saved_brightness"
+      fi
+
+      if [ -r "$saved_animations" ]; then
+        animations=$(cat "$saved_animations")
+        case "$animations" in
+          0|1) ${pkgs.hyprland}/bin/hyprctl keyword animations:enabled "$animations" >/dev/null 2>&1 || true ;;
+        esac
+        rm -f "$saved_animations"
+      else
+        ${pkgs.hyprland}/bin/hyprctl keyword animations:enabled 1 >/dev/null 2>&1 || true
+      fi
+
+      apply_power_baseline
+      echo off > "$state"
+      notify_waybar
+      exit 0
+    fi
+
+    # Enter ultra economy. Save session-local visual state so leaving the
+    # mode restores what the user had before the click.
+    ${pkgs.brightnessctl}/bin/brightnessctl -d amdgpu_bl1 get > "$saved_brightness" 2>/dev/null || true
+    ${pkgs.hyprland}/bin/hyprctl getoption animations:enabled 2>/dev/null \
+      | ${pkgs.gnugrep}/bin/grep -oP '^int:\s*\K[01]' > "$saved_animations" 2>/dev/null || true
+
+    ${pkgs.power-profiles-daemon}/bin/powerprofilesctl set power-saver >/dev/null 2>&1 || true
+    ${pkgs.lecoo-ctrl}/bin/lecoo-ctrl power silent >/dev/null 2>&1 || true
+    set_gpu_level low
+    ${pkgs.brightnessctl}/bin/brightnessctl -d amdgpu_bl1 set 25% >/dev/null 2>&1 || true
+    ${pkgs.hyprland}/bin/hyprctl keyword animations:enabled 0 >/dev/null 2>&1 || true
+    ${pkgs.hyprland}/bin/hyprctl keyword monitor "eDP-1, 2880x1800@60, 0x0, 2" >/dev/null 2>&1 || true
+
+    echo on > "$state"
+    notify_waybar
+  '';
+
+  ultra-economy-status = pkgs.writeShellScriptBin "ultra-economy-status" ''
+    runtime="''${XDG_RUNTIME_DIR:-/tmp}/ultra-economy"
+    state="$runtime/state"
+
+    if [ "$(cat "$state" 2>/dev/null || true)" = "on" ]; then
+      printf '{"text":"ECO","class":"on"}\n'
+    else
+      printf '{"text":"ECO","class":"off"}\n'
+    fi
+  '';
+
   # ── Merged battery + lecoo status (waybar custom/battery exec) ─────
   battery-lecoo = pkgs.writeShellScriptBin "battery-lecoo" ''
     CAP=$(cat /sys/class/power_supply/BAT0/capacity 2>/dev/null || echo "0")
@@ -122,6 +220,8 @@ in {
     inherit
       lecoo-toggle
       lecoo-status
+      ultra-economy-toggle
+      ultra-economy-status
       battery-lecoo
       ;
   };
@@ -129,6 +229,8 @@ in {
   home.packages = [
     lecoo-toggle
     lecoo-status
+    ultra-economy-toggle
+    ultra-economy-status
     battery-lecoo
   ];
 }

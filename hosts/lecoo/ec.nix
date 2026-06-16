@@ -9,18 +9,69 @@
   config,
   pkgs,
   lib,
+  username,
   ...
 }: let
+  keyboardBacklightRuntime = "\${XDG_RUNTIME_DIR:-/tmp}/lecoo-keyboard-backlight";
+
+  saveKeyboardBacklight = ''
+    state=${keyboardBacklightRuntime}/state
+    mkdir -p "$(dirname "$state")"
+
+    level=$(${config.services.lecoo-ctrl.package}/bin/lecoo-ctrl kbd 2>/dev/null \
+      | ${pkgs.gnugrep}/bin/grep -oP 'Level:\s*\K\w+' \
+      | ${pkgs.coreutils}/bin/tr '[:upper:]' '[:lower:]' || true)
+
+    case "$level" in
+      off|low|medium|high) printf '%s\n' "$level" > "$state" ;;
+      *) printf 'medium\n' > "$state" ;;
+    esac
+
+    ${config.services.lecoo-ctrl.package}/bin/lecoo-ctrl kbd off >/dev/null 2>&1 || true
+  '';
+
+  restoreKeyboardBacklight = ''
+    state=${keyboardBacklightRuntime}/state
+
+    if [ -r "$state" ]; then
+      level=$(cat "$state")
+      case "$level" in
+        off|low|medium|high) ${config.services.lecoo-ctrl.package}/bin/lecoo-ctrl kbd "$level" >/dev/null 2>&1 || true ;;
+      esac
+      rm -f "$state"
+    fi
+  '';
+
   syncPowerProfile = pkgs.writeShellScript "lecoo-sync-power-profile" ''
     set -eu
 
+    set_gpu_performance_level() {
+      level=$1
+      dpm=/sys/class/drm/card1/device/power_dpm_force_performance_level
+      if [ -w "$dpm" ]; then
+        echo "$level" > "$dpm" || true
+      fi
+    }
+
+    ultra_economy_enabled() {
+      uid=$(${pkgs.coreutils}/bin/id -u ${username} 2>/dev/null || true)
+      state="/run/user/$uid/ultra-economy/state"
+      [ -n "$uid" ] && [ -r "$state" ] && [ "$(cat "$state" 2>/dev/null || true)" = "on" ]
+    }
+
     online=$(cat /sys/class/power_supply/ADP1/online 2>/dev/null || echo 0)
-    if [ "$online" = "1" ]; then
+    if ultra_economy_enabled; then
+      ${config.services.lecoo-ctrl.package}/bin/lecoo-ctrl power silent >/dev/null 2>&1 || true
+      ${pkgs.power-profiles-daemon}/bin/powerprofilesctl set power-saver >/dev/null 2>&1 || true
+      set_gpu_performance_level low
+    elif [ "$online" = "1" ]; then
       ${config.services.lecoo-ctrl.package}/bin/lecoo-ctrl power default >/dev/null 2>&1 || true
       ${pkgs.power-profiles-daemon}/bin/powerprofilesctl set balanced >/dev/null 2>&1 || true
+      set_gpu_performance_level auto
     else
       ${config.services.lecoo-ctrl.package}/bin/lecoo-ctrl power silent >/dev/null 2>&1 || true
       ${pkgs.power-profiles-daemon}/bin/powerprofilesctl set power-saver >/dev/null 2>&1 || true
+      set_gpu_performance_level low
     fi
   '';
 in {
@@ -119,6 +170,14 @@ in {
     # lecoo-ctrl owns the firmware-facing side (EC TDP / fan profile).
     # On AC we default to balanced + EC default; on battery we switch to
     # power-saver + EC silent. Full performance remains a manual choice.
+    # The same edge sync also applies the AMDGPU performance-level policy:
+    #   AC      → amdgpu force_performance_level=auto
+    #   battery → amdgpu force_performance_level=low
+    #   ultra   → power-saver + EC silent + amdgpu low, regardless of AC
+    # We intentionally do not switch the eDP fixed refresh rate on AC edges:
+    # 60↔120 Hz is a DRM modeset and blanks the internal panel for ~1 s.
+    # Automatic battery savings rely on VRR at the static 120 Hz mode;
+    # fixed 60 Hz is only entered by the manual ultra-economy toggle.
     systemd.services.lecoo-sync-power-profile = {
       description = "Synchronise Lecoo EC and OS power profiles";
       after = ["lecoo-ec-daemon.service" "power-profiles-daemon.service"];
@@ -134,6 +193,15 @@ in {
         StandardOutput = "journal";
         StandardError = "journal";
       };
+    };
+
+    hardware.laptop.lidMonitor = {
+      # The EC keeps keyboard backlight powered when only the panel DPMS
+      # is turned off. Tie it to the same lid edge monitor: save the
+      # current lecoo-ctrl keyboard-backlight level on close, switch it
+      # off, and restore the saved level on open.
+      onClose = [saveKeyboardBacklight];
+      onOpen = [restoreKeyboardBacklight];
     };
 
     services.udev.extraRules = ''

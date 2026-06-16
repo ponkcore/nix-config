@@ -24,10 +24,57 @@
   cpu-mem,
   desktops ? [],
   hostname ? "",
+  pkgs,
   ...
 }: let
   hasHyprland = builtins.elem "hyprland" desktops;
   isLecoo = hostname == "lecoo";
+
+  # Waybar's native `hyprland/language` renders `...` on the current
+  # Hyprland/Waybar pair, despite `hyprctl devices -j` exposing the
+  # active keymap correctly. Use the Hyprland event socket directly:
+  # print once at startup, then re-emit on `activelayout` events. No
+  # polling in the steady state.
+  hyprland-language = pkgs.writeShellScriptBin "hyprland-language" ''
+    keyboard="at-translated-set-2-keyboard"
+
+    emit() {
+      keymap="$(${pkgs.hyprland}/bin/hyprctl devices -j \
+        | ${pkgs.jq}/bin/jq -r --arg keyboard "$keyboard" \
+            '[.keyboards[] | select(.name == $keyboard) | .active_keymap][0] // ""')"
+
+      case "$keymap" in
+        *Russian*) text="RU"; class="ru" ;;
+        *English*|*US*) text="EN"; class="en" ;;
+        *) text="??"; class="unknown" ;;
+      esac
+
+      ${pkgs.jq}/bin/jq -cn \
+        --arg text "$text" \
+        --arg tooltip "$keymap" \
+        --arg class "$class" \
+        '{text: $text, tooltip: $tooltip, class: $class}'
+    }
+
+    emit
+
+    sock="$XDG_RUNTIME_DIR/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket2.sock"
+    if [ -S "$sock" ]; then
+      ${pkgs.socat}/bin/socat -u UNIX-CONNECT:"$sock" - \
+        | while IFS= read -r event; do
+            case "$event" in
+              activelayout*) emit ;;
+            esac
+          done
+    else
+      # Fallback for unusual launches where the Hyprland event socket is
+      # absent from the environment; still bounded and low-cost.
+      while true; do
+        ${pkgs.coreutils}/bin/sleep 1
+        emit
+      done
+    fi
+  '';
 
   # Module slot order — referenced by name in modules-{left,center,right}.
   # If the corresponding config fragment is not present (because no
@@ -57,13 +104,19 @@
   modulesRight =
     [
       "custom/separator"
+    ]
+    ++ lib.optionals hasHyprland ["custom/language"]
+    ++ [
       "group/brightness"
       "group/volume"
       "custom/bluetooth"
       "network"
       "custom/cpu"
     ]
-    ++ lib.optionals isLecoo ["custom/battery"]
+    ++ lib.optionals isLecoo [
+      "custom/battery"
+      "custom/ultra-economy"
+    ]
     ++ lib.optionals (!isLecoo) ["battery"]
     ++ [
       "custom/power"
@@ -199,8 +252,8 @@ in {
       }
 
       #tray, #clock, #cpu, #memory, #backlight,
-      #network, #bluetooth, #pulseaudio, #idle_inhibitor,
-      #custom-nix, #custom-telegram, #custom-spotify, #custom-throne, #custom-keepassxc, #custom-bluetooth, #custom-cpu, #custom-battery, #custom-power,
+      #custom-language, #network, #bluetooth, #pulseaudio, #idle_inhibitor,
+      #custom-nix, #custom-telegram, #custom-spotify, #custom-throne, #custom-keepassxc, #custom-bluetooth, #custom-cpu, #custom-battery, #custom-ultra-economy, #custom-power,
       #group-volume, #group-brightness {
         min-width: 13px;
         margin-top: 2px;
@@ -209,6 +262,12 @@ in {
       }
 
       #custom-nix { font-size: 18px; }
+
+      #custom-language {
+        font-size: 13px;
+        font-weight: 700;
+        color: @fg_bright;
+      }
 
       #custom-telegram  { font-size: 18px; color: @fg; }
       #custom-spotify   { font-size: 18px; color: @fg; }
@@ -251,6 +310,17 @@ in {
          when discharging below 20 %; waybar renders that as a CSS
          class on the element, so this selector kicks in. */
       #custom-battery.low { color: @red; }
+
+      #custom-ultra-economy {
+        font-size: 12px;
+        font-weight: 800;
+        color: @fg_dim;
+      }
+
+      #custom-ultra-economy.on {
+        color: @accent;
+        text-shadow: 0 0 4px @accent;
+      }
 
       #custom-power {
         font-size: 18px;
@@ -505,6 +575,13 @@ in {
         max = 100;
         orientation = "horizontal";
         device = "amdgpu_bl1";
+      };
+
+      "custom/language" = {
+        exec = "${hyprland-language}/bin/hyprland-language";
+        return-type = "json";
+        restart-interval = 1;
+        tooltip = false;
       };
     };
   };

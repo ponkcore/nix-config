@@ -24,7 +24,17 @@
 #     XHCI/I2C wakeup disable to prevent spurious wake-from-suspend.
 #   - exposes the `on-battery` helper script to consumers (e.g. hypridle)
 #     via _module.args so they don't reach for /sys directly.
-{pkgs, ...}: let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
+  cfg = config.hardware.laptop.lidMonitor;
+
+  closeHook = pkgs.writeShellScript "lid-monitor-close-hook" (lib.concatStringsSep "\n" cfg.onClose);
+  openHook = pkgs.writeShellScript "lid-monitor-open-hook" (lib.concatStringsSep "\n" cfg.onOpen);
+
   # Lid-state polling loop. Reads /proc/acpi/button/lid/LID0/state every
   # 200 ms and drives Hyprland DPMS on edge transitions only. Initial
   # state read primes `prev` so we never fire actions on service startup.
@@ -37,6 +47,8 @@
   lidMonitorScript = pkgs.writeShellScript "lid-monitor" ''
     LID=/proc/acpi/button/lid/LID0/state
     HYPRCTL=${pkgs.hyprland}/bin/hyprctl
+    CLOSE_HOOK=${closeHook}
+    OPEN_HOOK=${openHook}
 
     if [ ! -r "$LID" ]; then
       echo "lid-monitor: $LID unreadable, exiting" >&2
@@ -53,8 +65,14 @@
         # which would also kill any external HDMI/DP screen the user is
         # actively working on with the lid closed.
         case "$state" in
-          closed) "$HYPRCTL" dispatch dpms off eDP-1 || true ;;
-          open) "$HYPRCTL" dispatch dpms on eDP-1 || true ;;
+          closed)
+            "$CLOSE_HOOK" || true
+            "$HYPRCTL" dispatch dpms off eDP-1 || true
+            ;;
+          open)
+            "$HYPRCTL" dispatch dpms on eDP-1 || true
+            "$OPEN_HOOK" || true
+            ;;
         esac
         prev="$state"
       fi
@@ -72,105 +90,121 @@
     exit 0
   '';
 in {
-  # Make the helper available to system-level NixOS modules via
-  # _module.args, and to every Home Manager user via sharedModules
-  # (Home Manager has its own module-args system, isolated from the
-  # system one). Both channels exist so any consumer — system unit,
-  # session HM module — can declare `{ on-battery, ... }:` and get
-  # the script without re-deriving it.
-  _module.args = {inherit on-battery;};
+  options.hardware.laptop.lidMonitor = {
+    onClose = lib.mkOption {
+      type = lib.types.listOf lib.types.lines;
+      default = [];
+      description = "Shell snippets run by lid-monitor when the lid closes.";
+    };
 
-  home-manager.sharedModules = [
-    {_module.args = {inherit on-battery;};}
-  ];
-
-  # Make the helper available on PATH too, for ad-hoc shell scripts and
-  # interactive use.
-  environment.systemPackages = [on-battery];
-
-  # ── Power policy: power-profiles-daemon ─────────────────────────────
-  # PPD is the upstream-blessed bridge between userspace power requests
-  # ("performance / balanced / power-saver") and platform mechanisms.
-  # On AMD systems with amd_pmf loaded (this hardware: AMDI0102:00) it
-  # writes through to /sys/firmware/acpi/platform_profile so firmware,
-  # kernel, and OS share one ladder. EPP is set per-CPU automatically.
-  # auto-cpufreq is intentionally NOT enabled — the two daemons fight
-  # over EPP and produce non-deterministic behaviour.
-  #
-  # Auto-switch on AC plug/unplug is driven by the udev rules below
-  # (PPD itself is purely event-reactive — it does not poll battery
-  # state). Host-specific EC daemons may extend the same AC-edge rules
-  # with firmware-level TDP/fan profile changes; this generic laptop
-  # profile deliberately handles only the OS-level PPD side.
-  services.power-profiles-daemon.enable = true;
-
-  # ── Lid handling: defer to the lid-monitor user service ─────────────
-  # logind ignores the lid switch entirely so it does not race with us
-  # on resume; the lid-monitor user service below polls /proc/acpi and
-  # drives Hyprland DPMS off/on. Decoupling logind from lid events also
-  # keeps the kernel from suspending the laptop when we just want the
-  # screen off.
-  services.logind.settings.Login = {
-    HandleLidSwitch = "ignore";
-    HandleLidSwitchDocked = "ignore";
-    HandleLidSwitchExternalPower = "ignore";
-  };
-
-  # button.lid_init_state=ignore: do not emit a bogus initial SW_LID state
-  # from the firmware's cached _LID value. The button driver still depends
-  # on Notify(LID, 0x80), which this firmware does not reliably send, so
-  # the user service below remains the source of truth via direct _LID
-  # evaluation through /proc/acpi/button/lid/LID0/state.
-  boot.kernelParams = ["button.lid_init_state=ignore"];
-
-  systemd.user.services.lid-monitor = {
-    description = "Poll /proc/acpi lid state and drive Hyprland DPMS";
-    after = ["graphical-session.target"];
-    partOf = ["graphical-session.target"];
-    wantedBy = ["graphical-session.target"];
-    serviceConfig = {
-      Type = "simple";
-      ExecStart = "${lidMonitorScript}";
-      Restart = "on-failure";
-      RestartSec = 5;
+    onOpen = lib.mkOption {
+      type = lib.types.listOf lib.types.lines;
+      default = [];
+      description = "Shell snippets run by lid-monitor when the lid opens.";
     };
   };
 
-  # ── udev: USB / NVMe / wakeup / PPD auto-switch ─────────────────────
-  services.udev.extraRules = ''
-    # USB autosuspend — 30s idle timeout. 2s was too aggressive and caused
-    # HID disconnects on slow wireless dongles.
-    ACTION=="add", SUBSYSTEM=="usb", TEST=="power/autosuspend", ATTR{power/autosuspend}="30"
-    ACTION=="add", SUBSYSTEM=="usb", TEST=="power/control", ATTR{power/control}="auto"
+  config = {
+    # Make the helper available to system-level NixOS modules via
+    # _module.args, and to every Home Manager user via sharedModules
+    # (Home Manager has its own module-args system, isolated from the
+    # system one). Both channels exist so any consumer — system unit,
+    # session HM module — can declare `{ on-battery, ... }:` and get
+    # the script without re-deriving it.
+    _module.args = {inherit on-battery;};
 
-    # HID input devices (mouse, keyboard, trackpad) must NEVER autosuspend.
-    # ID_USB_INTERFACES=:0301* matches any USB device with HID boot interface (class 03).
-    # Autosuspend on HID causes lag/disconnect when waking from sleep.
-    ACTION=="add", SUBSYSTEM=="usb", ENV{ID_USB_INTERFACES}==":0301*", TEST=="power/control", ATTR{power/control}="on"
+    home-manager.sharedModules = [
+      {_module.args = {inherit on-battery;};}
+    ];
 
-    # NVMe I/O scheduler — "none" is the recommendation for multi-queue NVMe,
-    # especially DRAM-less drives. mq-deadline adds latency without throughput.
-    ACTION=="add|change", KERNEL=="nvme[0-9]n[0-9]", ATTR{queue/scheduler}="none"
+    # Make the helper available on PATH too, for ad-hoc shell scripts and
+    # interactive use.
+    environment.systemPackages = [on-battery];
 
-    # Disable USB wakeup on XHCI to prevent instant-wake from suspend caused
-    # by spurious IRQs from wireless dongles. Input still wakes screen via
-    # Hyprland in userspace.
-    ACTION=="add", SUBSYSTEM=="pci", DRIVER=="xhci_hcd", TEST=="power/wakeup", ATTR{power/wakeup}="disabled"
+    # ── Power policy: power-profiles-daemon ─────────────────────────────
+    # PPD is the upstream-blessed bridge between userspace power requests
+    # ("performance / balanced / power-saver") and platform mechanisms.
+    # On AMD systems with amd_pmf loaded (this hardware: AMDI0102:00) it
+    # writes through to /sys/firmware/acpi/platform_profile so firmware,
+    # kernel, and OS share one ladder. EPP is set per-CPU automatically.
+    # auto-cpufreq is intentionally NOT enabled — the two daemons fight
+    # over EPP and produce non-deterministic behaviour.
+    #
+    # Auto-switch on AC plug/unplug is driven by the udev rules below
+    # (PPD itself is purely event-reactive — it does not poll battery
+    # state). Host-specific EC daemons may extend the same AC-edge rules
+    # with firmware-level TDP/fan profile changes; this generic laptop
+    # profile deliberately handles only the OS-level PPD side.
+    services.power-profiles-daemon.enable = true;
 
-    # Disable I2C touchpad wakeup from suspend (false IRQs on s2idle entry).
-    ACTION=="add", KERNEL=="PNP0C50:00", SUBSYSTEM=="i2c", TEST=="power/wakeup", ATTR{power/wakeup}="disabled"
+    # ── Lid handling: defer to the lid-monitor user service ─────────────
+    # logind ignores the lid switch entirely so it does not race with us
+    # on resume; the lid-monitor user service below polls /proc/acpi and
+    # drives Hyprland DPMS off/on. Decoupling logind from lid events also
+    # keeps the kernel from suspending the laptop when we just want the
+    # screen off.
+    services.logind.settings.Login = {
+      HandleLidSwitch = "ignore";
+      HandleLidSwitchDocked = "ignore";
+      HandleLidSwitchExternalPower = "ignore";
+    };
 
-    # ── PPD auto-switch on AC plug/unplug ──────────────────────────────
-    # power-profiles-daemon does not watch power-supply state itself.
-    # These rules drive `powerprofilesctl set <p>` from the AC adapter
-    # online/offline edge so the system snaps to the right profile the
-    # instant the cable goes in or out. AC defaults to `balanced` rather
-    # than `performance`: performance remains available manually, while
-    # balanced avoids needless EPP=performance fan/heat on a plugged-in
-    # laptop sitting idle.
-    SUBSYSTEM=="power_supply", KERNEL=="ADP1", ATTR{online}=="1", \
-      RUN+="${pkgs.power-profiles-daemon}/bin/powerprofilesctl set balanced"
-    SUBSYSTEM=="power_supply", KERNEL=="ADP1", ATTR{online}=="0", \
-      RUN+="${pkgs.power-profiles-daemon}/bin/powerprofilesctl set power-saver"
-  '';
+    # button.lid_init_state=ignore: do not emit a bogus initial SW_LID state
+    # from the firmware's cached _LID value. The button driver still depends
+    # on Notify(LID, 0x80), which this firmware does not reliably send, so
+    # the user service below remains the source of truth via direct _LID
+    # evaluation through /proc/acpi/button/lid/LID0/state.
+    boot.kernelParams = ["button.lid_init_state=ignore"];
+
+    systemd.user.services.lid-monitor = {
+      description = "Poll /proc/acpi lid state and drive Hyprland DPMS";
+      after = ["graphical-session.target"];
+      partOf = ["graphical-session.target"];
+      wantedBy = ["graphical-session.target"];
+      serviceConfig = {
+        Type = "simple";
+        ExecStart = "${lidMonitorScript}";
+        Restart = "on-failure";
+        RestartSec = 5;
+      };
+    };
+
+    # ── udev: USB / NVMe / wakeup / PPD auto-switch ─────────────────────
+    services.udev.extraRules = ''
+      # USB autosuspend — 30s idle timeout. 2s was too aggressive and caused
+      # HID disconnects on slow wireless dongles.
+      ACTION=="add", SUBSYSTEM=="usb", TEST=="power/autosuspend", ATTR{power/autosuspend}="30"
+      ACTION=="add", SUBSYSTEM=="usb", TEST=="power/control", ATTR{power/control}="auto"
+
+      # HID input devices (mouse, keyboard, trackpad) must NEVER autosuspend.
+      # ID_USB_INTERFACES=:0301* matches any USB device with HID boot interface (class 03).
+      # Autosuspend on HID causes lag/disconnect when waking from sleep.
+      ACTION=="add", SUBSYSTEM=="usb", ENV{ID_USB_INTERFACES}==":0301*", TEST=="power/control", ATTR{power/control}="on"
+
+      # NVMe I/O scheduler — "none" is the recommendation for multi-queue NVMe,
+      # especially DRAM-less drives. mq-deadline adds latency without throughput.
+      ACTION=="add|change", KERNEL=="nvme[0-9]n[0-9]", ATTR{queue/scheduler}="none"
+
+      # Disable USB wakeup on XHCI to prevent instant-wake from suspend caused
+      # by spurious IRQs from wireless dongles. Input still wakes screen via
+      # Hyprland in userspace.
+      ACTION=="add", SUBSYSTEM=="pci", DRIVER=="xhci_hcd", TEST=="power/wakeup", ATTR{power/wakeup}="disabled"
+
+      # Disable I2C touchpad wakeup from suspend (false IRQs on s2idle entry).
+      ACTION=="add", KERNEL=="PNP0C50:00", SUBSYSTEM=="i2c", TEST=="power/wakeup", ATTR{power/wakeup}="disabled"
+
+      # ── PPD auto-switch on AC plug/unplug ──────────────────────────────
+      # power-profiles-daemon does not watch power-supply state itself.
+      # These rules drive `powerprofilesctl set <p>` from the AC adapter
+      # online/offline edge so the system snaps to the right profile the
+      # instant the cable goes in or out. AC defaults to `balanced` rather
+      # than `performance`: performance remains available manually, while
+      # balanced avoids needless EPP=performance fan/heat on a plugged-in
+      # laptop sitting idle.
+      SUBSYSTEM=="power_supply", KERNEL=="ADP1", ATTR{online}=="1", \
+        RUN+="${pkgs.power-profiles-daemon}/bin/powerprofilesctl set balanced"
+      SUBSYSTEM=="power_supply", KERNEL=="ADP1", ATTR{online}=="0", \
+        RUN+="${pkgs.power-profiles-daemon}/bin/powerprofilesctl set power-saver"
+    '';
+  };
 }
