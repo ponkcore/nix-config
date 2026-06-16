@@ -262,6 +262,12 @@ in {
         "$mainMod SHIFT, о, movewindow, d"
       ];
 
+      # Hardware power button: logind ignores short presses, so Hyprland
+      # owns the UI path and opens the same menu as the Waybar power icon.
+      bindl = [
+        ", XF86PowerOff, exec, wlogout --buttons-per-row 2"
+      ];
+
       # Resize windows with keyboard (vim-style + RU equivalents)
       binde = [
         "$mainMod CTRL, h, resizeactive, -30 0"

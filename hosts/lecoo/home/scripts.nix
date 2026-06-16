@@ -174,9 +174,9 @@
     state="$runtime/state"
 
     if [ "$(cat "$state" 2>/dev/null || true)" = "on" ]; then
-      printf '{"text":"ECO","class":"on"}\n'
+      printf '{"text":"󰗌","class":"on"}\n'
     else
-      printf '{"text":"ECO","class":"off"}\n'
+      printf '{"text":"󰗌","class":"off"}\n'
     fi
   '';
 

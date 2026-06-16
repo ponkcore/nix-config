@@ -42,7 +42,7 @@
 
     # Font
     font-family = JetBrainsMono Nerd Font
-    font-size = 12
+    font-size = 10.8
 
     # Cursor — Ghostty uses "bar" not "beam"
     cursor-style = bar

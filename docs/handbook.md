@@ -580,6 +580,67 @@ sizeof          du -sh
 md              mkdir -p && cd
 ```
 
+### Display scale and terminal size
+
+The built-in panel is pinned in Hyprland as:
+
+```nix
+"eDP-1, 2880x1800@120, 0x0, 1.8"
+```
+
+That makes the logical workspace `1600×1000`. The previous scale `2`
+was `1440×900`; scale `1.5` was tested and gave `1920×1200`, but was
+left as too small for the current UI balance.
+
+Ghostty uses:
+
+```text
+font-size = 10.8
+```
+
+Config paths:
+
+- `home/desktop/sessions/hyprland/session.nix` — monitor scale.
+- `theme/ghostty.nix` — terminal font size.
+
+### Waybar runtime note
+
+After a rebuild/test that touches Hyprland or Waybar files, restart Waybar:
+
+```fish
+systemctl --user restart waybar
+```
+
+Reason: `hyprland/workspaces` can keep stale IPC state after Hyprland
+reloads; the symptom is workspace switching works, but the active workspace
+highlight in Waybar does not move. See `lessons/0005-waybar-workspace-stale-after-hyprland-reload.md`.
+
+### Waybar host widgets
+
+The Lecoo ultra-economy widget is `custom/ultra-economy` and renders the
+`nf-md-opacity` glyph `󰗌`. Off-state uses normal foreground; on-state uses
+`@bright_green` with a small glow.
+
+Config paths:
+
+- `hosts/lecoo/home/scripts.nix` — JSON text/class for the widget.
+- `theme/waybar/default.nix` — font size and colours.
+
+### Waybar power menu
+
+The power button in Waybar and the laptop hardware power key open
+`wlogout --buttons-per-row 2`. The hardware button is handled by Hyprland
+for short presses; long press remains a logind emergency poweroff fallback.
+It shows a four-button grid:
+
+| Button | Key | Action |
+|--------|-----|--------|
+| Lock | `l` | `hyprlock` |
+| Logout | `e` | `hyprctl dispatch exit` |
+| Shutdown | `s` | `systemctl poweroff` |
+| Reboot | `r` | `systemctl reboot` |
+
+Config lives in `home/wlogout.nix`; icons live in `assets/wlogout-icons/`.
 ### Hyprland key bindings (defined in `home/desktop/sessions/hyprland/session.nix`)
 
 ```
@@ -589,6 +650,7 @@ SUPER+D            rofi launcher
 SUPER+Q            kill active window
 SUPER+V            toggle floating
 SUPER+F            fullscreen
+Power key          wlogout power menu
 SUPER+C            clipboard history (rofi)
 SUPER+G            toggle window group (tabbed)
 SUPER+Tab          next group tab

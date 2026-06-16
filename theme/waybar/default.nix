@@ -312,14 +312,13 @@ in {
       #custom-battery.low { color: @red; }
 
       #custom-ultra-economy {
-        font-size: 12px;
-        font-weight: 800;
-        color: @fg_dim;
+        font-size: 18px;
+        color: @fg;
       }
 
       #custom-ultra-economy.on {
-        color: @accent;
-        text-shadow: 0 0 4px @accent;
+        color: @bright_green;
+        text-shadow: 0 0 4px @bright_green;
       }
 
       #custom-power {

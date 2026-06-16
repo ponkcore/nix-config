@@ -54,9 +54,11 @@ _: {
   };
 
   # Logind: laptop hosts override HandleLidSwitch* via modules/hardware/
-  # form-factor/laptop.nix. The power key behaviour is universal.
+  # form-factor/laptop.nix. Short power-key presses are left to the
+  # active compositor so Hyprland can open the graphical power menu;
+  # long-press remains a system-level emergency poweroff fallback.
   services.logind.settings.Login = {
-    HandlePowerKey = "poweroff";
+    HandlePowerKey = "ignore";
     HandlePowerKeyLongPress = "poweroff";
   };
 }

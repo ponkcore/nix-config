@@ -26,6 +26,19 @@ Pre-commit hooks (alejandra/statix/deadnix/nil/gitleaks) run on
 `git commit` and will fail noisily if anything's wrong. After
 alejandra modifies files, re-stage with `git add -A` and retry.
 
+If the change touches Hyprland or Waybar runtime state — for example
+`home/desktop/sessions/hyprland/session.nix`,
+`home/desktop/sessions/hyprland/waybar.nix`, or
+`theme/waybar/default.nix` — restart Waybar after activation:
+
+```sh
+systemctl --user restart waybar.service
+```
+
+This prevents the `hyprland/workspaces` module from keeping stale IPC
+state after a compositor reload; see
+`lessons/0005-waybar-workspace-stale-after-hyprland-reload.md`.
+
 ### Failure modes
 
 | Symptom | Cause | Fix |
