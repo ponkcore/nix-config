@@ -21,16 +21,27 @@ The remote SSE endpoint can take **up to 75 s** on the first call in a session
 same session completes in ~1–5 s.
 
 **Rules:**
+- **Never run OmniRoute SSE calls in parallel.** `mcp-bridge --url ... --transport sse`
+  creates a fresh MCP/SSE session per process. Parallel cold starts stampede the
+  operator endpoint and locally pile up long-running bridge processes. On the
+  OmniRoute server this can corrupt/degrade in-memory SSE/session + connection
+  pool state: stuck sessions stay resident, later Fireworks requests hang until
+  120 s timeouts, retries cascade into 502s, and a server restart is needed to
+  clear the slate. Run one OmniRoute call at a time; if multiple searches are
+  needed, issue them sequentially.
 - **Always use `--timeout 75`** (not the default 60) for the first call. For
   `omniroute_web_search` queries (which may take up to 10 s internally), use
   `--timeout 90`.
 - The outer `bash` `timeout` must be **at least 15 s larger** than the inner
   `--timeout`. If you wrap the call in `timeout <N> bash -c '...'`, make N
   large enough.
-- Two consecutive timeouts (not HTTP/auth errors) → record in today's journal
-  and stop trying. The server is likely down or network-partitioned.
+- `_queue.Empty` from `mcp-bridge` means the bridge waited for an MCP response
+  until timeout; treat it as a timeout, not as a search result.
+- Two consecutive timeouts (including `_queue.Empty`, not HTTP/auth errors) →
+  record in today's journal and stop trying. The server is likely overloaded,
+  down, or network-partitioned.
 - Cold start is once per MCP session. If `--list` succeeds, subsequent tool
-  calls in the same agent turn are already warm.
+  calls in the same agent turn are already warm — but still not parallel.
 
 ## How to call
 
