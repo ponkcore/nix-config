@@ -423,7 +423,6 @@ in {
           # ── Large apps: auto-maximize (fill workspace) ──────────────────
           "maximize, class:^(firefox)$"
           "maximize, class:^(chromium-browser)$"
-          "maximize, class:^(windsurf)$"
           "maximize, class:^(virt-manager)$"
         ]
         # ── Categorised popup panels ──────────────────────────────────────

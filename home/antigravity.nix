@@ -1,10 +1,10 @@
-# antigravity.nix — Google Antigravity IDE + CLI.
-# FHS-wrapped IDE so extensions install without Nix-specific hacks.
-# CLI (agy) from local overlay — not yet in 25.11 channel.
+# antigravity.nix — Google Antigravity CLI (agy).
+# Standalone Go binary from local overlay — not yet in 25.11
+# channel. The IDE (antigravity-fhs) was removed; only the CLI
+# is kept for occasional use.
 # License: unfree (allowed globally via nixpkgs.config.allowUnfree).
 {pkgs, ...}: {
   home.packages = [
-    pkgs.antigravity-fhs
     pkgs.antigravity-cli
   ];
 }

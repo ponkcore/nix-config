@@ -49,7 +49,6 @@ in {
       ./neovim.nix
       ./opencode.nix
       ./qt.nix
-      ./windsurf.nix
       ./donutbrowser.nix
       ./chromium.nix
       ./antigravity.nix
