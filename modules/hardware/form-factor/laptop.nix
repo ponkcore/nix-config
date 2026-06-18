@@ -70,8 +70,8 @@
             "$HYPRCTL" dispatch dpms off eDP-1 || true
             ;;
           open)
-            "$HYPRCTL" dispatch dpms on eDP-1 || true
             "$OPEN_HOOK" || true
+            "$HYPRCTL" dispatch dpms on eDP-1 || true
             ;;
         esac
         prev="$state"
