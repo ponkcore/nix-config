@@ -579,7 +579,6 @@ in {
       "custom/language" = {
         exec = "${hyprland-language}/bin/hyprland-language";
         return-type = "json";
-        restart-interval = 1;
         tooltip = false;
       };
     };
