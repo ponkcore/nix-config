@@ -134,7 +134,7 @@ in {
   options.hardware.laptop.lidMonitor = {
     blanking = lib.mkOption {
       type = lib.types.enum ["backlight" "dpms"];
-      default = "backlight";
+      default = "dpms";
       description = ''
         How to blank the internal panel on lid close.
         - "backlight": brightnessctl set 0 / restore. No DRM modeset,
