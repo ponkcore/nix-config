@@ -109,7 +109,7 @@ in {
       # specific external panel ever needs a per-output quirk (mode,
       # scale, or `vrr, 0`), add a dedicated line ABOVE the fallback.
       monitor = [
-        "eDP-1, 2880x1800@120, 0x0, 2"
+        "eDP-1, 2880x1800@120, 0x0, 1.8"
         ", preferred, auto, 1"
       ];
 
