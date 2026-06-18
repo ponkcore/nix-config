@@ -7,7 +7,11 @@
 # lib/mkHost.nix), opt into hardware-class profiles (AMD CPU + AMD GPU
 # + laptop form factor), then layer on host-only specifics
 # (hardware-configuration, WiFi quirks, EC daemon, host-only HM).
-{username, ...}: {
+{
+  lib,
+  username,
+  ...
+}: {
   imports = [
     # Generated mount points + kernel modules required to boot.
     ./hardware-configuration.nix
@@ -49,4 +53,13 @@
   # and any tool reading the GECOS field. Universal users.nix only
   # sets a host-agnostic default ("Primary user").
   users.users.${username}.description = "Oonishi";
+
+  # ── Specialisations ─────────────────────────────────────────────
+  # Fallback: if backlight-only lid blanking proves unsuitable (residual
+  # glow, power draw), boot into "dpms-lid" to revert to the old DPMS
+  # approach. Select from the boot menu or `nixos-rebuild switch
+  # --specialisation dpms-lid`.
+  specialisation.dpms-lid.configuration = {
+    hardware.laptop.lidMonitor.blanking = lib.mkForce "dpms";
+  };
 }

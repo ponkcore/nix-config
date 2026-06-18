@@ -36,8 +36,23 @@
   openHook = pkgs.writeShellScript "lid-monitor-open-hook" (lib.concatStringsSep "\n" cfg.onOpen);
 
   # Lid-state polling loop. Reads /proc/acpi/button/lid/LID0/state every
-  # 200 ms and drives Hyprland DPMS on edge transitions only. Initial
-  # state read primes `prev` so we never fire actions on service startup.
+  # 200 ms and blanks/unblanks the internal panel on edge transitions
+  # only. Initial state read primes `prev` so we never fire actions on
+  # service startup.
+  #
+  # Two blanking strategies, selected by `hardware.laptop.lidMonitor.blanking`:
+  #
+  #   "backlight" (default): brightnessctl set 0 / restore. No DRM
+  #     modeset, no eDP link retrain, no cursor plane teardown. Instant
+  #     on/off, cursor stays put. Cost: panel stays powered (~0.5-1W
+  #     higher than DPMS off). This is what GNOME/KDE do for lid-close
+  #     "Screen Blank" — backlight-only, bypassing DRM entirely.
+  #     Research: 2026-06-18-wayland-lid-dpms-real-behavior, §3-4.
+  #
+  #   "dpms": hyprctl dispatch dpms off/on. Full DRM modeset on re-enable
+  #     (amdgpu DC stream teardown + link training = 2-3s lag). Hyprland
+  #     warps cursor to default on single-output re-enable. Kept as a
+  #     specialisation for fallback if backlight proves unsuitable.
   #
   # Why polling rather than acpi_listen/inotify:
   #   - acpid: depends on firmware firing Notify(LID, 0x80). Emdoor N155A
@@ -47,9 +62,11 @@
   lidMonitorScript = pkgs.writeShellScript "lid-monitor" ''
     LID=/proc/acpi/button/lid/LID0/state
     HYPRCTL=${pkgs.hyprland}/bin/hyprctl
+    BRIGHTNESSCTL=${pkgs.brightnessctl}/bin/brightnessctl
     CLOSE_HOOK=${closeHook}
     OPEN_HOOK=${openHook}
-    CURSOR_FILE="''${XDG_RUNTIME_DIR:-/tmp}/lid-cursor-pos"
+    BLANKING="${cfg.blanking}"
+    STATE_FILE="''${XDG_RUNTIME_DIR:-/tmp}/lid-state"
 
     if [ ! -r "$LID" ]; then
       echo "lid-monitor: $LID unreadable, exiting" >&2
@@ -62,33 +79,39 @@
     while sleep 0.2; do
       read -r _ state < "$LID" || continue
       if [ "$state" != "$prev" ]; then
-        # Target eDP-1 explicitly — bare `dpms off` blanks every output,
-        # which would also kill any external HDMI/DP screen the user is
-        # actively working on with the lid closed.
         case "$state" in
           closed)
-            # Save cursor position before DPMS off — Hyprland does not
-            # preserve it across DPMS cycles (it warps to default on
-            # single-output re-enable). See research
-            # 2026-06-18-wayland-dpms-lid-cursor, shortlist 4.2.
-            "$HYPRCTL" cursorpos 2>/dev/null | tr ',' ' ' > "$CURSOR_FILE" || true
+            if [ "$BLANKING" = "backlight" ]; then
+              # Save current brightness, then dim to 0. No DRM modeset.
+              "$BRIGHTNESSCTL" -d amdgpu_bl1 -s get > "$STATE_FILE" 2>/dev/null || true
+              "$BRIGHTNESSCTL" -d amdgpu_bl1 set 0 2>/dev/null || true
+            else
+              # DPMS mode: save cursor, then dpms off.
+              "$HYPRCTL" cursorpos 2>/dev/null | tr ',' ' ' > "$STATE_FILE" || true
+              "$HYPRCTL" dispatch dpms off eDP-1 || true
+            fi
             "$CLOSE_HOOK" || true
-            "$HYPRCTL" dispatch dpms off eDP-1 || true
             ;;
           open)
             "$OPEN_HOOK" || true
-            "$HYPRCTL" dispatch dpms on eDP-1 || true
-            # Restore cursor position after DPMS on. The amdgpu modeset
-            # takes 2-3 seconds (link training + PLL lock); during that
-            # window the compositor event loop is blocked. Wait for it
-            # to settle before issuing movecursor, otherwise Hyprland's
-            # default warp clobbers our restore.
-            if [ -r "$CURSOR_FILE" ]; then
-              pos=$(cat "$CURSOR_FILE")
-              if [ -n "$pos" ]; then
-                    sleep 3 && "$HYPRCTL" dispatch movecursor $pos >/dev/null 2>&1 || true &
+            if [ "$BLANKING" = "backlight" ]; then
+              # Restore saved brightness. Instant — no modeset, no lag.
+              if [ -r "$STATE_FILE" ]; then
+                "$BRIGHTNESSCTL" -d amdgpu_bl1 -r 2>/dev/null || true
+                rm -f "$STATE_FILE"
+              else
+                "$BRIGHTNESSCTL" -d amdgpu_bl1 set 50% 2>/dev/null || true
               fi
-              rm -f "$CURSOR_FILE"
+            else
+              # DPMS mode: dpms on, then restore cursor after modeset settles.
+              "$HYPRCTL" dispatch dpms on eDP-1 || true
+              if [ -r "$STATE_FILE" ]; then
+                pos=$(cat "$STATE_FILE")
+                if [ -n "$pos" ]; then
+                  sleep 3 && "$HYPRCTL" dispatch movecursor $pos >/dev/null 2>&1 || true &
+                fi
+                rm -f "$STATE_FILE"
+              fi
             fi
             ;;
         esac
@@ -109,6 +132,18 @@
   '';
 in {
   options.hardware.laptop.lidMonitor = {
+    blanking = lib.mkOption {
+      type = lib.types.enum ["backlight" "dpms"];
+      default = "backlight";
+      description = ''
+        How to blank the internal panel on lid close.
+        - "backlight": brightnessctl set 0 / restore. No DRM modeset,
+          instant, cursor preserved. Panel stays powered.
+        - "dpms": hyprctl dpms off/on. Full modeset, 2-3s lag on
+          re-enable, cursor jumps. Lower power.
+      '';
+    };
+
     onClose = lib.mkOption {
       type = lib.types.listOf lib.types.lines;
       default = [];
