@@ -49,6 +49,7 @@
     HYPRCTL=${pkgs.hyprland}/bin/hyprctl
     CLOSE_HOOK=${closeHook}
     OPEN_HOOK=${openHook}
+    CURSOR_FILE="''${XDG_RUNTIME_DIR:-/tmp}/lid-cursor-pos"
 
     if [ ! -r "$LID" ]; then
       echo "lid-monitor: $LID unreadable, exiting" >&2
@@ -66,12 +67,29 @@
         # actively working on with the lid closed.
         case "$state" in
           closed)
+            # Save cursor position before DPMS off — Hyprland does not
+            # preserve it across DPMS cycles (it warps to default on
+            # single-output re-enable). See research
+            # 2026-06-18-wayland-dpms-lid-cursor, shortlist 4.2.
+            "$HYPRCTL" cursorpos 2>/dev/null | tr ',' ' ' > "$CURSOR_FILE" || true
             "$CLOSE_HOOK" || true
             "$HYPRCTL" dispatch dpms off eDP-1 || true
             ;;
           open)
             "$OPEN_HOOK" || true
             "$HYPRCTL" dispatch dpms on eDP-1 || true
+            # Restore cursor position after DPMS on. The amdgpu modeset
+            # takes 2-3 seconds (link training + PLL lock); during that
+            # window the compositor event loop is blocked. Wait for it
+            # to settle before issuing movecursor, otherwise Hyprland's
+            # default warp clobbers our restore.
+            if [ -r "$CURSOR_FILE" ]; then
+              pos=$(cat "$CURSOR_FILE")
+              if [ -n "$pos" ]; then
+                    sleep 3 && "$HYPRCTL" dispatch movecursor $pos >/dev/null 2>&1 || true &
+              fi
+              rm -f "$CURSOR_FILE"
+            fi
             ;;
         esac
         prev="$state"
