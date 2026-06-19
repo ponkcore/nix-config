@@ -118,23 +118,17 @@
                 fi
                 ;;
               dpms)
-                # DPMS mode: dpms on, then force cursor plane re-commit.
-                # After modeset the hardware cursor plane is not
+                # DPMS mode: dpms on, then restore cursor position.
+                # The amdgpu modeset takes 2-3 seconds (link retrain).
+                # After modeset the hardware cursor plane may not be
                 # committed — cursor is invisible until a frame render
-                # triggers it (e.g. workspace switch). Bounce the
-                # workspace (r+1 then r-1) to force a frame render,
-                # then restore the saved cursor position.
+                # triggers it (e.g. workspace switch, mouse move).
+                # movecursor itself forces a cursor plane update.
                 "$HYPRCTL" dispatch dpms on eDP-1 || true
                 if [ -r "$STATE_FILE" ]; then
                   pos=$(cat "$STATE_FILE")
-                  # Wait for amdgpu modeset to settle (link retrain).
-                  sleep 3
-                  # Force frame render: bounce workspace.
-                  "$HYPRCTL" dispatch workspace r+1 >/dev/null 2>&1 || true
-                  "$HYPRCTL" dispatch workspace r-1 >/dev/null 2>&1 || true
-                  # Restore cursor position now that plane is active.
                   if [ -n "$pos" ]; then
-                    "$HYPRCTL" dispatch movecursor $pos >/dev/null 2>&1 || true
+                    sleep 3 && "$HYPRCTL" dispatch movecursor $pos >/dev/null 2>&1 || true &
                   fi
                   rm -f "$STATE_FILE"
                 fi
