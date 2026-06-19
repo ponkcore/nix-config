@@ -72,16 +72,6 @@ nix flake lock --update-input nixpkgs     # update one
 Then `rebuild`. Commit the resulting `flake.lock` with
 `chore(flake): update flake.lock`.
 
-### Open Design UI
-```fish
-od-ui      # start Open Design daemon + web frontend and open the browser
-od-stop    # stop both Open Design user services
-```
-
-Open Design is installed, but it does not start automatically at login.
-Use `od-ui` only when you need the design UI; otherwise the daemon and
-web frontend stay cold.
-
 ### Where to look when something is wrong
 
 | Problem | Place to look |

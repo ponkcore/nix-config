@@ -40,10 +40,6 @@
     # breaks the build.
     llm-agents.url = "github:numtide/llm-agents.nix";
 
-    # Open Design — local-first design product (daemon + web frontend).
-    # Ships its own Home Manager module via homeManagerModules.default.
-    open-design.url = "github:nexu-io/open-design";
-
     # letta-code — memory-first coding agent (letta-ai/letta-code).
     # Pinned to v0.27.9 (pi-ai@^0.79.1, mods support). The upstream
     # bun.nix is stale (still references pi-ai@0.75.5); our overlay
