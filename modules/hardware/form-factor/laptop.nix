@@ -150,7 +150,7 @@ in {
   options.hardware.laptop.lidMonitor = {
     blanking = lib.mkOption {
       type = lib.types.enum ["disable" "dpms" "backlight"];
-      default = "disable";
+      default = "dpms";
       description = ''
         How to blank the internal panel on lid close.
         - "disable": hyprctl keyword monitor eDP-1 disable. Compositor
