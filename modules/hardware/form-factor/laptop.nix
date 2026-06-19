@@ -81,38 +81,54 @@
       if [ "$state" != "$prev" ]; then
         case "$state" in
           closed)
-            if [ "$BLANKING" = "backlight" ]; then
-              # Save current brightness, then dim to 0. No DRM modeset.
-              "$BRIGHTNESSCTL" -d amdgpu_bl1 -s get > "$STATE_FILE" 2>/dev/null || true
-              "$BRIGHTNESSCTL" -d amdgpu_bl1 set 0 2>/dev/null || true
-            else
-              # DPMS mode: save cursor, then dpms off.
-              "$HYPRCTL" cursorpos 2>/dev/null | tr ',' ' ' > "$STATE_FILE" || true
-              "$HYPRCTL" dispatch dpms off eDP-1 || true
-            fi
+            case "$BLANKING" in
+              disable)
+                # Compositor removes eDP-1 from layout. Workspaces
+                # stay in memory; on single-output there's nowhere to
+                # evacuate, so they return on re-enable.
+                "$HYPRCTL" keyword monitor "eDP-1, disable" || true
+                ;;
+              backlight)
+                # Save current brightness, then dim to 0. No DRM modeset.
+                "$BRIGHTNESSCTL" -d amdgpu_bl1 -s get > "$STATE_FILE" 2>/dev/null || true
+                "$BRIGHTNESSCTL" -d amdgpu_bl1 set 0 2>/dev/null || true
+                ;;
+              dpms)
+                # DPMS mode: save cursor, then dpms off.
+                "$HYPRCTL" cursorpos 2>/dev/null | tr ',' ' ' > "$STATE_FILE" || true
+                "$HYPRCTL" dispatch dpms off eDP-1 || true
+                ;;
+            esac
             "$CLOSE_HOOK" || true
             ;;
           open)
             "$OPEN_HOOK" || true
-            if [ "$BLANKING" = "backlight" ]; then
-              # Restore saved brightness. Instant — no modeset, no lag.
-              if [ -r "$STATE_FILE" ]; then
-                "$BRIGHTNESSCTL" -d amdgpu_bl1 -r 2>/dev/null || true
-                rm -f "$STATE_FILE"
-              else
-                "$BRIGHTNESSCTL" -d amdgpu_bl1 set 50% 2>/dev/null || true
-              fi
-            else
-              # DPMS mode: dpms on, then restore cursor after modeset settles.
-              "$HYPRCTL" dispatch dpms on eDP-1 || true
-              if [ -r "$STATE_FILE" ]; then
-                pos=$(cat "$STATE_FILE")
-                if [ -n "$pos" ]; then
-                  sleep 3 && "$HYPRCTL" dispatch movecursor $pos >/dev/null 2>&1 || true &
+            case "$BLANKING" in
+              disable)
+                # Re-enable eDP-1 with its native mode + scale.
+                "$HYPRCTL" keyword monitor "eDP-1, 2880x1800@120, 0x0, 1.8" || true
+                ;;
+              backlight)
+                # Restore saved brightness. Instant — no modeset, no lag.
+                if [ -r "$STATE_FILE" ]; then
+                  "$BRIGHTNESSCTL" -d amdgpu_bl1 -r 2>/dev/null || true
+                  rm -f "$STATE_FILE"
+                else
+                  "$BRIGHTNESSCTL" -d amdgpu_bl1 set 50% 2>/dev/null || true
                 fi
-                rm -f "$STATE_FILE"
-              fi
-            fi
+                ;;
+              dpms)
+                # DPMS mode: dpms on, then restore cursor after modeset settles.
+                "$HYPRCTL" dispatch dpms on eDP-1 || true
+                if [ -r "$STATE_FILE" ]; then
+                  pos=$(cat "$STATE_FILE")
+                  if [ -n "$pos" ]; then
+                    sleep 3 && "$HYPRCTL" dispatch movecursor $pos >/dev/null 2>&1 || true &
+                  fi
+                  rm -f "$STATE_FILE"
+                fi
+                ;;
+            esac
             ;;
         esac
         prev="$state"
@@ -133,14 +149,18 @@
 in {
   options.hardware.laptop.lidMonitor = {
     blanking = lib.mkOption {
-      type = lib.types.enum ["backlight" "dpms"];
-      default = "dpms";
+      type = lib.types.enum ["disable" "dpms" "backlight"];
+      default = "disable";
       description = ''
         How to blank the internal panel on lid close.
-        - "backlight": brightnessctl set 0 / restore. No DRM modeset,
-          instant, cursor preserved. Panel stays powered.
+        - "disable": hyprctl keyword monitor eDP-1 disable. Compositor
+          removes output from layout, full modeset on re-enable. Cursor
+          and windows may shift.
         - "dpms": hyprctl dpms off/on. Full modeset, 2-3s lag on
           re-enable, cursor jumps. Lower power.
+        - "backlight": brightnessctl set 0 / restore. No DRM modeset,
+          instant, cursor preserved. Panel stays powered. May not
+          fully black the panel.
       '';
     };
 
