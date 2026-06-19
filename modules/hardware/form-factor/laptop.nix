@@ -94,8 +94,6 @@
                 "$BRIGHTNESSCTL" -d amdgpu_bl1 set 0 2>/dev/null || true
                 ;;
               dpms)
-                # DPMS mode: save cursor, then dpms off.
-                "$HYPRCTL" cursorpos 2>/dev/null | tr ',' ' ' > "$STATE_FILE" || true
                 "$HYPRCTL" dispatch dpms off eDP-1 || true
                 ;;
             esac
@@ -118,20 +116,7 @@
                 fi
                 ;;
               dpms)
-                # DPMS mode: dpms on, then restore cursor position.
-                # The amdgpu modeset takes 2-3 seconds (link retrain).
-                # After modeset the hardware cursor plane may not be
-                # committed — cursor is invisible until a frame render
-                # triggers it (e.g. workspace switch, mouse move).
-                # movecursor itself forces a cursor plane update.
                 "$HYPRCTL" dispatch dpms on eDP-1 || true
-                if [ -r "$STATE_FILE" ]; then
-                  pos=$(cat "$STATE_FILE")
-                  if [ -n "$pos" ]; then
-                    sleep 3 && "$HYPRCTL" dispatch movecursor $pos >/dev/null 2>&1 || true &
-                  fi
-                  rm -f "$STATE_FILE"
-                fi
                 ;;
             esac
             ;;
