@@ -38,12 +38,21 @@
       Wants = ["app-status-daemon.service"];
     };
     Service.ExecStartPre = "${pkgs.coreutils}/bin/timeout 30 ${pkgs.writeShellScript "waybar-wait-hyprland" ''
-      # Wait until Hyprland IPC actually responds. The
-      # wayland-wm unit becoming active is not enough — the
-      # event loop needs a few hundred ms more on cold boot.
+      # Poll the main Hyprland IPC socket until it responds.
+      # This confirms the compositor event loop is alive at
+      # the core IPC layer, but socket2 (the event stream
+      # that waybar's hyprland/workspaces module subscribes
+      # to) may need additional warm-up after the main socket
+      # goes live. Cf. lesson 0005.
       until ${pkgs.hyprland}/bin/hyprctl monitors >/dev/null 2>&1; do
         ${pkgs.coreutils}/bin/sleep 0.2
       done
+      # Give socket2 a moment to start dispatching before
+      # waybar subscribes. Without this, the subscription
+      # can silently die, leaving a frozen workspace strip
+      # that no amount of nixos-rebuild will fix — only a
+      # manual `systemctl --user restart waybar.service`.
+      ${pkgs.coreutils}/bin/sleep 0.5
       ${app-status-daemon}/bin/app-status-daemon --oneshot >/dev/null 2>&1 || true
     ''}";
   };
