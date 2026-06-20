@@ -48,6 +48,27 @@
     ''}";
   };
 
+  # After any rebuild that changes hyprland.conf, restart waybar so
+  # its Hyprland IPC subscription does not desync from the freshly-
+  # reloaded compositor. The checksum gate avoids a restart when
+  # only unrelated files changed. Cf. lesson 0005.
+  home.activation.restartWaybarOnHyprlandChange = lib.hm.dag.entryAfter ["writeBoundary"] ''
+    if [ -f ~/.config/hypr/hyprland.conf ]; then
+      NEW=$(${pkgs.coreutils}/bin/sha256sum ~/.config/hypr/hyprland.conf | ${pkgs.coreutils}/bin/cut -d' ' -f1)
+      CACHE=~/.cache/hyprland-conf-sha256
+      OLD=$(${pkgs.coreutils}/bin/cat "$CACHE" 2>/dev/null || echo "")
+      if [ "$NEW" != "$OLD" ]; then
+        echo "$NEW" > "$CACHE"
+        # Give Hyprland a moment to process the reload before
+        # restarting waybar. The HM activation writes
+        # hyprland.conf, then Hyprland's inotify fires and
+        # reloads the config. A short delay ensures waybar
+        # connects to the fresh event stream.
+        (${pkgs.coreutils}/bin/sleep 2 && $DRY_RUN_CMD ${pkgs.systemd}/bin/systemctl --user restart waybar.service) &
+      fi
+    fi
+  '';
+
   programs.waybar.settings.mainBar = {
     "hyprland/workspaces" = {
       on-click = "activate";
