@@ -64,6 +64,7 @@ in {
       ./wlsunset.nix
       ./wlogout.nix
       ./mpv.nix
+      ./media.nix
       ./ayugram.nix
       ./spotify.nix
       ./orbit.nix

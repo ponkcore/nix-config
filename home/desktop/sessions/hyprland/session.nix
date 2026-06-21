@@ -500,6 +500,14 @@ in {
           class = "mpv";
           category = popup.media;
         })
+        ++ (mkPopup {
+          class = "io.github.celluloid_player.Celluloid";
+          category = popup.media;
+        })
+        ++ (mkPopup {
+          class = "com.github.neithern.g4music";
+          category = popup.app;
+        })
         # Floating Super+Return terminal — same `app` size category
         # as Spotify (70%×80%), so the two windows feel similar.
         # Class-based match works because `$terminal` launches with a
@@ -522,10 +530,13 @@ in {
           "float, class:^(xdg-desktop-portal-gtk)$"
           "float, class:^(org.gnome.Calculator)$"
 
-          # ── Image viewers: float, native size ───────────────────────────
+          # ── Image viewers: float + centered native size ─────────────────
           "float, class:^(imv)$"
           "float, class:^(org.gnome.Loupe)$"
           "float, class:^(eog)$"
+          "center, class:^(imv)$"
+          "center, class:^(org.gnome.Loupe)$"
+          "center, class:^(eog)$"
 
           # ── Browser picture-in-picture: float + pin to corner ───────────
           # Unique geometry (pinned to bottom-right), not a category member.

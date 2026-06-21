@@ -80,6 +80,52 @@
         # Obsidian deep-links (obsidian://open?vault=… etc.)
         "x-scheme-handler/obsidian" = "obsidian.desktop";
 
+        # Images — avoid browser fallback from Nautilus.
+        "image/png" = "org.gnome.Loupe.desktop";
+        "image/jpeg" = "org.gnome.Loupe.desktop";
+        "image/jpg" = "org.gnome.Loupe.desktop";
+        "image/webp" = "org.gnome.Loupe.desktop";
+        "image/gif" = "org.gnome.Loupe.desktop";
+        "image/avif" = "org.gnome.Loupe.desktop";
+        "image/heic" = "org.gnome.Loupe.desktop";
+        "image/heif" = "org.gnome.Loupe.desktop";
+        "image/svg+xml" = "org.gnome.Loupe.desktop";
+        "image/svg+xml-compressed" = "org.gnome.Loupe.desktop";
+        "image/tiff" = "org.gnome.Loupe.desktop";
+        "image/bmp" = "org.gnome.Loupe.desktop";
+        "image/vnd.microsoft.icon" = "org.gnome.Loupe.desktop";
+        "image/jxl" = "org.gnome.Loupe.desktop";
+
+        # Video — polished GTK frontend over the existing mpv engine.
+        "video/mp4" = "io.github.celluloid_player.Celluloid.desktop";
+        "video/x-matroska" = "io.github.celluloid_player.Celluloid.desktop";
+        "video/webm" = "io.github.celluloid_player.Celluloid.desktop";
+        "video/quicktime" = "io.github.celluloid_player.Celluloid.desktop";
+        "video/x-msvideo" = "io.github.celluloid_player.Celluloid.desktop";
+        "video/x-m4v" = "io.github.celluloid_player.Celluloid.desktop";
+        "video/x-ms-wmv" = "io.github.celluloid_player.Celluloid.desktop";
+        "video/x-flv" = "io.github.celluloid_player.Celluloid.desktop";
+        "video/mpeg" = "io.github.celluloid_player.Celluloid.desktop";
+        "video/ogg" = "io.github.celluloid_player.Celluloid.desktop";
+
+        # Local music — Gapless collection player.
+        "audio/mpeg" = "com.github.neithern.g4music.desktop";
+        "audio/mp3" = "com.github.neithern.g4music.desktop";
+        "audio/x-mp3" = "com.github.neithern.g4music.desktop";
+        "audio/flac" = "com.github.neithern.g4music.desktop";
+        "audio/x-flac" = "com.github.neithern.g4music.desktop";
+        "audio/ogg" = "com.github.neithern.g4music.desktop";
+        "audio/x-vorbis+ogg" = "com.github.neithern.g4music.desktop";
+        "audio/opus" = "com.github.neithern.g4music.desktop";
+        "audio/wav" = "com.github.neithern.g4music.desktop";
+        "audio/x-wav" = "com.github.neithern.g4music.desktop";
+        "audio/mp4" = "com.github.neithern.g4music.desktop";
+        "audio/m4a" = "com.github.neithern.g4music.desktop";
+        "audio/x-m4a" = "com.github.neithern.g4music.desktop";
+        "audio/aac" = "com.github.neithern.g4music.desktop";
+        "audio/x-aac" = "com.github.neithern.g4music.desktop";
+        "audio/webm" = "com.github.neithern.g4music.desktop";
+
         # Text / code — all opened in Neovim
         "text/plain" = "nvim.desktop";
         "text/markdown" = "nvim.desktop";
