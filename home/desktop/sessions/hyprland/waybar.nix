@@ -26,7 +26,35 @@
   btop-toggle,
   pkgs,
   ...
-}: {
+}: let
+  waybar-with-hyprland-env = pkgs.writeShellScript "waybar-with-hyprland-env" ''
+    set -u
+
+    HYPRCTL="${pkgs.hyprland}/bin/hyprctl"
+    JQ="${pkgs.jq}/bin/jq"
+
+    # UWSM imports HYPRLAND_INSTANCE_SIGNATURE and WAYLAND_DISPLAY into
+    # the systemd user manager asynchronously. On cold boot, waybar can
+    # be started after WAYLAND_DISPLAY exists but before the Hyprland
+    # instance signature reaches the manager; then waybar's
+    # hyprland/workspaces module never enables IPC. Query the running
+    # compositor directly and export both variables before exec.
+    for _ in $(${pkgs.coreutils}/bin/seq 1 150); do
+      instance_json="$($HYPRCTL instances -j 2>/dev/null || printf '[]')"
+      HYPRLAND_INSTANCE_SIGNATURE="$(printf '%s' "$instance_json" | $JQ -r '.[0].instance // empty')"
+      WAYLAND_DISPLAY="$(printf '%s' "$instance_json" | $JQ -r '.[0].wl_socket // empty')"
+
+      if [ -n "$HYPRLAND_INSTANCE_SIGNATURE" ] && [ -n "$WAYLAND_DISPLAY" ]; then
+        export HYPRLAND_INSTANCE_SIGNATURE WAYLAND_DISPLAY
+        break
+      fi
+
+      ${pkgs.coreutils}/bin/sleep 0.2
+    done
+
+    exec ${pkgs.waybar}/bin/waybar
+  '';
+in {
   # Waybar must start after Hyprland IPC is fully ready, not
   # merely after graphical-session.target. Without this, the
   # hyprland/workspaces module subscribes to a compositor whose
@@ -55,6 +83,7 @@
       ${pkgs.coreutils}/bin/sleep 0.5
       ${app-status-daemon}/bin/app-status-daemon --oneshot >/dev/null 2>&1 || true
     ''}";
+    Service.ExecStart = lib.mkForce "${waybar-with-hyprland-env}";
   };
 
   # After any rebuild that changes hyprland.conf, restart waybar so
