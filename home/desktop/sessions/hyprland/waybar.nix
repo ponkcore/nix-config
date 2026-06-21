@@ -15,7 +15,6 @@
 {
   lib,
   app-status,
-  app-status-daemon,
   telegram-toggle,
   throne-toggle,
   spotify-toggle,
@@ -55,57 +54,18 @@
     exec ${pkgs.waybar}/bin/waybar
   '';
 in {
-  # Waybar must start after Hyprland IPC is fully ready, not
-  # merely after graphical-session.target. Without this, the
-  # hyprland/workspaces module subscribes to a compositor whose
-  # event loop is not yet dispatching — the subscription silently
-  # dies, leaving a static workspace strip. Cf. lesson 0005.
+  # Waybar must start with Hyprland's runtime environment, not just
+  # after the user session target. On cold boot UWSM can import
+  # HYPRLAND_INSTANCE_SIGNATURE into the systemd user manager after
+  # waybar is already eligible to start; without the signature,
+  # hyprland/workspaces skips IPC entirely. Cf. lesson 0005.
   systemd.user.services.waybar = {
     Unit = {
       After = ["graphical-session.target" "wayland-wm@Hyprland.service" "app-status-daemon.service"];
       Wants = ["app-status-daemon.service"];
     };
-    Service.ExecStartPre = "${pkgs.coreutils}/bin/timeout 30 ${pkgs.writeShellScript "waybar-wait-hyprland" ''
-      # Poll the main Hyprland IPC socket until it responds.
-      # This confirms the compositor event loop is alive at
-      # the core IPC layer, but socket2 (the event stream
-      # that waybar's hyprland/workspaces module subscribes
-      # to) may need additional warm-up after the main socket
-      # goes live. Cf. lesson 0005.
-      until ${pkgs.hyprland}/bin/hyprctl monitors >/dev/null 2>&1; do
-        ${pkgs.coreutils}/bin/sleep 0.2
-      done
-      # Give socket2 a moment to start dispatching before
-      # waybar subscribes. Without this, the subscription
-      # can silently die, leaving a frozen workspace strip
-      # that no amount of nixos-rebuild will fix — only a
-      # manual `systemctl --user restart waybar.service`.
-      ${pkgs.coreutils}/bin/sleep 0.5
-      ${app-status-daemon}/bin/app-status-daemon --oneshot >/dev/null 2>&1 || true
-    ''}";
     Service.ExecStart = lib.mkForce "${waybar-with-hyprland-env}";
   };
-
-  # After any rebuild that changes hyprland.conf, restart waybar so
-  # its Hyprland IPC subscription does not desync from the freshly-
-  # reloaded compositor. The checksum gate avoids a restart when
-  # only unrelated files changed. Cf. lesson 0005.
-  home.activation.restartWaybarOnHyprlandChange = lib.hm.dag.entryAfter ["writeBoundary"] ''
-    if [ -f ~/.config/hypr/hyprland.conf ]; then
-      NEW=$(${pkgs.coreutils}/bin/sha256sum ~/.config/hypr/hyprland.conf | ${pkgs.coreutils}/bin/cut -d' ' -f1)
-      CACHE=~/.cache/hyprland-conf-sha256
-      OLD=$(${pkgs.coreutils}/bin/cat "$CACHE" 2>/dev/null || echo "")
-      if [ "$NEW" != "$OLD" ]; then
-        echo "$NEW" > "$CACHE"
-        # Give Hyprland a moment to process the reload before
-        # restarting waybar. The HM activation writes
-        # hyprland.conf, then Hyprland's inotify fires and
-        # reloads the config. A short delay ensures waybar
-        # connects to the fresh event stream.
-        (${pkgs.coreutils}/bin/sleep 2 && $DRY_RUN_CMD ${pkgs.systemd}/bin/systemctl --user restart waybar.service) &
-      fi
-    fi
-  '';
 
   programs.waybar.settings.mainBar = {
     "hyprland/workspaces" = {
