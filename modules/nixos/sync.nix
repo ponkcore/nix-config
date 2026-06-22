@@ -97,7 +97,7 @@ in {
         "brain-vault" = {
           label = "brain";
           path = "/home/${username}/Documents/obsidian/brain";
-          devices = ["vps"];
+          devices = ["vps" "phone"];
           versioning = trashcan30d;
         };
 
