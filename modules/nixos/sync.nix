@@ -41,6 +41,7 @@
 # username injected by lib/mkHost.nix.
 {username, ...}: let
   vpsDeviceId = "7TYSH4F-4G4BUUC-F5RVTAW-V4HHQNR-DKQR37A-BUBQBMG-TRKVKUT-2NIUFA7";
+  phoneDeviceId = "CGUAONQ-5Z6GRBL-FQLWTSB-NTLOTJI-S6SW6PT-2XENWZ4-X7I3MP4-SRHAMAJ";
 
   # Trashcan defaults — cheap safety net against an "rm -rf" on
   # either side. 30 days is plenty for a single-operator vault.
@@ -67,12 +68,29 @@ in {
     overrideFolders = true;
 
     settings = {
-      devices.vps = {
-        id = vpsDeviceId;
-        name = "vps";
+      devices = {
+        vps = {
+          id = vpsDeviceId;
+          name = "vps";
+        };
+
+        phone = {
+          id = phoneDeviceId;
+          name = "phone";
+        };
       };
 
       folders = {
+        # KeePass vault — shared with Android for KeePassDX.
+        # Contains ~/Documents/secrets/vault.kdbx; keep the folder
+        # narrow so only password-vault material is shared to mobile.
+        "keepass-vault" = {
+          label = "keepass";
+          path = "/home/${username}/Documents/secrets";
+          devices = ["phone"];
+          versioning = trashcan30d;
+        };
+
         # Obsidian vault — primary knowledge base, two-layer sync
         # (Syncthing for state, Obsidian Git for history).
         # See decisions/0012-obsidian-two-layer-sync.md.
