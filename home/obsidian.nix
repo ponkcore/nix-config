@@ -47,4 +47,43 @@
     install -d -m 700 "$HOME/Documents/obsidian/brain"
     chmod 700 "$HOME/Documents/obsidian" "$HOME/Documents/obsidian/brain"
   '';
+
+  # Syncthing never syncs .stignore itself, so seed/repair the local
+  # ignore policy on each host. The file stays mutable; this only fixes
+  # the known-bad `.git/` pattern, which ignores contents but not the
+  # directory node and leaves a permanent pending delete for `.git`.
+  home.activation.ensureObsidianBrainStignore = lib.hm.dag.entryAfter ["ensureObsidianDirs"] ''
+        stignore="$HOME/Documents/obsidian/brain/.stignore"
+
+        if [ ! -e "$stignore" ]; then
+          cat >"$stignore" <<'EOF'
+    // Syncthing ignore patterns for the Obsidian "brain" vault.
+
+    // Per-device Obsidian UI state — rewritten on every focus/blur.
+    .obsidian/workspace*
+    .obsidian/cache/
+    .obsidian/plugins/*/cache/
+    .obsidian/plugins/*/data.json.tmp
+    .obsidian/workspace-mobile.json
+
+    // Editor / OS clutter.
+    .DS_Store
+    Thumbs.db
+    *.swp
+    *~
+
+    // Obsidian Git keeps history inside the vault. Syncthing must ignore
+    // the directory node itself, so this pattern is intentionally slashless.
+    .git
+    .gitignore
+    .gitattributes
+
+    // Trash — local-only, safe to skip.
+    .trash/
+    EOF
+          chmod 600 "$stignore"
+        elif ${pkgs.gnused}/bin/sed -n '/^\.git\/$/p' "$stignore" | ${pkgs.gnugrep}/bin/grep -q .; then
+          ${pkgs.gnused}/bin/sed -i 's#^\.git/$#.git#' "$stignore"
+        fi
+  '';
 }
