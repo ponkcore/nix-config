@@ -202,6 +202,15 @@ These are hard rules. Violations are bugs, not feature requests.
 - Never `allowUnfree` per-package — it's set globally in `modules/nixos/nix.nix`.
 - Never set `services.openssh.settings.PasswordAuthentication = false`
   without explicit user approval.
+- Lecoo ultra-economy contract: any change touching Hyprland monitor
+  names/modes, refresh-rate policy, Waybar host widgets,
+  `power-profiles-daemon`, `lecoo-ctrl`, AMDGPU DPM/sysfs paths, AC
+  adapter sysfs naming, or the laptop hardware profile must review
+  `hosts/lecoo/home/scripts.nix` (`ultra-economy-toggle`) and
+  `hosts/lecoo/ec.nix` (`lecoo-sync-power-profile`). The toggle assumes
+  eDP-1 2880x1800 120↔60 Hz, `ADP1`, and
+  `/sys/class/drm/card1/device/power_dpm_force_performance_level`; if
+  those contracts change, update the toggle in the same patch.
 
 ## When in doubt
 

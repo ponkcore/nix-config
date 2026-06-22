@@ -255,10 +255,13 @@
     };
     # OmniRoute MCP tool filter. OpenCode has no per-server MCP
     # allowlist in `mcp.<name>`; top-level `tools` is the available
-    # client-side switch for individual tool names. Keep only
-    # `omniroute_web_search` enabled; disable every other tool exposed
-    # by the OmniRoute MCP endpoint.
+    # client-side switch for individual tool names. Prefer OmniRoute
+    # MCP for web search/fetch and disable every other tool exposed by
+    # the OmniRoute MCP endpoint.
     tools = {
+      webfetch = false;
+      omniroute_web_fetch = true;
+      omniroute_web_search = true;
       gamification_anomalies = false;
       gamification_badges = false;
       gamification_invite = false;
@@ -306,6 +309,7 @@
       omniroute_compression_configure = false;
       omniroute_compression_status = false;
       omniroute_cost_report = false;
+      omniroute_ccr_retrieve = false;
       omniroute_db_health_check = false;
       omniroute_explain_route = false;
       omniroute_get_combo_metrics = false;

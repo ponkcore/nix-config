@@ -609,7 +609,8 @@ highlight in Waybar does not move. See `lessons/0005-waybar-workspace-stale-afte
 
 The Lecoo ultra-economy widget is `custom/ultra-economy` and renders the
 `nf-md-opacity` glyph `󰗌`. Off-state uses normal foreground; on-state uses
-`@bright_green` with a small glow.
+`@bright_green` with a small glow. Toggling ultra-economy does not change
+screen brightness; the current user-selected brightness is preserved.
 
 Config paths:
 

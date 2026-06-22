@@ -88,13 +88,12 @@
   # and blank the eDP panel for ~1 s. As a user-clicked mode that blink is
   # expected; as an automatic power-edge side effect it is not.
   #
-  # Does not touch Bluetooth, Wi-Fi, or user applications.
+  # Does not touch display brightness, Bluetooth, Wi-Fi, or user applications.
   ultra-economy-toggle = pkgs.writeShellScriptBin "ultra-economy-toggle" ''
     set -eu
 
     runtime="''${XDG_RUNTIME_DIR:-/tmp}/ultra-economy"
     state="$runtime/state"
-    saved_brightness="$runtime/brightness"
     saved_animations="$runtime/animations"
 
     mkdir -p "$runtime"
@@ -130,12 +129,6 @@
       # return power policy to the current AC/battery baseline.
       ${pkgs.hyprland}/bin/hyprctl keyword monitor "eDP-1, 2880x1800@120, 0x0, 1.8" >/dev/null 2>&1 || true
 
-      if [ -r "$saved_brightness" ]; then
-        brightness=$(cat "$saved_brightness")
-        ${pkgs.brightnessctl}/bin/brightnessctl -d amdgpu_bl1 set "$brightness" >/dev/null 2>&1 || true
-        rm -f "$saved_brightness"
-      fi
-
       if [ -r "$saved_animations" ]; then
         animations=$(cat "$saved_animations")
         case "$animations" in
@@ -152,16 +145,14 @@
       exit 0
     fi
 
-    # Enter ultra economy. Save session-local visual state so leaving the
-    # mode restores what the user had before the click.
-    ${pkgs.brightnessctl}/bin/brightnessctl -d amdgpu_bl1 get > "$saved_brightness" 2>/dev/null || true
+    # Enter ultra economy. Save session-local animation state so leaving
+    # the mode restores what the user had before the click.
     ${pkgs.hyprland}/bin/hyprctl getoption animations:enabled 2>/dev/null \
       | ${pkgs.gnugrep}/bin/grep -oP '^int:\s*\K[01]' > "$saved_animations" 2>/dev/null || true
 
     ${pkgs.power-profiles-daemon}/bin/powerprofilesctl set power-saver >/dev/null 2>&1 || true
     ${pkgs.lecoo-ctrl}/bin/lecoo-ctrl power silent >/dev/null 2>&1 || true
     set_gpu_level low
-    ${pkgs.brightnessctl}/bin/brightnessctl -d amdgpu_bl1 set 25% >/dev/null 2>&1 || true
     ${pkgs.hyprland}/bin/hyprctl keyword animations:enabled 0 >/dev/null 2>&1 || true
     ${pkgs.hyprland}/bin/hyprctl keyword monitor "eDP-1, 2880x1800@60, 0x0, 1.8" >/dev/null 2>&1 || true
 
