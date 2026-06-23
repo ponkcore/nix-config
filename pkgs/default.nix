@@ -112,6 +112,8 @@
     donutbrowser = final.callPackage ./donutbrowser {};
     orbit = final.callPackage ./orbit {};
     antigravity-cli = final.callPackage ./antigravity-cli {};
+    oh-my-pi = final.callPackage ./oh-my-pi {};
+    oh-my-openagent = final.callPackage ./oh-my-openagent {};
 
     letta-code = final.callPackage ./letta-code {inherit inputs;};
     mcp-bridge = final.callPackage ./mcp-bridge {};

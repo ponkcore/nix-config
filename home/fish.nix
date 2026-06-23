@@ -31,7 +31,7 @@ _: {
       ports = "ss -tlnp";
       sizeof = "du -sh";
       md = "mkdir -p";
-      tok = "tokens-edit";
+      keys = "tokens-edit";
     };
 
     interactiveShellInit = ''
@@ -98,18 +98,42 @@ _: {
         echo "echo '$pub' >> ~/.ssh/authorized_keys"
         echo "chmod 600 ~/.ssh/authorized_keys"
       '';
-      # omo — launch opencode with oh-my-openagent plugin injected at runtime.
-      # Reads ~/.config/opencode/opencode.json, adds the plugin to the array,
-      # and passes the result via OPENCODE_CONFIG_CONTENT env var.
+      # omp — run oh-my-pi, with `omp upd [VERSION]` reserved for the
+      # Nix-managed package updater. Upstream's imperative `omp update` stays
+      # accessible only if typed explicitly; routine updates must go through Nix.
+      omp = ''
+        if test (count $argv) -gt 0; and test "$argv[1]" = upd
+          cd /etc/nixos
+          ./pkgs/oh-my-pi/update.sh $argv[2..]
+          return $status
+        end
+        command omp $argv
+      '';
+      # omo — launch opencode with the Nix-store oh-my-openagent plugin.
+      # `omo upd [VERSION]` updates the local package pin; regular `omo ...`
+      # injects the generated file:// plugin spec into OPENCODE_CONFIG_CONTENT.
       # Vanilla `opencode` stays plugin-free for fast simple tasks.
       omo = ''
+        if test (count $argv) -gt 0; and test "$argv[1]" = upd
+          cd /etc/nixos
+          ./pkgs/oh-my-openagent/update.sh $argv[2..]
+          return $status
+        end
+
         set -l cfg "$HOME/.config/opencode/opencode.json"
+        set -l plugin_file "$HOME/.config/opencode/oh-my-openagent.plugin"
         if not test -f "$cfg"
           echo "ERROR: $cfg not found" >&2
           return 1
         end
-        set -l updated (jq '.plugin = ((.plugin // []) | if any(.[]; test("^oh-my-open(agent|code)(@.*)?$")) then . else . + ["oh-my-openagent@latest"] end)' "$cfg")
-        OPENCODE_CONFIG_CONTENT="$updated" opencode $argv
+        if not test -f "$plugin_file"
+          echo "ERROR: $plugin_file not found" >&2
+          return 1
+        end
+
+        set -l plugin (string trim < "$plugin_file")
+        set -l updated (jq --arg plugin "$plugin" '.plugin = ((.plugin // []) | map(select((type == "string" and (test("^oh-my-open(agent|code)(@.*)?$") or test("oh-my-openagent"))) | not)) + [$plugin])' "$cfg")
+        OMO_DISABLE_POSTHOG=1 OPENCODE_CONFIG_CONTENT="$updated" opencode $argv
       '';
       # ── Tailscale helpers ───────────────────────────────────────────
       # Tailscaled and throne TUN cannot run together (DNS hijacking +

@@ -48,6 +48,7 @@ in {
       ./firefox
       ./neovim.nix
       ./opencode.nix
+      ./oh-my-pi.nix
       ./qt.nix
       ./donutbrowser.nix
       ./chromium.nix

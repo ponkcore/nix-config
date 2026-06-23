@@ -1,9 +1,9 @@
 # cli.nix — modern CLI replacements with Gruvbox theming.
-# Provides bat (cat), eza (ls), zoxide (cd), gh (GitHub CLI). The git
-# pager (`delta`) lives in home/git.nix because that is where it is
+# Provides bat (cat), eza (ls), zoxide (cd), gh (GitHub CLI), Node.js LTS.
+# The git pager (`delta`) lives in home/git.nix because that is where it is
 # wired into the git config. MANPAGER is set in env.nix; fish aliases
 # live in fish.nix.
-_: {
+{pkgs, ...}: {
   programs.bat = {
     enable = true;
     config = {
@@ -34,4 +34,9 @@ _: {
       prompt = "enabled";
     };
   };
+
+  # Node.js LTS — base runtime for JS tooling, MCP servers (oh-my-openagent
+  # stdio MCPs: lsp, codegraph, git_bash), and npx experiments.
+  # Do NOT use `npm install -g` — use buildNpmPackage or `nix shell` instead.
+  home.packages = [pkgs.nodejs_22];
 }

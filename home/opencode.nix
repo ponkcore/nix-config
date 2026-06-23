@@ -15,6 +15,11 @@
   inputs,
   ...
 }: let
+  # Nix-store oh-my-openagent plugin root. `omo` injects this file:// spec
+  # into OPENCODE_CONFIG_CONTENT, so OpenCode treats it as a local plugin and
+  # skips runtime Npm.add()/Bun install.
+  ohMyOpenagentPlugin = "file://${pkgs.oh-my-openagent}/lib/node_modules/oh-my-openagent";
+
   # Shared Fireworks model catalogue.
   # IDs use direct Fireworks format: accounts/fireworks/models/<name>.
   # omniroute proxy prepends "fireworks/" routing prefix via fireworksModels.
@@ -181,8 +186,8 @@
       id = "SS-tier";
       name = "SS — GPT Reasoning";
       limit = {
-        context = 1040000;
-        output = 100000;
+        context = 200000;
+        output = 32000;
       };
       reasoning = true;
       attachment = true;
@@ -205,7 +210,7 @@
       id = "A-tier";
       name = "A — Mixed (Opus + GPT + Kimi)";
       limit = {
-        context = 262144;
+        context = 200000;
         output = 32000;
       };
       reasoning = true;
@@ -217,8 +222,8 @@
       id = "B-tier";
       name = "B — Nano Fallback";
       limit = {
-        context = 128000;
-        output = 8000;
+        context = 200000;
+        output = 32000;
       };
       reasoning = false;
       attachment = false;
@@ -253,99 +258,13 @@
       prune = true;
       reserved = 32000;
     };
-    # OmniRoute MCP tool filter. OpenCode has no per-server MCP
-    # allowlist in `mcp.<name>`; top-level `tools` is the available
-    # client-side switch for individual tool names. Prefer OmniRoute
-    # MCP for web search/fetch and disable every other tool exposed by
-    # the OmniRoute MCP endpoint.
+    # OmniRoute MCP tool filter. The VPS proxy already filters to only
+    # web_search + web_fetch, so the massive per-tool denylist is no
+    # longer needed. Keep built-in webfetch off (prefer MCP version).
     tools = {
       webfetch = false;
       omniroute_web_fetch = true;
       omniroute_web_search = true;
-      gamification_anomalies = false;
-      gamification_badges = false;
-      gamification_invite = false;
-      gamification_leaderboard = false;
-      gamification_profile = false;
-      gamification_rank = false;
-      gamification_servers = false;
-      gamification_transfer = false;
-      notion_append_blocks = false;
-      notion_get_database = false;
-      notion_get_page = false;
-      notion_list_block_children = false;
-      notion_query_database = false;
-      notion_search = false;
-      obsidian_append_note = false;
-      obsidian_check_status = false;
-      obsidian_delete_note = false;
-      obsidian_execute_command = false;
-      obsidian_get_active_file = false;
-      obsidian_get_document_map = false;
-      obsidian_get_note_metadata = false;
-      obsidian_get_periodic_note = false;
-      obsidian_get_tags = false;
-      obsidian_list_commands = false;
-      obsidian_list_vault = false;
-      obsidian_move_note = false;
-      obsidian_open_file = false;
-      obsidian_patch_note = false;
-      obsidian_read_note = false;
-      obsidian_search_simple = false;
-      obsidian_search_structured = false;
-      obsidian_sync_conflicts = false;
-      obsidian_sync_resolve_conflict = false;
-      obsidian_sync_status = false;
-      obsidian_sync_trigger = false;
-      obsidian_write_note = false;
-      omniroute_agent_skills_coverage = false;
-      omniroute_agent_skills_get = false;
-      omniroute_agent_skills_list = false;
-      omniroute_best_combo_for_task = false;
-      omniroute_cache_flush = false;
-      omniroute_cache_stats = false;
-      omniroute_check_quota = false;
-      omniroute_compression_combo_stats = false;
-      omniroute_compression_configure = false;
-      omniroute_compression_status = false;
-      omniroute_cost_report = false;
-      omniroute_ccr_retrieve = false;
-      omniroute_db_health_check = false;
-      omniroute_explain_route = false;
-      omniroute_get_combo_metrics = false;
-      omniroute_get_health = false;
-      omniroute_get_provider_metrics = false;
-      omniroute_get_session_snapshot = false;
-      omniroute_list_combos = false;
-      omniroute_list_compression_combos = false;
-      omniroute_list_models_catalog = false;
-      omniroute_memory_add = false;
-      omniroute_memory_clear = false;
-      omniroute_memory_search = false;
-      omniroute_oneproxy_fetch = false;
-      omniroute_oneproxy_rotate = false;
-      omniroute_oneproxy_stats = false;
-      omniroute_route_request = false;
-      omniroute_set_budget_guard = false;
-      omniroute_set_compression_engine = false;
-      omniroute_set_resilience_profile = false;
-      omniroute_set_routing_strategy = false;
-      omniroute_simulate_route = false;
-      omniroute_skills_enable = false;
-      omniroute_skills_execute = false;
-      omniroute_skills_executions = false;
-      omniroute_skills_list = false;
-      omniroute_switch_combo = false;
-      omniroute_sync_pricing = false;
-      omniroute_test_combo = false;
-      plugin_activate = false;
-      plugin_configure = false;
-      plugin_deactivate = false;
-      plugin_executions = false;
-      plugin_install = false;
-      plugin_list = false;
-      plugin_scan = false;
-      plugin_uninstall = false;
     };
     provider.omniroute = {
       npm = "@ai-sdk/openai-compatible";
@@ -359,14 +278,6 @@
     # placeholders in the nix-store template; the activation script
     # below substitutes them from /run/agenix/tokens.
     mcp = {
-      lazyweb = {
-        type = "remote";
-        url = "https://www.lazyweb.com/mcp";
-        enabled = true;
-        headers = {
-          Authorization = "Bearer REPLACE_LAZYWEB_TOKEN";
-        };
-      };
       # Context7 — Upstash hosted documentation lookup
       # (https://context7.com). Pulls up-to-date library/framework
       # docs into the LLM context. Free anonymous tier works without
@@ -380,21 +291,22 @@
           X-Context7-API-Key = "REPLACE_CONTEXT7_KEY";
         };
       };
-      # OmniRoute MCP — operator-hosted remote MCP endpoint. The key is
-      # separate from the OpenAI-compatible provider key and is injected
-      # from OMNIROUTE_MCP_API_KEY at activation.
+      # OmniRoute MCP — VPS proxy that filters to only web_search +
+      # web_fetch. The proxy holds the real OmniRoute MCP key; omp/omo
+      # only need the proxy auth key.
       omniroute = {
         type = "remote";
-        url = "https://mcp.infinitycore.space:8443/sse";
+        url = "https://mcp.infinitycore.space:8443/omp/sse";
         enabled = true;
         headers = {
-          X-API-Key = "REPLACE_OMNIROUTE_MCP_KEY";
+          X-Proxy-Key = "REPLACE_OMP_PROXY_KEY";
         };
       };
     };
     # plugin: oh-my-openagent NOT loaded by default — use `omo` fish function
-    # to launch opencode with the plugin (via OPENCODE_CONFIG_CONTENT env var).
-    # This keeps vanilla opencode fast and plugin-free for simple tasks.
+    # to launch opencode with the Nix-store file:// plugin spec via
+    # OPENCODE_CONFIG_CONTENT. This keeps vanilla opencode fast and
+    # plugin-free for simple tasks.
   });
 in {
   # opencode binary from llm-agents flake
@@ -415,6 +327,8 @@ in {
       "opencode/.opencode.json".source = builtins.toFile "opencode-native-config" (builtins.toJSON {
         "$schema" = "https://opencode.ai/config.json";
       });
+
+      "opencode/oh-my-openagent.plugin".text = ohMyOpenagentPlugin;
 
       "opencode/oh-my-openagent.json".source = builtins.toFile "oh-my-openagent-config" (builtins.toJSON {
         "$schema" = "https://raw.githubusercontent.com/code-yeongyu/oh-my-openagent/dev/assets/oh-my-opencode.schema.json";
@@ -467,6 +381,11 @@ in {
           default_max_iterations = 10;
           default_strategy = "reset";
         };
+        # Disable omo built-in MCP servers that duplicate our own:
+        #   context7  — we have our own context7 with API key
+        #   websearch — duplicates omniroute web_search
+        #   grep_app  — not needed
+        disabled_mcps = ["context7" "websearch" "grep_app"];
         experimental = {
           dynamic_context_pruning = {
             enabled = false;
@@ -496,9 +415,8 @@ in {
   # The .age file bundles:
   #   OMNIROUTE_API_KEY  — opencode omniroute provider apiKey
   #   FIREWORKS_API_KEY  — `opencode providers login` flow
-  #   LAZYWEB_MCP_TOKEN    — Bearer header for the lazyweb MCP server
-  #   CONTEXT7_API_KEY     — X-Context7-API-Key header for context7 MCP
-  #   OMNIROUTE_MCP_API_KEY — X-API-Key header for OmniRoute MCP
+  #   CONTEXT7_API_KEY   — X-Context7-API-Key header for context7 MCP
+  #   OMP_PROXY_KEY      — X-Proxy-Key header for VPS MCP proxy
   #
   # If /run/agenix/tokens is missing or unreadable, activation fails
   # loudly with the message below. To recover: re-encrypt the file
@@ -519,32 +437,37 @@ in {
       echo "ERROR: OMNIROUTE_API_KEY missing in $SECRETS" >&2
       exit 1
     fi
-    if [ -z "''${LAZYWEB_MCP_TOKEN:-}" ]; then
-      echo "ERROR: LAZYWEB_MCP_TOKEN missing in $SECRETS" >&2
-      exit 1
-    fi
     if [ -z "''${CONTEXT7_API_KEY:-}" ]; then
       echo "ERROR: CONTEXT7_API_KEY missing in $SECRETS" >&2
       exit 1
     fi
-    if [ -z "''${OMNIROUTE_MCP_API_KEY:-}" ]; then
-      echo "ERROR: OMNIROUTE_MCP_API_KEY missing in $SECRETS" >&2
+    if [ -z "''${OMP_PROXY_KEY:-}" ]; then
+      echo "ERROR: OMP_PROXY_KEY missing in $SECRETS" >&2
       exit 1
     fi
     mkdir -p "${config.xdg.configHome}/opencode"
     umask 077
     ${pkgs.jq}/bin/jq \
       --arg key "$OMNIROUTE_API_KEY" \
-      --arg lz  "Bearer $LAZYWEB_MCP_TOKEN" \
       --arg c7  "$CONTEXT7_API_KEY" \
-      --arg omcp "$OMNIROUTE_MCP_API_KEY" \
+      --arg proxy "$OMP_PROXY_KEY" \
       '.provider.omniroute.options.apiKey = $key
-       | .mcp.lazyweb.headers.Authorization = $lz
        | .mcp.context7.headers["X-Context7-API-Key"] = $c7
-       | .mcp.omniroute.headers["X-API-Key"] = $omcp' \
+       | .mcp.omniroute.headers["X-Proxy-Key"] = $proxy' \
       ${opencodeJsonTemplate} \
       > "$OUT.tmp"
     chmod 600 "$OUT.tmp"
     mv -f "$OUT.tmp" "$OUT"
+  '';
+
+  # Remove stale npm-plugin cache entries now that `omo` loads the plugin from
+  # /nix/store via a file:// spec. Keep unrelated OpenCode cache intact.
+  home.activation.opencode-openagent-cache-cleanup = lib.hm.dag.entryAfter ["writeBoundary"] ''
+    rm -rf \
+      "${config.home.homeDirectory}/.cache/opencode/packages/oh-my-openagent@"* \
+      "${config.home.homeDirectory}/.cache/opencode/packages/oh-my-opencode@"* \
+      "${config.home.homeDirectory}/.cache/opencode/oh-my-openagent@"* \
+      "${config.home.homeDirectory}/.cache/opencode/oh-my-opencode@"* \
+      2>/dev/null || true
   '';
 }
