@@ -557,6 +557,8 @@ rebuild         sudo nixos-rebuild switch --flake /etc/nixos &| nom
 rebuild-test    sudo nixos-rebuild test   --flake /etc/nixos &| nom
 gc              nix-collect-garbage --delete-older-than 14d (system + user)
 oc              cd /etc/nixos
+tokens-edit     edit /etc/nixos/secrets/tokens.age via agenix
+tok             abbreviation for tokens-edit
 omo             opencode + oh-my-openagent plugin
 flu             nix flake update
 fls             nix flake show

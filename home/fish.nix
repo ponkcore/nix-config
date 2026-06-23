@@ -31,6 +31,7 @@ _: {
       ports = "ss -tlnp";
       sizeof = "du -sh";
       md = "mkdir -p";
+      tok = "tokens-edit";
     };
 
     interactiveShellInit = ''
@@ -73,6 +74,13 @@ _: {
       # oc — cd to /etc/nixos (system flake root)
       oc = ''
         cd /etc/nixos
+      '';
+      # tokens-edit — open the agenix-encrypted API token bundle in $EDITOR.
+      # The decrypted secret lives only in agenix's temporary edit flow; do
+      # not read /run/agenix/tokens directly just to inspect values.
+      tokens-edit = ''
+        cd /etc/nixos/secrets
+        agenix -e tokens.age
       '';
       # sshkey — print the three-line snippet for adding the local
       # ed25519 public key to a remote host's ~/.ssh/authorized_keys.
