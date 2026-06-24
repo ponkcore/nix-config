@@ -107,7 +107,7 @@
         printf 'usage: fp-profile delete <name>\n' >&2
         exit 64
       fi
-      if ! get_profile "$name" >/dev/null 2>&1; then
+      if [ -z "$(get_profile "$name")" ]; then
         printf 'profile "%s" does not exist\n' "$name" >&2
         exit 1
       fi
@@ -154,8 +154,6 @@
         --no-first-run \
         --no-default-browser-check \
         --disable-features=Translate \
-        --enable-features=DnsOverHttps \
-        --doh-url=https://1.1.1.1/dns-query \
         "$@"
 
       if [ -n "''${FINGERPRINT_CHROMIUM_PROXY_SERVER:-}" ]; then
@@ -195,31 +193,49 @@
     esac
   '';
 
-  # ── rofi picker: list + create button ────────────────────────────────
+  # ── rofi picker: list + create + delete ─────────────────────────────
   fpRofi = pkgs.writeShellScriptBin "fingerprint-chromium-profiles" ''
     set -eu
 
-    # Use a temp file so rofi results are clean
     choices=$(mktemp)
     trap 'rm -f "$choices"' EXIT
 
     while true; do
-      # Build the menu: "➕ Create profile..." then the profile list
+      # Build the menu: actions first, then profiles
       (
         printf '➕ Create profile...\n'
+        printf '🗑 Delete profile...\n'
         ${fpProfile}/bin/fp-profile list
       ) > "$choices"
 
       selection=$(${pkgs.rofi}/bin/rofi -dmenu -i -p 'fingerprint chromium' -theme palette < "$choices")
       [ -n "$selection" ] || exit 0
 
-      if [ "$selection" = "➕ Create profile..." ]; then
-        new_name=$(${fpProfile}/bin/fp-profile create)
-        [ -n "$new_name" ] || continue
-        exec ${fpProfile}/bin/fp-profile launch "$new_name"
-      else
-        exec ${fpProfile}/bin/fp-profile launch "$selection"
-      fi
+      case "$selection" in
+        "➕ Create profile...")
+          new_name=$(${fpProfile}/bin/fp-profile create)
+          [ -n "$new_name" ] || continue
+          exec ${fpProfile}/bin/fp-profile launch "$new_name"
+          ;;
+        "🗑 Delete profile...")
+          del_choices=$(mktemp)
+          ${fpProfile}/bin/fp-profile list > "$del_choices"
+          if [ ! -s "$del_choices" ]; then
+            ${pkgs.rofi}/bin/rofi -e "no profiles to delete" -theme palette
+            rm -f "$del_choices"
+            continue
+          fi
+          to_delete=$(${pkgs.rofi}/bin/rofi -dmenu -i -p 'delete' -theme palette < "$del_choices")
+          rm -f "$del_choices"
+          [ -n "$to_delete" ] || continue
+          ${fpProfile}/bin/fp-profile delete "$to_delete"
+          ${pkgs.rofi}/bin/rofi -e "deleted: $to_delete" -theme palette
+          continue
+          ;;
+        *)
+          exec ${fpProfile}/bin/fp-profile launch "$selection"
+          ;;
+      esac
     done
   '';
 
