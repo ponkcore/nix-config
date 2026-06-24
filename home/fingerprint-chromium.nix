@@ -154,6 +154,8 @@
         --no-first-run \
         --no-default-browser-check \
         --disable-features=Translate \
+        --enable-features=DnsOverHttps \
+        --doh-url=https://1.1.1.1/dns-query \
         "$@"
 
       if [ -n "''${FINGERPRINT_CHROMIUM_PROXY_SERVER:-}" ]; then
