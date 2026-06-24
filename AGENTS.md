@@ -130,6 +130,13 @@ gitleaks git --pre-commit --staged
 sudo nixos-rebuild test --flake /etc/nixos#lecoo --show-trace 2>&1 | tail -80
 ```
 
+### Validate fingerprint-chromium spike
+```
+fp create
+fp list
+fp validate <profile>
+```
+
 ### Apply a change (creates a boot menu entry)
 ```
 sudo nixos-rebuild switch --flake /etc/nixos#lecoo --show-trace 2>&1 | tail -80

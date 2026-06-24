@@ -51,6 +51,7 @@ in {
       ./oh-my-pi.nix
       ./qt.nix
       ./donutbrowser.nix
+      ./fingerprint-chromium.nix
       ./chromium.nix
       ./antigravity.nix
 

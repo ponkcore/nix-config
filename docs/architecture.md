@@ -261,6 +261,8 @@ Layer 2 (web/banking/notes/2FA) lives in the KeePass vault. Layer 3
 | GC + auto-optimise + journald | `modules/nixos/nix.nix` |
 | TRIM cadence | `modules/nixos/maintenance.nix` |
 | Stale donut-proxy reaper | `home/donutbrowser.nix` |
+| fingerprint-chromium spike package | `pkgs/fingerprint-chromium/default.nix` |
+| fingerprint-chromium profile manager | `home/fingerprint-chromium.nix` (`fp`/`fp-profile`) |
 | `.hm-backup` cleanup | `home/cleanup.nix` |
 | Desktop session dispatcher (system) | `modules/nixos/desktop/default.nix` |
 | Desktop session dispatcher (user) | `home/desktop/default.nix` |
