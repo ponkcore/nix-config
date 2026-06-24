@@ -213,9 +213,11 @@ greetd → sway (Wayland kiosk) → nwg-hello (GTK3 greeter)
  user systemd units                  Hyprland-managed
    waybar                              hyprpaper
    mako (D-Bus activated)              hyprlock
-   cliphist                            hypridle
-   wlsunset                            lid-monitor
-   lid-monitor                          (laptop hosts only)
+   cliphist                            hypridle (lock/sleep hooks +
+   wlsunset                                     idle-flag signal)
+   lid-monitor ──── polls flag ────→
+     sole owner of DPMS/backlight
+     (laptop hosts only)
 ```
 
 Palette: `lib/palette.nix` — 25 Gruvbox-warm tokens. Distributed to
@@ -252,6 +254,7 @@ Layer 2 (web/banking/notes/2FA) lives in the KeePass vault. Layer 3
 |----------------|--------|
 | Boot timing & quietness | `modules/nixos/boot.nix` |
 | Power management policy | `modules/hardware/form-factor/laptop.nix` |
+| Display blanking (lid + idle) | `modules/hardware/form-factor/laptop.nix` (lid-monitor) + `home/desktop/sessions/hyprland/idle.nix` (hypridle flag signal) |
 | Custom EC daemon | `hosts/lecoo/ec.nix` (NixOS module providing `services.lecoo-ctrl`) |
 | WiFi (rtw89) quirks | `hosts/lecoo/hardware.nix` |
 | sysctl hardening | `modules/nixos/security.nix` |

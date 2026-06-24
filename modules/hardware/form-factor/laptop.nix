@@ -16,9 +16,13 @@
 #   - button.lid_init_state=ignore: do not trust the firmware's initial
 #     _LID value. Emdoor N155A firmware is not SW_LID-compliant and the
 #     kernel's button driver has no polling path for missing Notify(LID).
-#   - lid-monitor user service: polls /proc/acpi/button/lid/LID0/state
-#     five times a second and drives Hyprland DPMS for the internal
-#     panel. Polling is the only reliable channel on firmware that does
+#   - lid-monitor user service: sole owner of display blanking. Polls
+#     /proc/acpi/button/lid/LID0/state five times a second AND checks an
+#     idle-flag file ($XDG_RUNTIME_DIR/hyprland-idle) set by hypridle.
+#     Blanks when lid closed OR idle flag exists; restores only when
+#     both are clear. This unified ownership eliminates the race where
+#     hypridle's on-resume re-enables a closed panel on mouse activity.
+#     Polling is the only reliable lid channel on firmware that does
 #     not fire ACPI Notify(LID).
 #   - udev rules: USB autosuspend, NVMe scheduler tuning,
 #     XHCI/I2C wakeup disable to prevent spurious wake-from-suspend.
@@ -35,28 +39,39 @@
   closeHook = pkgs.writeShellScript "lid-monitor-close-hook" (lib.concatStringsSep "\n" cfg.onClose);
   openHook = pkgs.writeShellScript "lid-monitor-open-hook" (lib.concatStringsSep "\n" cfg.onOpen);
 
-  # Lid-state polling loop. Reads /proc/acpi/button/lid/LID0/state every
-  # 200 ms and blanks/unblanks the internal panel on edge transitions
-  # only. Initial state read primes `prev` so we never fire actions on
-  # service startup.
+  # Lid-state + idle-flag polling loop. Reads /proc/acpi/button/lid/
+  # LID0/state every 200 ms and checks $XDG_RUNTIME_DIR/hyprland-idle
+  # (set by hypridle after 5 min inactivity on battery, cleared on any
+  # input activity). Blanks when lid closed OR idle flag exists; restores
+  # only when both are clear. This makes lid-monitor the single owner of
+  # display blanking state — hypridle never calls hyprctl directly,
+  # eliminating the race where on-resume re-enables a closed panel.
   #
-  # Two blanking strategies, selected by `hardware.laptop.lidMonitor.blanking`:
+  # Hooks (onClose/onOpen) fire on lid-edge transitions only, never on
+  # idle-flag changes. Initial lid state read primes `prev_lid` so hooks
+  # don't fire on service startup. The `blanked` flag prevents redundant
+  # DPMS/backlight commands on every poll iteration.
   #
-  #   "backlight" (default): brightnessctl set 0 / restore. No DRM
-  #     modeset, no eDP link retrain, no cursor plane teardown. Instant
-  #     on/off, cursor stays put. Cost: panel stays powered (~0.5-1W
-  #     higher than DPMS off). This is what GNOME/KDE do for lid-close
-  #     "Screen Blank" — backlight-only, bypassing DRM entirely.
+  # Three blanking strategies, selected by `hardware.laptop.lidMonitor.blanking`:
+  #
+  #   "dpms" (default): hyprctl dispatch dpms off/on. Full DRM modeset
+  #     on re-enable (amdgpu DC stream teardown + link training = 2-3s
+  #     lag). Hyprland warps cursor to default on single-output
+  #     re-enable. Lowest power (panel + link powered down).
+  #
+  #   "backlight": brightnessctl set 0 / restore. No DRM modeset, no
+  #     eDP link retrain, no cursor plane teardown. Instant on/off,
+  #     cursor stays put. Cost: panel stays powered (~0.5-1W higher
+  #     than DPMS off). May not fully black the panel (residual glow).
   #     Research: 2026-06-18-wayland-lid-dpms-real-behavior, §3-4.
   #
-  #   "dpms": hyprctl dispatch dpms off/on. Full DRM modeset on re-enable
-  #     (amdgpu DC stream teardown + link training = 2-3s lag). Hyprland
-  #     warps cursor to default on single-output re-enable. Kept as a
-  #     specialisation for fallback if backlight proves unsuitable.
+  #   "disable": hyprctl keyword monitor eDP-1 disable. Compositor
+  #     removes output from layout, full modeset on re-enable. Cursor
+  #     and windows may shift. Kept as a specialisation fallback.
   #
   # Why polling rather than acpi_listen/inotify:
-  #   - acpid: depends on firmware firing Notify(LID, 0x80). Emdoor N155A
-  #     does NOT fire it on every transition. Lost events = stuck DPMS.
+  #   - acpid: depends on firmware firing Notify(LID, 0x80). Emdoor
+  #     N155A does NOT fire it on every transition. Lost events = stuck.
   #   - inotify: /proc is synthesised — inotify never triggers on it.
   #   - polling: cheap at 5 Hz, guaranteed to catch every state.
   lidMonitorScript = pkgs.writeShellScript "lid-monitor" ''
@@ -67,62 +82,75 @@
     OPEN_HOOK=${openHook}
     BLANKING="${cfg.blanking}"
     STATE_FILE="''${XDG_RUNTIME_DIR:-/tmp}/lid-state"
+    IDLE_FLAG="''${XDG_RUNTIME_DIR:-/tmp}/hyprland-idle"
 
     if [ ! -r "$LID" ]; then
       echo "lid-monitor: $LID unreadable, exiting" >&2
       exit 1
     fi
 
-    # Prime previous state so the first iteration does not fire actions.
-    read -r _ prev < "$LID"
+    # Prime previous lid state so hooks don't fire on startup.
+    read -r _ prev_lid < "$LID"
+    blanked=false
 
     while sleep 0.2; do
-      read -r _ state < "$LID" || continue
-      if [ "$state" != "$prev" ]; then
-        case "$state" in
-          closed)
-            case "$BLANKING" in
-              disable)
-                # Compositor removes eDP-1 from layout. Workspaces
-                # stay in memory; on single-output there's nowhere to
-                # evacuate, so they return on re-enable.
-                "$HYPRCTL" keyword monitor "eDP-1, disable" || true
-                ;;
-              backlight)
-                # Save current brightness, then dim to 0. No DRM modeset.
-                "$BRIGHTNESSCTL" -d amdgpu_bl1 -s get > "$STATE_FILE" 2>/dev/null || true
-                "$BRIGHTNESSCTL" -d amdgpu_bl1 set 0 2>/dev/null || true
-                ;;
-              dpms)
-                "$HYPRCTL" dispatch dpms off eDP-1 || true
-                ;;
-            esac
-            "$CLOSE_HOOK" || true
+      read -r _ lid < "$LID" || continue
+
+      # Idle flag is set by hypridle after 5 min inactivity on battery,
+      # cleared on any input activity. lid-monitor is the sole owner of
+      # DPMS/backlight state — hypridle never calls hyprctl directly.
+      idle=no
+      [ -f "$IDLE_FLAG" ] && idle=yes
+
+      # Blank if lid closed OR idle. Restore only when both are clear.
+      want_blank=false
+      [ "$lid" = "closed" ] && want_blank=true
+      [ "$idle" = "yes" ] && want_blank=true
+
+      # Fire lid-edge hooks only on actual lid state transitions.
+      if [ "$lid" != "$prev_lid" ]; then
+        case "$lid" in
+          closed) "$CLOSE_HOOK" || true ;;
+          open) "$OPEN_HOOK" || true ;;
+        esac
+      fi
+
+      # Apply blanking state transitions.
+      if [ "$want_blank" = true ] && [ "$blanked" = false ]; then
+        case "$BLANKING" in
+          disable)
+            "$HYPRCTL" keyword monitor "eDP-1, disable" || true
             ;;
-          open)
-            "$OPEN_HOOK" || true
-            case "$BLANKING" in
-              disable)
-                # Re-enable eDP-1 with its native mode + scale.
-                "$HYPRCTL" keyword monitor "eDP-1, 2880x1800@120, 0x0, 1.8" || true
-                ;;
-              backlight)
-                # Restore saved brightness. Instant — no modeset, no lag.
-                if [ -r "$STATE_FILE" ]; then
-                  "$BRIGHTNESSCTL" -d amdgpu_bl1 -r 2>/dev/null || true
-                  rm -f "$STATE_FILE"
-                else
-                  "$BRIGHTNESSCTL" -d amdgpu_bl1 set 50% 2>/dev/null || true
-                fi
-                ;;
-              dpms)
-                "$HYPRCTL" dispatch dpms on eDP-1 || true
-                ;;
-            esac
+          backlight)
+            "$BRIGHTNESSCTL" -d amdgpu_bl1 -s get > "$STATE_FILE" 2>/dev/null || true
+            "$BRIGHTNESSCTL" -d amdgpu_bl1 set 0 2>/dev/null || true
+            ;;
+          dpms)
+            "$HYPRCTL" dispatch dpms off eDP-1 || true
             ;;
         esac
-        prev="$state"
+        blanked=true
+      elif [ "$want_blank" = false ] && [ "$blanked" = true ]; then
+        case "$BLANKING" in
+          disable)
+            "$HYPRCTL" keyword monitor "eDP-1, 2880x1800@120, 0x0, 1.8" || true
+            ;;
+          backlight)
+            if [ -r "$STATE_FILE" ]; then
+              "$BRIGHTNESSCTL" -d amdgpu_bl1 -r 2>/dev/null || true
+              rm -f "$STATE_FILE"
+            else
+              "$BRIGHTNESSCTL" -d amdgpu_bl1 set 50% 2>/dev/null || true
+            fi
+            ;;
+          dpms)
+            "$HYPRCTL" dispatch dpms on eDP-1 || true
+            ;;
+        esac
+        blanked=false
       fi
+
+      prev_lid="$lid"
     done
   '';
 
@@ -220,7 +248,7 @@ in {
     boot.kernelParams = ["button.lid_init_state=ignore"];
 
     systemd.user.services.lid-monitor = {
-      description = "Poll /proc/acpi lid state and drive Hyprland DPMS";
+      description = "Poll lid state + idle flag, sole owner of display blanking";
       after = ["graphical-session.target"];
       partOf = ["graphical-session.target"];
       wantedBy = ["graphical-session.target"];

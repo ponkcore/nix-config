@@ -67,6 +67,8 @@ modules/
     gpu/amd.nix              amdgpu, Mesa, VAAPI, VDPAU bridge
     form-factor/laptop.nix   power-profiles-daemon, lid handling, USB
                              autosuspend, NVMe scheduler, lid-monitor user svc
+                             (sole owner of display blanking — polls lid
+                             state + idle flag from hypridle)
 home/                        Home Manager modules (per-user config)
 theme/                       Wayland theme bundle (palette via _module.args.p)
 pkgs/                        Local package derivations (overlay)

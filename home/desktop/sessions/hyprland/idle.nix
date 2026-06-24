@@ -1,39 +1,40 @@
 # idle.nix — Hyprland idle manager (hypridle).
 #
+# Architecture: hypridle is reduced to an idle SIGNAL generator + lock/
+# sleep hooks. It does NOT call hyprctl dispatch dpms directly. Instead,
+# the idle listener touches/clears a flag file ($XDG_RUNTIME_DIR/
+# hyprland-idle) that the lid-monitor service polls every 200 ms.
+# lid-monitor is the sole owner of DPMS/backlight state, which
+# eliminates the race where hypridle's on-resume re-enables a closed
+# panel on mouse activity.
+#
 # Policy:
 #   - lock on sleep (before_sleep_cmd)
-#   - idle-driven DPMS off, but ONLY on battery. On AC the screen
-#     never blanks on a timer. Driven by the `on-battery` helper from
-#     the laptop form-factor profile: `on-battery` exits 0 when on
-#     battery, so `on-battery && <blank>` only fires unplugged.
+#   - idle flag set after 5 min on battery, cleared on any input
 #   - never idle-suspend: the laptop only sleeps on lid close (handled
 #     by logind/Hyprland bindl, not here).
+#   - after_sleep_cmd removed: lid-monitor handles post-resume display
+#     state via its normal poll cycle (lid open + no idle flag → dpms on).
 #
-# DPMS targets eDP-1 explicitly rather than a bare `dpms off`. A bare
-# blank would also turn off any external monitor that happens to be
-# plugged in; eDP-1 is always the internal panel on this host.
-{
-  pkgs,
-  on-battery,
-  ...
-}: let
-  # 5 min idle on battery → blank eDP-1; restore on activity.
-  dpmsOff = "${on-battery}/bin/on-battery && ${pkgs.hyprland}/bin/hyprctl dispatch dpms off eDP-1";
-  dpmsOn = "${pkgs.hyprland}/bin/hyprctl dispatch dpms on eDP-1";
+# Research: 2026-06-25-lid-blanking-hyprland, Design 3.
+{on-battery, ...}: let
+  # Flag file polled by lid-monitor. On battery only — on AC the
+  # on-battery helper exits 1 and the flag is never created, so
+  # lid-monitor never sees an idle state on AC.
+  idleFlag = "\${XDG_RUNTIME_DIR:-/tmp}/hyprland-idle";
 in {
   services.hypridle = {
     enable = true;
     settings = {
       general = {
         lock_cmd = "pidof hyprlock || hyprlock";
-        before_sleep_cmd = "loginctl lock-session";
-        after_sleep_cmd = "hyprctl dispatch dpms on";
+        before_sleep_cmd = "loginctl lock-session; rm -f ${idleFlag}";
       };
       listener = [
         {
           timeout = 300;
-          on-timeout = dpmsOff;
-          on-resume = dpmsOn;
+          on-timeout = "${on-battery}/bin/on-battery && touch ${idleFlag}";
+          on-resume = "rm -f ${idleFlag}";
         }
       ];
     };
