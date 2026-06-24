@@ -138,6 +138,19 @@
       local data_dir="$DATA_ROOT/$name"
       mkdir -p "$data_dir"
 
+      # Enable DNS-over-HTTPS via Local State file.
+      # --doh-url flag doesn't work in ungoogled-chromium, but the
+      # Local State JSON file is read on every launch and controls
+      # DoH settings. "secure" mode = DoH only, no system DNS fallback.
+      local state_file="$data_dir/Local State"
+      if [ -f "$state_file" ]; then
+        ${pkgs.jq}/bin/jq '.dns_over_https = {mode: "secure", templates: "https://1.1.1.1/dns-query"}' \
+          "$state_file" > "$state_file.tmp" && mv "$state_file.tmp" "$state_file"
+      else
+        printf '{"dns_over_https":{"mode":"secure","templates":"https://1.1.1.1/dns-query"}}\n' \
+          > "$state_file"
+      fi
+
       if [ -n "''${FINGERPRINT_CHROMIUM_PROXY_ENV_FILE:-}" ]; then
         # shellcheck disable=SC1090
         . "$FINGERPRINT_CHROMIUM_PROXY_ENV_FILE"
