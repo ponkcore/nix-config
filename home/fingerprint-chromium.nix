@@ -17,6 +17,7 @@
 
     # ── helpers ────────────────────────────────────────────────────────
     load_profiles() {
+      mkdir -p "$(dirname "$PROFILES_FILE")"
       if [ ! -f "$PROFILES_FILE" ]; then
         printf '{"profiles":{}}\n' > "$PROFILES_FILE"
       fi
