@@ -84,7 +84,7 @@
             continue
             ;;
         esac
-        if get_profile "$name" >/dev/null 2>&1; then
+        if [ -n "$(get_profile "$name")" ]; then
           $ROFI -e "profile '$name' already exists" -theme palette
           continue
         fi
