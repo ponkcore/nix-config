@@ -344,6 +344,39 @@ Adjust in `modules/nixos/nix.nix` if you want a different window.
 
 ### Periodic timers (already running)
 
+### fingerprint-chromium spike
+
+The experimental Donut replacement candidate is installed with an
+imperative profile manager. Donut remains available while this is
+validated. Profiles are created/deleted at runtime — no rebuild needed.
+
+```fish
+fp list                          # list profiles
+fp create                        # rofi: name → platform → random seed
+fp launch shop-01                # launch by name
+fp validate shop-01              # open fingerprint test sites
+fp delete shop-01                # remove profile + data
+```
+
+Or use the rofi launcher (Super+D → "Fingerprint Chromium"):
+the picker shows all profiles plus a "➕ Create profile..." option.
+
+Profile definitions (seed, platform, timezone, etc.) are stored in:
+
+```text
+~/.config/fingerprint-chromium/profiles.json
+```
+
+Mutable browser data (cookies, cache, extensions) lives in:
+
+```text
+~/.local/share/fingerprint-chromium/<profile>/
+```
+
+Proxy credentials must stay outside Nix: set
+`FINGERPRINT_CHROMIUM_PROXY_SERVER` or point
+`FINGERPRINT_CHROMIUM_PROXY_ENV_FILE` at a runtime secret file.
+
 | Timer | What | When |
 |-------|------|------|
 | `nix-gc.timer` | weekly GC | Mon 00:00 |

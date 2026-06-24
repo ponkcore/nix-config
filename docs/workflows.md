@@ -66,7 +66,37 @@ See `docs/handbook.md` §2 — full decision flow with examples.
 
 ---
 
-## 3. Add or rotate a secret
+## 3. Validate fingerprint-chromium spike
+
+After `rebuild-test`, create a test profile and validate:
+
+```sh
+fp create          # rofi: enter name → select platform
+fp list            # verify it appears
+fp validate <name> # opens CreepJS, BrowserScan, PixelScan, BrowserLeaks, Sannysoft, Fingerprint.com
+```
+
+Acceptance checks:
+
+1. Browser starts on Wayland without falling back to a broken XWayland window.
+2. Two profiles with different seeds produce different Canvas/WebGL/Audio
+   fingerprints on CreepJS / BrowserLeaks.
+3. Relaunching the same profile keeps the same fingerprint values.
+4. BrowserLeaks WebRTC does not expose the local IP.
+5. BrowserScan does not mark Canvas as anthropogenic noise, or the finding
+   is explicitly accepted as a known blocker before replacing Donut.
+
+Proxy credentials stay out of Nix. For a proxy test, put the runtime value in
+an agenix-owned env file and launch with:
+
+```sh
+FINGERPRINT_CHROMIUM_PROXY_ENV_FILE=/run/agenix/<name> \
+  fp launch <profile>
+```
+
+---
+
+## 4. Add or rotate a secret
 
 ### New secret
 ```sh
@@ -120,7 +150,7 @@ git -C /etc/nixos commit -m "chore(secrets): re-encrypt for <new key>"
 
 ---
 
-## 4. Add a new host
+## 5. Add a new host
 
 See `docs/handbook.md` §5 — installation steps from boot USB to
 working system in ~10 minutes.
@@ -139,7 +169,7 @@ to pick up the re-encrypted secrets.
 
 ---
 
-## 5. Update flake inputs
+## 6. Update flake inputs
 
 ```sh
 # Update everything:
@@ -157,7 +187,7 @@ git -C /etc/nixos commit -am "chore(flake): update flake.lock"
 
 ---
 
-## 6. Roll back a broken change
+## 7. Roll back a broken change
 
 ### Without rebooting
 ```sh
@@ -174,7 +204,7 @@ nix store diff-closures /run/booted-system /run/current-system
 
 ---
 
-## 7. Free disk space
+## 8. Free disk space
 
 ```sh
 gc                                                       # fish alias
@@ -188,7 +218,7 @@ so this is for "I need space NOW" cases.
 
 ---
 
-## 8. Investigate a regression
+## 9. Investigate a regression
 
 ```sh
 # 1. Boot timing
@@ -210,7 +240,7 @@ nix store diff-closures /nix/var/nix/profiles/system-{N-1}-link \
 
 ---
 
-## 9. Pair a new device for sync
+## 10. Pair a new device for sync
 
 See `docs/handbook.md` §3 Layer 3 — Syncthing first-time pairing.
 
@@ -224,7 +254,7 @@ Short version:
 
 ---
 
-## 10. Recover after a force-shutdown / power loss
+## 11. Recover after a force-shutdown / power loss
 
 NixOS ext4 with `commit=60` may lose up to a minute of writes on hard
 power-loss. The system itself is fine; user data may have a few seconds
@@ -246,7 +276,7 @@ If `/boot` (vfat) needs fsck, the kernel will say so — boot via USB,
 
 ---
 
-## 11. Investigate "is anything leaking"
+## 12. Investigate "is anything leaking"
 
 ```sh
 # Memory leaks in user processes
