@@ -2,7 +2,7 @@
 
 > Repository: ponkcore's portable NixOS flake.
 > Audience: any LLM-based coding agent reading this repo as context
-> (opencode, claude code, codex, goose, cursor, future tools).
+> (Letta Code, opencode, OMO, claude code, codex, goose, cursor, future tools).
 >
 > This file is the contract. Read it fully before making changes.
 
@@ -58,9 +58,10 @@ modules/
     tailscale.nix            Tailscale (manual start, conflicts with throne TUN)
     virtualisation.nix       libvirt + qemu_kvm
     desktop/                 Wayland desktop stack
-      default.nix
-      hyprland.nix           Hyprland + UWSM + quiet wrappers + portals
-      display.nix            greetd + nwg-hello (sway Wayland kiosk)
+      default.nix            Session/greeter dispatcher
+      common.nix             Portals, polkit, common Wayland env
+      greeter/greetd.nix     greetd + nwg-hello inside sway Wayland kiosk
+      sessions/hyprland.nix  Hyprland + UWSM + quiet wrappers + portals
   hardware/                  Opt-in hardware-class profiles
     cpu/amd.nix              amd_pstate, microcode, kvm-amd, IOMMU
     gpu/amd.nix              amdgpu, Mesa, VAAPI, VDPAU bridge
@@ -70,6 +71,7 @@ home/                        Home Manager modules (per-user config)
 theme/                       Wayland theme bundle (palette via _module.args.p)
 pkgs/                        Local package derivations (overlay)
 secrets/                     agenix-encrypted secrets + secrets.nix authorisation
+skills/                      Letta Code skills installed into ~/.letta/skills
 tests/                       nixosTests (flake.checks)
 docs/
   architecture.md            System map for humans
@@ -134,13 +136,20 @@ sudo nixos-rebuild switch --flake /etc/nixos#lecoo --show-trace 2>&1 | tail -80
 ```
 
 ### Add a new application
-1. Check `nix search nixpkgs#<name>`.
+1. Verify the package/option name before editing. Letta Code agents use
+   `nixos-options` first (`nixos_info` / `nixos_search`); other agents
+   fall back to `nix search nixpkgs <name>` if they have no MCP/skill
+   access. Do not guess attribute or option paths.
 2. If present:
    - System-wide: add to `modules/nixos/packages.nix`.
    - Per-user with HM module: create or extend `home/<name>.nix`.
+   - Per-user without HM module: create a small `home/<name>.nix` that
+     adds the package to `home.packages`, then import it from
+     `home/default.nix`.
 3. If absent in nixpkgs but available via NUR: use `pkgs.nur.repos.<...>`.
-4. If only as binary/AppImage: create `pkgs/<name>/default.nix`,
-   register in `pkgs/default.nix` overlay.
+4. If only as binary/AppImage/prebuilt archive: create
+   `pkgs/<name>/default.nix`, register it in `pkgs/default.nix`, and
+   document non-obvious packaging traps in comments.
 5. Run the verification sequence (alejandra → statix → deadnix → nil → gitleaks → rebuild test).
 
 NEVER `nix-env -i`, `pip install --user`, `npm install -g`,
@@ -183,6 +192,20 @@ commit any plaintext key, and never hand-edit a `.age` file.
 6. Append the new host's SSH host pubkey to `secrets/secrets.nix`,
    re-encrypt all required `.age` files (`agenix -r`).
 7. `nixos-install --flake .#<name>`.
+
+## Documentation maintenance
+
+When a change affects workflows, commands, invariants, repository layout,
+agent contract, tool/runtime wiring, or anything described in `README.md`
+or this file, update `README.md` and/or `AGENTS.md` in the same change set
+before pushing.
+
+Also update narrower docs when applicable:
+- User-visible behaviour → `docs/handbook.md`.
+- Architecture or module graph → `docs/architecture.md`.
+- Code style or Git rules → `docs/conventions.md`.
+- Step-by-step procedures → `docs/workflows.md`.
+- Module-level reasoning → the header comment of the relevant `.nix` file.
 
 ## Boundaries
 

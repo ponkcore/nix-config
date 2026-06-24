@@ -188,6 +188,9 @@ When you change behaviour:
 
 - User-visible? Update `docs/handbook.md`.
 - Architectural shift? Update `docs/architecture.md`.
+- Workflow, command, invariant, repository layout, agent contract, or
+  runtime wiring changed? Update `README.md` and/or `AGENTS.md` in the
+  same change set before pushing.
 - Module-level reasoning? Add or extend the header comment of the
   relevant `.nix` file (3-5 lines explaining purpose, scope, and any
   non-obvious decision).

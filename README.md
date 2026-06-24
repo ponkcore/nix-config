@@ -42,13 +42,14 @@ hardware profiles to import, run `nixos-install`. That's it.
 - **Custom Lecoo EC daemon** — fan curves, charge thresholds via the
   ITE IT5571 Super-I/O chip.
 - **Aggressive boot quieting** — Plymouth abstract_ring theme on the
-  internal eDP panel, systemd quiet flags, sway-kiosk hosting
-  nwg-hello as the greeter.
+  internal eDP panel, systemd quiet flags, and greetd running
+  nwg-hello inside a sway Wayland kiosk.
 - **Reaper timers** — donut-proxy zombies (15-min sweep), HM-backup
   files (weekly purge).
 - **Sysctl hardening pass** — `kexec_load_disabled`, redirect/source-
   route refusal, strict rp_filter, log_martians, tcp_rfc1337, etc.
-- **AI dev stack** — opencode, Devin CLI, Windsurf — with API keys
+- **AI agent stack** — Letta Code (`talos`), opencode, OMO
+  (`opencode` + oh-my-openagent), and Antigravity CLI, with API keys
   managed declaratively via agenix.
 
 ## Stack
@@ -56,7 +57,7 @@ hardware profiles to import, run `nixos-install`. That's it.
 | Concern | Choice |
 |---------|--------|
 | Compositor | Hyprland (UWSM) |
-| Display manager | greetd + nwg-hello (sway Wayland kiosk) |
+| Display manager | greetd + nwg-hello inside sway Wayland kiosk |
 | Status bar | Waybar |
 | Notifications | mako |
 | Launcher | rofi |
@@ -65,7 +66,7 @@ hardware profiles to import, run `nixos-install`. That's it.
 | Wallpaper | hyprpaper |
 | Terminal | Ghostty |
 | Shell | fish + starship |
-| Editor | Neovim 0.11 (lazy.nvim, native LSP) |
+| Editor | Neovim 0.11 (nixpkgs-pinned plugins, native LSP) |
 | File manager | Nautilus (GUI) + yazi (TUI) |
 | Browser | Firefox (Arkenfox + NUR addons) |
 | Audio | PipeWire + WirePlumber |
@@ -76,6 +77,8 @@ hardware profiles to import, run `nixos-install`. That's it.
 | Mesh VPN | Tailscale (manual start) |
 | Secrets | agenix |
 | Password vault | KeePassXC + Syncthing |
+| Sysadmin agent | Letta Code (`talos`) |
+| Coding agents | opencode, OMO (`omo`), Antigravity CLI |
 
 ## Repository layout
 
@@ -95,6 +98,8 @@ home/                    Home Manager modules (per-user config)
 theme/                   Wayland theme bundle (palette consumers)
 pkgs/                    Local package derivations + overlay
 secrets/                 agenix-encrypted secrets + authorisation map
+skills/                  Letta Code skill files installed into ~/.letta/skills
+tests/                   nixosTests exposed through flake checks
 docs/
   architecture.md        System map for humans
   handbook.md            Daily ops & how-tos
@@ -142,6 +147,9 @@ rebuild                  # apply changes
 rebuild-test             # try without committing to a boot entry
 gc                       # collect old generations
 flu                      # nix flake update
+talos                    # Letta Code sysadmin agent in talos-brain
+talos system <prompt>    # Letta Code sysadmin agent in /etc/nixos
+omo                      # opencode with oh-my-openagent plugin
 ```
 
 ```sh
@@ -161,8 +169,8 @@ Conventional Commits, five pre-commit hooks (alejandra, statix,
 deadnix, nil, gitleaks), `nixos-rebuild test` before `switch`.
 Full rules: [`docs/conventions.md`](docs/conventions.md).
 
-For LLM agents (opencode / claude code / cursor / etc.) operating on
-this repo: read [`AGENTS.md`](AGENTS.md) first.
+For LLM agents (Letta Code / opencode / OMO / claude code / cursor /
+etc.) operating on this repo: read [`AGENTS.md`](AGENTS.md) first.
 
 ## License
 
