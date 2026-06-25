@@ -373,9 +373,17 @@ Mutable browser data (cookies, cache, extensions) lives in:
 ~/.local/share/fingerprint-chromium/<profile>/
 ```
 
-Proxy credentials must stay outside Nix: set
-`FINGERPRINT_CHROMIUM_PROXY_SERVER` or point
+The launcher auto-detects Throne's SOCKS proxy on `127.0.0.1:2080`
+and routes all traffic through it. DoH (Cloudflare 1.1.1.1, "secure"
+mode) is set via Local State to prevent DNS-level geolocation leaks.
+Together these ensure neither DNS nor TCP reveals the real IP.
+
+For a custom proxy, set `FINGERPRINT_CHROMIUM_PROXY_SERVER` or point
 `FINGERPRINT_CHROMIUM_PROXY_ENV_FILE` at a runtime secret file.
+Override the auto-detected port with
+`FINGERPRINT_CHROMIUM_SOCKS_PORT=<port>`.
+Set `FINGERPRINT_CHROMIUM_NO_PROXY=1` to skip auto-detection and
+connect directly (not recommended for anti-detect use).
 
 | Timer | What | When |
 |-------|------|------|

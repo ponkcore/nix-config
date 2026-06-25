@@ -156,6 +156,26 @@
         . "$FINGERPRINT_CHROMIUM_PROXY_ENV_FILE"
       fi
 
+      # ── proxy auto-detection ──────────────────────────────────────
+      # Chromium does NOT inherit system proxy settings on Linux.
+      # Without an explicit --proxy-server, all TCP connections go
+      # direct, leaking the real IP — DoH only hides DNS-level
+      # geolocation, not the connection source.  We auto-detect
+      # Throne's SOCKS proxy (127.0.0.1:2080 by default, configurable
+      # via FINGERPRINT_CHROMIUM_SOCKS_PORT) and route through it.
+      # Override with FINGERPRINT_CHROMIUM_PROXY_SERVER for a custom
+      # proxy; set FINGERPRINT_CHROMIUM_NO_PROXY=1 to skip entirely.
+      if [ -z "''${FINGERPRINT_CHROMIUM_PROXY_SERVER:-}" ] && [ -z "''${FINGERPRINT_CHROMIUM_NO_PROXY:-}" ]; then
+        local socks_port="''${FINGERPRINT_CHROMIUM_SOCKS_PORT:-2080}"
+        if ${pkgs.coreutils}/bin/timeout 1 \
+          bash -c 'exec 3<>"/dev/tcp/127.0.0.1/'"$socks_port"'"' 2>/dev/null; then
+          export FINGERPRINT_CHROMIUM_PROXY_SERVER="socks5://127.0.0.1:$socks_port"
+          printf 'auto-detected SOCKS proxy on port %s\n' "$socks_port" >&2
+        else
+          printf 'WARNING: no proxy on 127.0.0.1:%s — traffic will use your real IP\n' "$socks_port" >&2
+        fi
+      fi
+
       set -- \
         --user-data-dir="$data_dir" \
         --fingerprint="$seed" \
@@ -170,7 +190,13 @@
         "$@"
 
       if [ -n "''${FINGERPRINT_CHROMIUM_PROXY_SERVER:-}" ]; then
-        set -- --proxy-server="$FINGERPRINT_CHROMIUM_PROXY_SERVER" "$@"
+        # --disable-quic: SOCKS5 in Chrome does not tunnel UDP, so
+        # QUIC would fail and fall back to TCP with extra latency.
+        # Disabling upfront avoids the retry round-trip.
+        set -- \
+          --proxy-server="$FINGERPRINT_CHROMIUM_PROXY_SERVER" \
+          --disable-quic \
+          "$@"
       fi
 
       exec "$BROWSER" "$@"
