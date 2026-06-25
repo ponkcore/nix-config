@@ -238,15 +238,18 @@
 
           # ── screen resolution: seed-derived, platform-appropriate ──────
           local resolutions scr_w scr_h scr_dpr
+          # ── screen resolution: seed-derived, platform-appropriate ──────
+          # All spoofed widths MUST be >= the real CSS viewport width
+          # (1600 on this eDP at scale 1.80).  If screen.width <
+          # window.innerWidth, fingerprinting scripts detect the mismatch.
+          local resolutions scr_w scr_h scr_dpr
           case "$platform" in
             windows)
               resolutions="1920 1080 1.0
     2560 1440 1.0
-    1536 864 1.25
     3840 2160 1.5" ;;
             macos)
-              resolutions="1440 900 2.0
-    1680 1050 2.0
+              resolutions="1680 1050 2.0
     2560 1600 2.0" ;;
             linux)
               resolutions="1920 1080 1.0
