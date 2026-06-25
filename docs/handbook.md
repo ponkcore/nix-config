@@ -370,9 +370,13 @@ are stored in:
 
 Each profile includes a `colorScheme` field (`"light"` or `"dark"`,
 default `"light"`) that controls the `prefers-color-scheme` CSS
-media query via `--blink-settings=preferredColorScheme`. This
-prevents the browser from leaking the real system's dark theme to
-websites. Existing profiles without the field default to `"light"`.
+media query. The launcher also spoofs `prefers-reduced-motion`,
+`screen.width`, `screen.height`, and `window.devicePixelRatio` via
+`--blink-settings` — all derived from the profile seed and
+platform. These override the JS-visible values without affecting
+actual rendering: the browser renders at the real resolution, but
+fingerprinting scripts see common platform-appropriate values.
+Existing profiles without the field default to `"light"`.
 
 Mutable browser data (cookies, cache, extensions) lives in:
 
