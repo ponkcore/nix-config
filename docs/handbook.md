@@ -344,6 +344,38 @@ Adjust in `modules/nixos/nix.nix` if you want a different window.
 
 ### Periodic timers (already running)
 
+### CloakBrowser (stealth Chromium, C++ patches)
+
+CloakBrowser is a Chromium fork with 58 source-level C++ patches
+covering canvas, WebGL, audio, fonts, GPU, screen, WebRTC,
+navigator.deviceMemory, navigator.webdriver, plugins, window.chrome,
+TLS fingerprint, and CDP detection. It is the primary anti-detect
+browser. fingerprint-chromium remains as a secondary option.
+
+```fish
+cb list                          # list profiles
+cb create                        # rofi: name → platform → random seed
+cb launch shop-01                # launch by name
+cb validate shop-01              # open fingerprint test sites
+cb delete shop-01                # remove profile + data
+```
+
+Or use the rofi launcher (Super+D → "CloakBrowser"):
+the picker shows all profiles plus a "➕ Create profile..." option.
+
+Profile definitions (seed, platform, timezone, colorScheme, etc.)
+are stored in:
+
+```text
+~/.config/cloakbrowser/profiles.json
+```
+
+Mutable browser data (cookies, cache, extensions) lives in:
+
+```text
+~/.local/share/cloakbrowser/<profile>/
+```
+
 ### fingerprint-chromium spike
 
 The experimental Donut replacement candidate is installed with an

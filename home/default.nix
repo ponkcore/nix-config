@@ -52,6 +52,7 @@ in {
       ./qt.nix
       ./donutbrowser.nix
       ./fingerprint-chromium.nix
+      ./cloakbrowser.nix
       ./chromium.nix
       ./antigravity.nix
 

@@ -111,6 +111,7 @@
   (final: _prev: {
     donutbrowser = final.callPackage ./donutbrowser {};
     fingerprint-chromium = final.callPackage ./fingerprint-chromium {};
+    cloakbrowser = final.callPackage ./cloakbrowser {};
     orbit = final.callPackage ./orbit {};
     antigravity-cli = final.callPackage ./antigravity-cli {};
     oh-my-pi = final.callPackage ./oh-my-pi {};
