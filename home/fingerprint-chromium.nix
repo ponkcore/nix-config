@@ -29,7 +29,7 @@
     }
 
     save_profile() {
-      local name="$1" seed="$2" platform="$3" brand="$4" timezone="$5" lang="$6" acceptLang="$7"
+      local name="$1" seed="$2" platform="$3" brand="$4" timezone="$5" lang="$6" acceptLang="$7" colorScheme="$8"
       mkdir -p "$(dirname "$PROFILES_FILE")"
       local tmpfile
       tmpfile=$(mktemp)
@@ -41,13 +41,15 @@
         --arg tz "$timezone" \
         --arg l "$lang" \
         --arg al "$acceptLang" \
+        --arg cs "$colorScheme" \
         '.profiles[$n] = {
           seed: $s,
           platform: $p,
           brand: $b,
           timezone: $tz,
           lang: $l,
-          acceptLang: $al
+          acceptLang: $al,
+          colorScheme: $cs
         }' "$PROFILES_FILE" > "$tmpfile"
       mv "$tmpfile" "$PROFILES_FILE"
     }
@@ -95,7 +97,7 @@
       [ -n "$platform" ] || exit 1
 
       seed=$(random_seed)
-      save_profile "$name" "$seed" "$platform" "Chrome" "UTC" "en-US" "en-US,en"
+      save_profile "$name" "$seed" "$platform" "Chrome" "UTC" "en-US" "en-US,en" "light"
       mkdir -p "$DATA_ROOT/$name"
       printf 'created profile "%s" (seed=%s platform=%s)\n' "$name" "$seed" "$platform" >&2
       printf '%s\n' "$name"
@@ -127,13 +129,17 @@
         printf 'unknown profile: %s\n' "$name" >&2
         exit 64
       fi
-      local seed platform brand timezone lang acceptLang
+      local seed platform brand timezone lang acceptLang colorScheme
       seed=$(    printf '%s\n' "$p" | ${pkgs.jq}/bin/jq -r '.seed')
       platform=$(printf '%s\n' "$p" | ${pkgs.jq}/bin/jq -r '.platform')
       brand=$(   printf '%s\n' "$p" | ${pkgs.jq}/bin/jq -r '.brand')
       timezone=$(printf '%s\n' "$p" | ${pkgs.jq}/bin/jq -r '.timezone')
       lang=$(    printf '%s\n' "$p" | ${pkgs.jq}/bin/jq -r '.lang')
       acceptLang=$(printf '%s\n' "$p" | ${pkgs.jq}/bin/jq -r '.acceptLang')
+      # colorScheme: default to "light" for profiles created before this
+      # field existed.  "light" breaks correlation with the real system
+      # (which is dark) — better for anti-detect.
+      colorScheme=$(printf '%s\n' "$p" | ${pkgs.jq}/bin/jq -r '.colorScheme // "light"')
 
       local data_dir="$DATA_ROOT/$name"
       mkdir -p "$data_dir"
@@ -197,6 +203,20 @@
         fi
       fi
 
+      # ── color scheme override ──────────────────────────────────────
+      # Chromium on Linux reads prefers-color-scheme from the Freedesktop
+      # portal (org.freedesktop.appearance.color-scheme), which reflects
+      # the real system theme (dark on this host).  --blink-settings
+      # overrides the media query per-process without changing rendering
+      # or affecting other applications.  "Light" breaks correlation with
+      # the real system; "Dark" matches it.
+      local blink_scheme
+      case "$colorScheme" in
+        dark|Dark)  blink_scheme="Dark"  ;;
+        light|Light) blink_scheme="Light" ;;
+        *)          blink_scheme="Light" ;;
+      esac
+
       set -- \
         --user-data-dir="$data_dir" \
         --fingerprint="$seed" \
@@ -205,6 +225,7 @@
         --timezone="$timezone" \
         --lang="$lang" \
         --accept-lang="$acceptLang" \
+        --blink-settings="preferredColorScheme=$blink_scheme" \
         --no-first-run \
         --no-default-browser-check \
         --disable-features=Translate \

@@ -361,11 +361,18 @@ fp delete shop-01                # remove profile + data
 Or use the rofi launcher (Super+D → "Fingerprint Chromium"):
 the picker shows all profiles plus a "➕ Create profile..." option.
 
-Profile definitions (seed, platform, timezone, etc.) are stored in:
+Profile definitions (seed, platform, timezone, colorScheme, etc.)
+are stored in:
 
 ```text
 ~/.config/fingerprint-chromium/profiles.json
 ```
+
+Each profile includes a `colorScheme` field (`"light"` or `"dark"`,
+default `"light"`) that controls the `prefers-color-scheme` CSS
+media query via `--blink-settings=preferredColorScheme`. This
+prevents the browser from leaking the real system's dark theme to
+websites. Existing profiles without the field default to `"light"`.
 
 Mutable browser data (cookies, cache, extensions) lives in:
 
