@@ -289,6 +289,7 @@
             --accept-lang="$acceptLang" \
             --blink-settings="preferredColorScheme=$blink_scheme" \
             --force-prefers-no-reduced-motion \
+            --disable-quic \
             --no-first-run \
             --no-default-browser-check \
             --disable-features=Translate \
@@ -297,7 +298,6 @@
           if [ "$use_socks" -eq 1 ]; then
             set -- \
               --proxy-server="$FINGERPRINT_CHROMIUM_PROXY_SERVER" \
-              --disable-quic \
               "$@"
           fi
 
