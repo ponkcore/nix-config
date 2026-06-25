@@ -371,12 +371,16 @@ are stored in:
 Each profile includes a `colorScheme` field (`"light"` or `"dark"`,
 default `"light"`) that controls the `prefers-color-scheme` CSS
 media query. The launcher also spoofs `prefers-reduced-motion`,
-`screen.width`, `screen.height`, and `window.devicePixelRatio` via
-`--blink-settings` — all derived from the profile seed and
-platform. These override the JS-visible values without affecting
-actual rendering: the browser renders at the real resolution, but
-fingerprinting scripts see common platform-appropriate values.
-Existing profiles without the field default to `"light"`.
+`screen.width`, `screen.height`, `window.devicePixelRatio`, and
+`navigator.hardwareConcurrency` — all derived from the profile seed
+and platform, using fingerprint-chromium's own flags
+(`--fingerprint-screen-width/height`, `--fingerprint-device-scale-
+factor`, `--fingerprint-hardware-concurrency`) plus Chromium's
+`--force-prefers-no-reduced-motion` and `--blink-settings`. These
+override JS-visible values without affecting actual rendering.
+Known unspoofed leaks: `navigator.deviceMemory` (no flag, hardcoded
+in V8), WebGL unmasked renderer (fingerprint-chromium's spoof is
+incomplete on some test sites).
 
 Mutable browser data (cookies, cache, extensions) lives in:
 

@@ -203,23 +203,31 @@
             fi
           fi
 
-          # ── blink settings: spoof system-derived fingerprint leaks ────
-          # Chromium on Linux reads several system properties that
-          # fingerprint-chromium does NOT spoof by default.  We override
-          # them via --blink-settings, which changes the JS-visible values
-          # without affecting actual rendering — the browser renders at
-          # the real resolution, but JS sees spoofed values.
+          # ── spoof system-derived fingerprint leaks ───────────────────
+          # fingerprint-chromium spoofs Canvas, WebGL, Audio, fonts,
+          # WebRTC, UA/platform, timezone, and languages via --fingerprint.
+          # But it does NOT spoof several system-derived properties that
+          # leak the real machine identity.  We close those gaps with a
+          # combination of fingerprint-chromium's own flags, Chromium
+          # built-in flags, and blink-settings.
           #
-          # Spoofed properties:
-          #   preferredColorScheme   — Freedesktop portal → real dark theme
-          #   preferredReducedMotion — system accessibility setting
-          #   screenWidth/Height     — physical display in CSS pixels
-          #   deviceScaleFactor      — window.devicePixelRatio
+          # What we spoof (and how):
+          #   preferredColorScheme   — --blink-settings (real blink::Settings)
+          #   preferredReducedMotion — --force-prefers-no-reduced-motion
+          #   screen.width/height    — --fingerprint-screen-width/height
+          #   devicePixelRatio       — --fingerprint-device-scale-factor
+          #   hardwareConcurrency    — --fingerprint-hardware-concurrency
           #
-          # CSS media queries (@media device-width, min-resolution) are NOT
-          # affected by blink-settings — they use the real viewport.  This
-          # means site layouts render correctly at the real size, while JS
-          # fingerprinting sees the spoofed values.
+          # What we CANNOT spoof (no flag, requires source patching):
+          #   navigator.deviceMemory — hardcoded in V8, capped at 8
+          #   WebGL unmasked renderer — fingerprint-chromium spoof is
+          #     incomplete; real GPU (AMD Radeon 780M) leaks through
+          #     WEBGL_debug_renderer_info on some test sites
+          #
+          # Usability: fingerprint-chromium's screen flags change JS-visible
+          # values without affecting actual rendering.  The browser renders
+          # at the real resolution; only JS fingerprinting sees spoofed
+          # values.  Site layouts are unaffected.
 
           local blink_scheme
           case "$colorScheme" in
@@ -229,18 +237,13 @@
           esac
 
           # ── screen resolution: seed-derived, platform-appropriate ──────
-          # Values are in CSS pixels (what JS screen.width/height report).
-          # All widths are >= 1440 to avoid inconsistency with the real
-          # CSS viewport (1440 on this eDP at DPR 2).  screen.width must
-          # be >= window.innerWidth or a fingerprinting script can detect
-          # the mismatch.
           local resolutions scr_w scr_h scr_dpr
           case "$platform" in
             windows)
               resolutions="1920 1080 1.0
     2560 1440 1.0
     1536 864 1.25
-    3840 2160 1.0" ;;
+    3840 2160 1.5" ;;
             macos)
               resolutions="1440 900 2.0
     1680 1050 2.0
@@ -258,25 +261,31 @@
     $(printf '%s\n' "$resolutions" | sed -n "''${res_idx}p")
     EOF
 
-          local blink_settings
-          blink_settings="preferredColorScheme=$blink_scheme"
-          blink_settings="$blink_settings,preferredReducedMotion=no-preference"
-          blink_settings="$blink_settings,screenWidth=$scr_w"
-          blink_settings="$blink_settings,screenHeight=$scr_h"
-          blink_settings="$blink_settings,deviceScaleFactor=$scr_dpr"
+          # ── hardware concurrency: seed-derived ─────────────────────────
+          # Common CPU core counts.  Avoid 30 (real core count on this
+          # machine) to break correlation.
+          local hw_concurrency_opts="4 8 12 16 6 8 4 12"
+          local hw_idx=$((seed % 8 + 1))
+          local hw_concurrency
+          hw_concurrency=$(printf '%s\n' $hw_concurrency_opts | sed -n "''${hw_idx}p")
 
-          printf 'spoofed screen: %sx%s @ %s DPR, color=%s, motion=no-preference\n' \
-            "$scr_w" "$scr_h" "$scr_dpr" "$blink_scheme" >&2
+          printf 'spoof: %sx%s @ %s DPR, %s cores, color=%s, motion=no-preference\n' \
+            "$scr_w" "$scr_h" "$scr_dpr" "$hw_concurrency" "$blink_scheme" >&2
 
           set -- \
             --user-data-dir="$data_dir" \
             --fingerprint="$seed" \
             --fingerprint-platform="$platform" \
             --fingerprint-brand="$brand" \
+            --fingerprint-screen-width="$scr_w" \
+            --fingerprint-screen-height="$scr_h" \
+            --fingerprint-device-scale-factor="$scr_dpr" \
+            --fingerprint-hardware-concurrency="$hw_concurrency" \
             --timezone="$timezone" \
             --lang="$lang" \
             --accept-lang="$acceptLang" \
-            --blink-settings="$blink_settings" \
+            --blink-settings="preferredColorScheme=$blink_scheme" \
+            --force-prefers-no-reduced-motion \
             --no-first-run \
             --no-default-browser-check \
             --disable-features=Translate \
