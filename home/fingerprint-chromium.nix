@@ -290,6 +290,8 @@
             --blink-settings="preferredColorScheme=$blink_scheme" \
             --force-prefers-no-reduced-motion \
             --disable-quic \
+            --dns-over-https-mode=secure \
+            --dns-over-https-templates=https://1.1.1.1/dns-query \
             --no-first-run \
             --no-default-browser-check \
             --disable-features=Translate \
