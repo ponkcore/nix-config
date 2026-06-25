@@ -86,10 +86,11 @@ Acceptance checks:
 5. BrowserScan does not mark Canvas as anthropogenic noise, or the finding
    is explicitly accepted as a known blocker before replacing Donut.
 
-The launcher auto-detects Throne's SOCKS proxy (127.0.0.1:2080) and
-routes through it — no manual configuration needed when the VPN is
-running. For a custom proxy, put the runtime value in an
-agenix-owned env file and launch with:
+The launcher auto-detects VPN routing: TUN transparent proxy
+(throne-tun active) is preferred, SOCKS5 (127.0.0.1:2080) is the
+fallback. No manual configuration needed when the VPN is running.
+For a custom proxy, put the runtime value in an agenix-owned env
+file and launch with:
 
 ```sh
 FINGERPRINT_CHROMIUM_PROXY_ENV_FILE=/run/agenix/<name> \

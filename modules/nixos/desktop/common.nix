@@ -68,6 +68,11 @@
     polkit_gnome
     papirus-icon-theme
     adwaita-icon-theme
+    # nftables CLI — sing-box creates native nftables rules (table inet
+    # sing-box) for TUN transparent proxy. Without the nft binary in
+    # PATH, these rules are invisible to diagnostics, leading to false
+    # conclusions about TUN state.
+    nftables
   ];
 
   # Throne (ex-Nekoray) — Qt6 sing-box GUI for the Xray protocol

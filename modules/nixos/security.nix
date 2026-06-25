@@ -62,10 +62,11 @@
     allowedUDPPorts = [];
     rejectPackets = true;
     allowPing = false;
-    # Trust TUN interface — mihomo creates Meta device for transparent proxy.
-    # Without this, nixos-fw-log-refuse rejects return traffic from TUN,
-    # breaking all connectivity when TUN mode is active.
-    trustedInterfaces = ["Meta"];
+    # Trust Throne's TUN interface — sing-box creates throne-tun for
+    # transparent proxying. Without this, nixos-fw-log-refuse rejects
+    # return traffic from TUN, breaking all connectivity when TUN mode
+    # is active.
+    trustedInterfaces = ["throne-tun"];
     # Log packets that would be refused but rate-limit to keep journal sane.
     # Useful for forensic review after a public-network session; the
     # 5/min rate cap prevents log-flood DoS.

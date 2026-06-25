@@ -373,17 +373,27 @@ Mutable browser data (cookies, cache, extensions) lives in:
 ~/.local/share/fingerprint-chromium/<profile>/
 ```
 
-The launcher auto-detects Throne's SOCKS proxy on `127.0.0.1:2080`
-and routes all traffic through it. DoH (Cloudflare 1.1.1.1, "secure"
-mode) is set via Local State to prevent DNS-level geolocation leaks.
-Together these ensure neither DNS nor TCP reveals the real IP.
+The launcher auto-detects the VPN routing mode in priority order:
 
-For a custom proxy, set `FINGERPRINT_CHROMIUM_PROXY_SERVER` or point
-`FINGERPRINT_CHROMIUM_PROXY_ENV_FILE` at a runtime secret file.
-Override the auto-detected port with
-`FINGERPRINT_CHROMIUM_SOCKS_PORT=<port>`.
-Set `FINGERPRINT_CHROMIUM_NO_PROXY=1` to skip auto-detection and
-connect directly (not recommended for anti-detect use).
+1. **TUN transparent proxy** (preferred): when Throne's `throne-tun`
+   interface is active, sing-box's nftables rules (`table inet
+   sing-box`) redirect TCP to a local tproxy port and fwmark-mark
+   UDP for TUN table routing. The browser is unaware of the VPN —
+   no proxy fingerprint, QUIC works natively.
+2. **SOCKS5 fallback**: when TUN is inactive, the launcher falls
+   back to `--proxy-server=socks5://127.0.0.1:2080` with
+   `--disable-quic`. This is proxy-aware (worse for anti-detect) but
+   prevents IP leaks when TUN is unavailable.
+3. **Warning**: if neither TUN nor SOCKS is detected, the browser
+   launches with a stderr warning — traffic will use the real IP.
+
+DoH (Cloudflare 1.1.1.1, "secure" mode) is set via Local State as
+defense-in-depth against DNS-level geolocation leaks.
+
+Explicit overrides: `FINGERPRINT_CHROMIUM_PROXY_SERVER` (force a
+specific proxy), `FINGERPRINT_CHROMIUM_NO_PROXY=1` (connect directly),
+`FINGERPRINT_CHROMIUM_SOCKS_PORT` (non-default SOCKS port),
+`FINGERPRINT_CHROMIUM_PROXY_ENV_FILE` (runtime secret file).
 
 | Timer | What | When |
 |-------|------|------|

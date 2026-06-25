@@ -156,23 +156,44 @@
         . "$FINGERPRINT_CHROMIUM_PROXY_ENV_FILE"
       fi
 
-      # ── proxy auto-detection ──────────────────────────────────────
-      # Chromium does NOT inherit system proxy settings on Linux.
-      # Without an explicit --proxy-server, all TCP connections go
-      # direct, leaking the real IP — DoH only hides DNS-level
-      # geolocation, not the connection source.  We auto-detect
-      # Throne's SOCKS proxy (127.0.0.1:2080 by default, configurable
-      # via FINGERPRINT_CHROMIUM_SOCKS_PORT) and route through it.
-      # Override with FINGERPRINT_CHROMIUM_PROXY_SERVER for a custom
-      # proxy; set FINGERPRINT_CHROMIUM_NO_PROXY=1 to skip entirely.
-      if [ -z "''${FINGERPRINT_CHROMIUM_PROXY_SERVER:-}" ] && [ -z "''${FINGERPRINT_CHROMIUM_NO_PROXY:-}" ]; then
-        local socks_port="''${FINGERPRINT_CHROMIUM_SOCKS_PORT:-2080}"
-        if ${pkgs.coreutils}/bin/timeout 1 \
-          bash -c 'exec 3<>"/dev/tcp/127.0.0.1/'"$socks_port"'"' 2>/dev/null; then
-          export FINGERPRINT_CHROMIUM_PROXY_SERVER="socks5://127.0.0.1:$socks_port"
-          printf 'auto-detected SOCKS proxy on port %s\n' "$socks_port" >&2
+      # ── VPN routing strategy ───────────────────────────────────────
+      # Throne provides two routing modes:
+      #
+      # 1. TUN transparent proxy (preferred): sing-box creates nftables
+      #    rules (table inet sing-box) that redirect TCP to a local
+      #    tproxy port and fwmark-mark UDP for table 2022 routing.
+      #    The browser is unaware of the VPN — no proxy fingerprint,
+      #    QUIC works natively, WebRTC sees a normal connection.
+      #
+      # 2. SOCKS5 fallback (127.0.0.1:2080): when TUN is inactive,
+      #    we fall back to explicit --proxy-server.  This makes the
+      #    browser proxy-aware (worse for anti-detect) and requires
+      #    --disable-quic (SOCKS5 does not tunnel UDP).
+      #
+      # Explicit overrides:
+      #   FINGERPRINT_CHROMIUM_PROXY_SERVER — force a specific proxy
+      #   FINGERPRINT_CHROMIUM_NO_PROXY=1   — connect directly (dangerous)
+      #   FINGERPRINT_CHROMIUM_SOCKS_PORT   — non-default SOCKS port
+
+      local use_socks=0
+
+      if [ -n "''${FINGERPRINT_CHROMIUM_PROXY_SERVER:-}" ]; then
+        # Explicit proxy override — respect it.
+        use_socks=1
+      elif [ -z "''${FINGERPRINT_CHROMIUM_NO_PROXY:-}" ]; then
+        # Auto-detect: prefer TUN, fall back to SOCKS.
+        if ip link show throne-tun >/dev/null 2>&1; then
+          printf 'TUN active (throne-tun) — transparent routing\n' >&2
         else
-          printf 'WARNING: no proxy on 127.0.0.1:%s — traffic will use your real IP\n' "$socks_port" >&2
+          local socks_port="''${FINGERPRINT_CHROMIUM_SOCKS_PORT:-2080}"
+          if ${pkgs.coreutils}/bin/timeout 1 \
+            bash -c 'exec 3<>"/dev/tcp/127.0.0.1/'"$socks_port"'"' 2>/dev/null; then
+            export FINGERPRINT_CHROMIUM_PROXY_SERVER="socks5://127.0.0.1:$socks_port"
+            use_socks=1
+            printf 'TUN inactive — falling back to SOCKS on port %s\n' "$socks_port" >&2
+          else
+            printf 'WARNING: no VPN detected (no throne-tun, no SOCKS on %s) — traffic will use your real IP\n' "$socks_port" >&2
+          fi
         fi
       fi
 
@@ -189,10 +210,7 @@
         --disable-features=Translate \
         "$@"
 
-      if [ -n "''${FINGERPRINT_CHROMIUM_PROXY_SERVER:-}" ]; then
-        # --disable-quic: SOCKS5 in Chrome does not tunnel UDP, so
-        # QUIC would fail and fall back to TCP with extra latency.
-        # Disabling upfront avoids the retry round-trip.
+      if [ "$use_socks" -eq 1 ]; then
         set -- \
           --proxy-server="$FINGERPRINT_CHROMIUM_PROXY_SERVER" \
           --disable-quic \
