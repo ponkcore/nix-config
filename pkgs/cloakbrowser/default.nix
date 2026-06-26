@@ -25,6 +25,7 @@
   fetchurl,
   autoPatchelfHook,
   makeWrapper,
+  imagemagick,
   alsa-lib,
   at-spi2-atk,
   at-spi2-core,
@@ -52,6 +53,10 @@
   xorg,
 }: let
   version = "146.0.7680.177.5";
+  icon = fetchurl {
+    url = "https://cloakbrowser.dev/favicon.ico";
+    hash = "sha256-mDQixEi5h2iSqdcj7r8nuqSLMn2RR+0nacfq0nHZMi4=";
+  };
 in
   stdenv.mkDerivation {
     pname = "cloakbrowser";
@@ -69,6 +74,7 @@ in
     nativeBuildInputs = [
       autoPatchelfHook
       makeWrapper
+      imagemagick
     ];
 
     buildInputs = [
@@ -147,6 +153,13 @@ in
         --add-flags "--disable-non-proxied-udp"
 
       ln -s $out/opt/cloakbrowser/chromedriver $out/bin/cloakbrowser-chromedriver
+
+      # Install icon (convert ICO first frame to PNG at multiple sizes)
+      for size in 48 64 128 256; do
+        mkdir -p $out/share/icons/hicolor/''${size}x''${size}/apps
+        ${imagemagick}/bin/convert "${icon}[0]" -resize ''${size}x''${size} \
+          $out/share/icons/hicolor/''${size}x''${size}/apps/cloakbrowser.png
+      done
 
       runHook postInstall
     '';
