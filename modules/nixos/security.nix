@@ -136,14 +136,15 @@
     "kernel.kptr_restrict" = 2;
     "kernel.unprivileged_bpf_disabled" = 1;
     "kernel.perf_event_paranoid" = 3;
-    # Block unprivileged user namespace creation — primary attack
-    # surface for container-escape CVEs (runc, namespace-based privesc).
-    # Safe with rootful Docker (our config: virtualisation.docker.enable
-    # without rootless=true). Would break rootless Docker/Podman.
-    "kernel.unprivileged_userns_clone" = 0;
-    # Prevent autoloading of TTY line discipline kernel modules —
-    # reduces attack surface for module-loading-based exploits.
-    "dev.tty.ldisc_autodetect" = 0;
+    # Unprivileged user namespaces: kernel.unprivileged_userns_clone
+    # is a Debian-specific patch, not in mainline kernel 6.18. The
+    # mainline equivalent is user.max_user_namespaces=0, but that
+    # blocks ALL user namespace creation including root — breaks Nix
+    # build sandboxing. Leaving user namespaces enabled; mitigated
+    # by ptrace_scope=2, protectKernelImage, and seccomp filters in
+    # Docker/Nix builds.
+    # dev.tty.ldisc_autodetect was removed in kernel 5.14+ — no
+    # mainline equivalent exists.
     # NMI watchdog off — saves ~1% battery; this is the per-CPU lockup
     # detector that polls each core. The generic soft-lockup watchdog
     # (kernel.watchdog) MUST stay enabled — it's the diagnostic channel
@@ -180,6 +181,8 @@
     # tailscale0 with source addresses that don't match the expected
     # route. Strict rp_filter=1 drops them silently. Loose mode (2)
     # on the interface only, without weakening the global strict filter.
+    # No-op when tailscale0 doesn't exist (manual start); applies on
+    # next boot after Tailscale has been started at least once.
     "net.ipv4.conf.tailscale0.rp_filter" = 2;
     # Log packets with impossible source addresses (martians) for forensics.
     "net.ipv4.conf.all.log_martians" = 1;
