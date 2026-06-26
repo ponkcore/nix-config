@@ -3,25 +3,29 @@
 # Centralised here so all nix-related config lives in one place:
 # `allowUnfree`, flakes/nix-command, GC schedule, store optimise,
 # zram, /tmp on tmpfs, vm.* sysctls, journald retention, coredump cap.
-_: {
-  nixpkgs.config.allowUnfree = true;
+{lib, ...}: {
+  # Explicit allow-list for unfree packages. Every unfree package must
+  # be listed here by name — blanket allowUnfree=true is replaced with
+  # a predicate so the set of unfree software is visible and auditable
+  # in the configuration. Add new unfree packages here when adopted.
+  nixpkgs.config.allowUnfreePredicate = pkg:
+    builtins.elem (lib.getName pkg) [
+      "antigravity-cli"
+      "obsidian"
+      "oh-my-openagent"
+      "spotify"
+      "unrar"
+    ];
 
   # Flakes + nix-command
   nix.settings.experimental-features = ["nix-command" "flakes"];
 
   # Deduplication & optimisation
   # auto-optimise-store: hard-link identical files at insertion time.
-  # nix.optimise.automatic: separate weekly pass that re-deduplicates the
-  # whole store (catches files that were inserted before a duplicate
-  # existed). Cheap on NVMe, runs in low-prio background.
+  # This runs after every build and catches duplicates incrementally.
+  # A separate nix.optimise.automatic batch job is redundant — it would
+  # find nothing to do and cause a periodic I/O spike for no benefit.
   nix.settings.auto-optimise-store = true;
-  nix.optimise = {
-    automatic = true;
-    # A full store re-deduplication pass is I/O work. auto-optimise-store
-    # already hard-links duplicates as paths are added, so a weekly catch-up
-    # pass is enough and avoids a daily laptop wake/work item.
-    dates = ["weekly"];
-  };
 
   # nix-direnv — keep derivations so GC doesn't break dev shells
   nix.settings.keep-derivations = true;

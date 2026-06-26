@@ -75,7 +75,14 @@
     logRefusedConnections = false;
   };
 
-  # Sudo — passwordless for oonishi
+  # Sudo — passwordless for oonishi.
+  # SECURITY NOTE: NOPASSWD is a deliberate trade-off for a personal
+  # laptop. Threat model: network attack (mitigated by sysctl
+  # hardening + fail2ban + firewall). Any process running as the
+  # primary user can exec root commands — acceptable because the
+  # alternative (password prompt on every sudo) disrupts the
+  # declarative workflow (nixos-rebuild, agenix, systemctl).
+  # NOT appropriate for shared or corporate systems.
   security.sudo = {
     enable = true;
     execWheelOnly = true;
@@ -129,6 +136,14 @@
     "kernel.kptr_restrict" = 2;
     "kernel.unprivileged_bpf_disabled" = 1;
     "kernel.perf_event_paranoid" = 3;
+    # Block unprivileged user namespace creation — primary attack
+    # surface for container-escape CVEs (runc, namespace-based privesc).
+    # Safe with rootful Docker (our config: virtualisation.docker.enable
+    # without rootless=true). Would break rootless Docker/Podman.
+    "kernel.unprivileged_userns_clone" = 0;
+    # Prevent autoloading of TTY line discipline kernel modules —
+    # reduces attack surface for module-loading-based exploits.
+    "dev.tty.ldisc_autodetect" = 0;
     # NMI watchdog off — saves ~1% battery; this is the per-CPU lockup
     # detector that polls each core. The generic soft-lockup watchdog
     # (kernel.watchdog) MUST stay enabled — it's the diagnostic channel
@@ -161,6 +176,11 @@
     # Reverse-path filter on (strict) — drop spoofed packets at ingress.
     "net.ipv4.conf.all.rp_filter" = 1;
     "net.ipv4.conf.default.rp_filter" = 1;
+    # Tailscale uses asymmetric routing by design — packets arrive on
+    # tailscale0 with source addresses that don't match the expected
+    # route. Strict rp_filter=1 drops them silently. Loose mode (2)
+    # on the interface only, without weakening the global strict filter.
+    "net.ipv4.conf.tailscale0.rp_filter" = 2;
     # Log packets with impossible source addresses (martians) for forensics.
     "net.ipv4.conf.all.log_martians" = 1;
     "net.ipv4.conf.default.log_martians" = 1;

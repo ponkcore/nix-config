@@ -22,7 +22,10 @@
     fsType = "ext4";
     # noatime+nodiratime: skip access time writes for performance
     # discard removed — fstrim service handles async TRIM (sync TRIM hurts NVMe perf)
-    options = ["noatime" "nodiratime" "commit=60"];
+    # commit=30: journal commit interval — 30s compromise between default
+    # 5s (frequent NVMe writes) and 60s (12× data loss window on power failure).
+    # barrier=1 (ext4 default) protects journal integrity regardless.
+    options = ["noatime" "nodiratime" "commit=30"];
   };
 
   fileSystems."/boot" = {
