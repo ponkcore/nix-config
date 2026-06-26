@@ -90,12 +90,54 @@ in {
   # Restart waybar after HM activation when hyprland.conf changes.
   # HM reloads hyprland.conf via hyprctl reload, which desyncs
   # waybar's IPC state from the compositor — workspace indicators
-  # freeze. This activation hook detects a running waybar and
-  # bounces it after the reload settles. Cf. lesson 0005 Trigger B.
+  # freeze. Waybar's IPC thread has no retry: if the socket isn't
+  # ready when waybar connects, IPC silently fails and the module
+  # is permanently deaf. Cf. lesson 0005 Trigger B.
+  #
+  # This hook uses a 4-phase readiness probe instead of a fixed
+  # sleep:
+  #   1. Wait for Hyprland to finish reload (hyprctl responds).
+  #   2. Restart waybar.
+  #   3. Verify "Hyprland IPC starting" appears in waybar logs
+  #      within 10 s — this line is the definitive diagnostic:
+  #      present = IPC connected, absent = IPC silently failed.
+  #   4. If IPC didn't start, Hyprland was still mid-reload.
+  #      Wait 3 s, restart waybar once more, check again.
+  #
+  # Source: research 2026-06-26-waybar-ipc-freeze-deep-research
+  # Solution 2 — deterministic post-rebuild restart with IPC
+  # readiness probe.
   home.activation.restart-waybar-on-hyprland-change = lib.hm.dag.entryAfter ["writeBoundary"] ''
     if ${pkgs.systemd}/bin/systemctl --user is-active --quiet waybar.service 2>/dev/null; then
-      ${pkgs.coreutils}/bin/sleep 2
+      # Phase 1: wait for Hyprland to finish reload.
+      for _ in $(${pkgs.coreutils}/bin/seq 1 20); do
+        if ${pkgs.hyprland}/bin/hyprctl instances -j 2>/dev/null | ${pkgs.jq}/bin/jq -e '.[0].instance' >/dev/null 2>&1; then
+          break
+        fi
+        ${pkgs.coreutils}/bin/sleep 0.2
+      done
+
+      # Phase 2: restart waybar.
       ${pkgs.systemd}/bin/systemctl --user restart waybar.service 2>/dev/null || true
+
+      # Phase 3: verify IPC started (poll logs for 10 s).
+      ${pkgs.coreutils}/bin/sleep 1
+      ipc_ok=false
+      for _ in $(${pkgs.coreutils}/bin/seq 1 18); do
+        if ${pkgs.systemd}/bin/journalctl --user -u waybar.service --since "30 sec ago" --no-pager 2>/dev/null | ${pkgs.gnugrep}/bin/grep -q "Hyprland IPC starting"; then
+          ipc_ok=true
+          break
+        fi
+        ${pkgs.coreutils}/bin/sleep 0.5
+      done
+
+      # Phase 4: retry once if IPC didn't start.
+      if [ "$ipc_ok" = false ]; then
+        ${pkgs.coreutils}/bin/sleep 3
+        ${pkgs.systemd}/bin/systemctl --user restart waybar.service 2>/dev/null || true
+        ${pkgs.coreutils}/bin/sleep 2
+        ${pkgs.systemd}/bin/journalctl --user -u waybar.service --since "10 sec ago" --no-pager 2>/dev/null | ${pkgs.gnugrep}/bin/grep -q "Hyprland IPC starting" || true
+      fi
     fi
   '';
 
