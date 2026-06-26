@@ -23,7 +23,12 @@
 
     kernelParams = [
       "amdgpu.abmlevel=0"
-      "amdgpu.ppfeaturemask=0xfff7ffff"
+      # ppfeaturemask: kernel default 0xfff7bfff is correct for this
+      # APU. The previous value 0xfff7ffff enabled PP_OVERDRIVE_MASK
+      # (bit 14, OD clock/voltage tables), but the Radeon 780M
+      # firmware does not expose pp_od_clk_voltage — the bit is a
+      # no-op. Reverted to default to avoid a misleading config entry.
+      # Source: research 2026-06-27-nixos-followup-research §1.2
       "amdgpu.sg_display=0"
       # Disable Panel Replay (0x400) + skip detection link training
       # on DPMS-on (0x200000). PSR v1 stays alive (0x10 NOT set) —
@@ -31,7 +36,10 @@
       # (0x200000) was added in kernel 6.16; requires linuxPackages_6_18
       # (set in hosts/lecoo/default.nix). Combined: zero DPMS-on
       # latency — link stays alive (PSR v1) + detection LT skipped.
+      # dcdebugmask defaults to 0 in kernel 6.18 — both bits still
+      # necessary, cannot simplify to 0x400.
       # Source: research 2026-06-26-system-pain-points-deep-research §2.3-2.4
+      # Source: research 2026-06-27-nixos-followup-research §1.3
       "amdgpu.dcdebugmask=0x200400"
     ];
   };

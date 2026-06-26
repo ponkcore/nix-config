@@ -302,13 +302,16 @@ in {
     # artefacts — but we no longer use external displays. eDP-1 at
     # 2880×1800@120 is within the low DPM bandwidth budget.
     # Source: research 2026-06-26-system-pain-points-deep-research §4.4
+    # GPU is at card1 on this hardware (amdgpu loads after a virtual
+    # card0 is not created). Hosts/lecoo/ec.nix syncPowerProfile also
+    # uses card1 — keep in sync.
     systemd.services.battery-gpu-dpm = {
       description = "Force GPU DPM low on battery";
       serviceConfig = {
         Type = "oneshot";
         ExecStart = pkgs.writeShellScript "battery-gpu-dpm" ''
           sleep 3
-          echo low > /sys/class/drm/card0/device/power_dpm_force_performance_level 2>/dev/null || true
+          echo low > /sys/class/drm/card1/device/power_dpm_force_performance_level 2>/dev/null || true
         '';
       };
     };
@@ -318,7 +321,7 @@ in {
       serviceConfig = {
         Type = "oneshot";
         ExecStart = pkgs.writeShellScript "ac-gpu-dpm-restore" ''
-          echo auto > /sys/class/drm/card0/device/power_dpm_force_performance_level 2>/dev/null || true
+          echo auto > /sys/class/drm/card1/device/power_dpm_force_performance_level 2>/dev/null || true
         '';
       };
     };
