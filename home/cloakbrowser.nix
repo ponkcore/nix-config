@@ -4,7 +4,7 @@
 # canvas, WebGL, audio, fonts, GPU, screen, WebRTC, network timing,
 # automation signals, CDP input behaviour.
 #
-# Key differences from fingerprint-chromium:
+# Key CloakBrowser flags (C++ patched, not just CLI no-ops):
 #   --fingerprint-device-memory   — V8 patch (navigator.deviceMemory)
 #   --fingerprint-screen-*        — actually works (Screen DOM C++ patch)
 #   --fingerprint-taskbar-height  — spoofs screen.availHeight
@@ -161,9 +161,8 @@
             . "$CLOAKBROWSER_PROXY_ENV_FILE"
           fi
 
-          # ── VPN routing strategy (same as fingerprint-chromium) ────────
+          # ── VPN routing strategy ───────────────────────────────────────
           # TUN transparent proxy preferred, SOCKS5 fallback.
-          # See home/fingerprint-chromium.nix for full documentation.
           local use_socks=0
 
           if [ -n "''${CLOAKBROWSER_PROXY_SERVER:-}" ]; then
@@ -186,7 +185,7 @@
 
           # ── spoof system-derived fingerprint leaks ───────────────────
           # CloakBrowser's C++ patches make these flags actually work
-          # (unlike fingerprint-chromium where screen flags were no-ops).
+          # at the engine level — not just CLI no-ops.
           #
           # Spoofed via CloakBrowser native flags:
           #   screen.width/height       — --fingerprint-screen-* (C++ Screen patch)

@@ -4,7 +4,7 @@
 # covering canvas, WebGL, audio, fonts, GPU, screen, WebRTC, network
 # timing, automation signals, and CDP input behaviour.
 #
-# Key advantages over fingerprint-chromium (adryfish):
+# Key CloakBrowser C++ patches (not available in stock Chromium):
 #   --fingerprint-device-memory  — spoofs navigator.deviceMemory (V8 patch)
 #   --fingerprint-screen-*       — actually works (Screen DOM C++ patch)
 #   --fingerprint-storage-quota  — normalizes storage quota (incognito detection)

@@ -260,6 +260,27 @@ in {
       };
     };
 
+    # ── Post-PPD EPP override on battery ───────────────────────────────
+    # PPD power-saver sets EPP=power (0xFF) — parks cores at ~1.4 GHz,
+    # slow ramp, causes cold-start lag. This service runs 2 s after
+    # PPD settles on battery unplug and overrides EPP to balance_power
+    # (0xBF): faster ramp-up while keeping platform_profile=low-power
+    # (~15W TDP) for battery life. Trade-off: slightly higher idle
+    # power vs power-saver, but no more 1.4 GHz core parking.
+    # Source: research 2026-06-25-amd-phoenix-power-ec-deep-research §1b
+    systemd.services.battery-epp-override = {
+      description = "Override EPP to balance_power on battery (post-PPD)";
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = pkgs.writeShellScript "battery-epp-override" ''
+          sleep 2
+          for cpu in /sys/devices/system/cpu/cpu*/cpufreq/energy_performance_preference; do
+            echo balance_power > "$cpu" 2>/dev/null || true
+          done
+        '';
+      };
+    };
+
     # ── udev: USB / NVMe / wakeup / PPD auto-switch ─────────────────────
     services.udev.extraRules = ''
       # USB autosuspend — 30s idle timeout. 2s was too aggressive and caused
@@ -291,11 +312,17 @@ in {
       # instant the cable goes in or out. AC defaults to `balanced` rather
       # than `performance`: performance remains available manually, while
       # balanced avoids needless EPP=performance fan/heat on a plugged-in
-      # laptop sitting idle.
+      # laptop sitting idle. Battery defaults to `power-saver` for
+      # maximum battery life (EPP=power 0xFF, platform_profile=low-power
+      # ~15W TDP). The cold-start lag this causes is accepted in favour
+      # of runtime. If responsiveness becomes a priority, `balanced` on
+      # battery removes the double throttle — see research
+      # 2026-06-25-amd-phoenix-power-ec-deep-research.result.md §1a/1d.
       SUBSYSTEM=="power_supply", KERNEL=="ADP1", ATTR{online}=="1", \
         RUN+="${pkgs.power-profiles-daemon}/bin/powerprofilesctl set balanced"
       SUBSYSTEM=="power_supply", KERNEL=="ADP1", ATTR{online}=="0", \
-        RUN+="${pkgs.power-profiles-daemon}/bin/powerprofilesctl set power-saver"
+        RUN+="${pkgs.power-profiles-daemon}/bin/powerprofilesctl set power-saver", \
+        RUN+="${pkgs.systemd}/bin/systemctl start battery-epp-override.service"
     '';
   };
 }

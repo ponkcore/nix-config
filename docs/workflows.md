@@ -66,14 +66,14 @@ See `docs/handbook.md` §2 — full decision flow with examples.
 
 ---
 
-## 3. Validate fingerprint-chromium spike
+## 3. Validate CloakBrowser
 
 After `rebuild-test`, create a test profile and validate:
 
 ```sh
-fp create          # rofi: enter name → select platform
-fp list            # verify it appears
-fp validate <name> # opens CreepJS, BrowserScan, PixelScan, BrowserLeaks, Sannysoft, Fingerprint.com
+cb create          # rofi: enter name → select platform
+cb list            # verify it appears
+cb validate <name> # opens CreepJS, BrowserScan, PixelScan, BrowserLeaks, Sannysoft, Fingerprint.com
 ```
 
 Acceptance checks:
@@ -83,8 +83,9 @@ Acceptance checks:
    fingerprints on CreepJS / BrowserLeaks.
 3. Relaunching the same profile keeps the same fingerprint values.
 4. BrowserLeaks WebRTC does not expose the local IP.
-5. BrowserScan does not mark Canvas as anthropogenic noise, or the finding
-   is explicitly accepted as a known blocker before replacing Donut.
+5. BrowserScan shows spoofed screen.width/height, deviceMemory,
+   hardwareConcurrency — not the real machine values.
+6. BrowserScan bot detection: NORMAL (4/4 checks passed).
 
 The launcher auto-detects VPN routing: TUN transparent proxy
 (throne-tun active) is preferred, SOCKS5 (127.0.0.1:2080) is the
@@ -93,8 +94,8 @@ For a custom proxy, put the runtime value in an agenix-owned env
 file and launch with:
 
 ```sh
-FINGERPRINT_CHROMIUM_PROXY_ENV_FILE=/run/agenix/<name> \
-  fp launch <profile>
+CLOAKBROWSER_PROXY_ENV_FILE=/run/agenix/<name> \
+  cb launch <profile>
 ```
 
 ---
@@ -294,8 +295,4 @@ ss -tnlp
 
 # Specific suspect process
 pgrep -af <name> | wc -l
-
-# Donut-proxy reaper running OK?
-systemctl --user status donut-proxy-reaper.timer
-journalctl --user -u donut-proxy-reaper.service --since '1 hour ago'
 ```

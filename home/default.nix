@@ -50,8 +50,6 @@ in {
       ./opencode.nix
       ./oh-my-pi.nix
       ./qt.nix
-      ./donutbrowser.nix
-      ./fingerprint-chromium.nix
       ./cloakbrowser.nix
       ./chromium.nix
       ./antigravity.nix

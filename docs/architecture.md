@@ -171,7 +171,7 @@ flake.nix
 ```
 
 `pkgs/default.nix` returns a list of overlays:
-- local packages (`donutbrowser`, `devin-cli`, `lecoo-ctrl`)
+- local packages (`cloakbrowser`, `devin-cli`, `lecoo-ctrl`)
 - NUR
 
 ## Secrets pipeline
@@ -263,9 +263,8 @@ Layer 2 (web/banking/notes/2FA) lives in the KeePass vault. Layer 3
 | Systemd shutdown timeouts | `modules/nixos/systemd.nix` |
 | GC + auto-optimise + journald | `modules/nixos/nix.nix` |
 | TRIM cadence | `modules/nixos/maintenance.nix` |
-| Stale donut-proxy reaper | `home/donutbrowser.nix` |
-| fingerprint-chromium spike package | `pkgs/fingerprint-chromium/default.nix` |
-| fingerprint-chromium profile manager | `home/fingerprint-chromium.nix` (`fp`/`fp-profile`) |
+| CloakBrowser stealth Chromium | `pkgs/cloakbrowser/default.nix` |
+| CloakBrowser profile manager | `home/cloakbrowser.nix` (`cb`/`cb-profile`) |
 | `.hm-backup` cleanup | `home/cleanup.nix` |
 | Desktop session dispatcher (system) | `modules/nixos/desktop/default.nix` |
 | Desktop session dispatcher (user) | `home/desktop/default.nix` |

@@ -181,11 +181,11 @@ programs.firefox.profiles.default.extensions = with pkgs.nur.repos.rycee.firefox
 ];
 ```
 
-AppImage / binary (donutbrowser):
+Prebuilt binary (cloakbrowser):
 ```nix
-# pkgs/donutbrowser/default.nix    — derivation
+# pkgs/cloakbrowser/default.nix     — derivation (autoPatchelfHook)
 # pkgs/default.nix                  — overlay registration
-# home/donutbrowser.nix             — home.packages = [ pkgs.donutbrowser ]
+# home/cloakbrowser.nix             — home.packages + profile manager
 ```
 
 ---
@@ -349,8 +349,7 @@ Adjust in `modules/nixos/nix.nix` if you want a different window.
 CloakBrowser is a Chromium fork with 58 source-level C++ patches
 covering canvas, WebGL, audio, fonts, GPU, screen, WebRTC,
 navigator.deviceMemory, navigator.webdriver, plugins, window.chrome,
-TLS fingerprint, and CDP detection. It is the primary anti-detect
-browser. fingerprint-chromium remains as a secondary option.
+TLS fingerprint, and CDP detection.
 
 ```fish
 cb list                          # list profiles
@@ -376,49 +375,21 @@ Mutable browser data (cookies, cache, extensions) lives in:
 ~/.local/share/cloakbrowser/<profile>/
 ```
 
-### fingerprint-chromium spike
-
-The experimental Donut replacement candidate is installed with an
-imperative profile manager. Donut remains available while this is
-validated. Profiles are created/deleted at runtime — no rebuild needed.
-
-```fish
-fp list                          # list profiles
-fp create                        # rofi: name → platform → random seed
-fp launch shop-01                # launch by name
-fp validate shop-01              # open fingerprint test sites
-fp delete shop-01                # remove profile + data
-```
-
-Or use the rofi launcher (Super+D → "Fingerprint Chromium"):
-the picker shows all profiles plus a "➕ Create profile..." option.
-
-Profile definitions (seed, platform, timezone, colorScheme, etc.)
-are stored in:
-
-```text
-~/.config/fingerprint-chromium/profiles.json
-```
-
 Each profile includes a `colorScheme` field (`"light"` or `"dark"`,
 default `"light"`) that controls the `prefers-color-scheme` CSS
 media query. The launcher also spoofs `prefers-reduced-motion`,
-`screen.width`, `screen.height`, `window.devicePixelRatio`, and
-`navigator.hardwareConcurrency` — all derived from the profile seed
-and platform, using fingerprint-chromium's own flags
-(`--fingerprint-screen-width/height`, `--fingerprint-device-scale-
-factor`, `--fingerprint-hardware-concurrency`) plus Chromium's
+`screen.width`, `screen.height`, `screen.availHeight`,
+`window.devicePixelRatio`, `navigator.hardwareConcurrency`, and
+`navigator.deviceMemory` — all derived from the profile seed and
+platform, using CloakBrowser's C++-patched flags
+(`--fingerprint-screen-width/height`, `--fingerprint-taskbar-height`,
+`--fingerprint-device-scale-factor`, `--fingerprint-hardware-
+concurrency`, `--fingerprint-device-memory`) plus Chromium's
 `--force-prefers-no-reduced-motion` and `--blink-settings`. These
 override JS-visible values without affecting actual rendering.
-Known unspoofed leaks: `navigator.deviceMemory` (no flag, hardcoded
-in V8), WebGL unmasked renderer (fingerprint-chromium's spoof is
-incomplete on some test sites).
-
-Mutable browser data (cookies, cache, extensions) lives in:
-
-```text
-~/.local/share/fingerprint-chromium/<profile>/
-```
+Additional CloakBrowser-specific flags: `--fingerprint-storage-quota`
+(prevents incognito detection), `--fingerprint-webrtc-ip=auto`
+(spoofs WebRTC ICE candidates from proxy exit IP).
 
 The launcher auto-detects the VPN routing mode in priority order:
 
@@ -426,7 +397,7 @@ The launcher auto-detects the VPN routing mode in priority order:
    interface is active, sing-box's nftables rules (`table inet
    sing-box`) redirect TCP to a local tproxy port and fwmark-mark
    UDP for TUN table routing. The browser is unaware of the VPN —
-   no proxy fingerprint, QUIC works natively.
+   no proxy fingerprint.
 2. **SOCKS5 fallback**: when TUN is inactive, the launcher falls
    back to `--proxy-server=socks5://127.0.0.1:2080` with
    `--disable-quic`. This is proxy-aware (worse for anti-detect) but
@@ -434,20 +405,25 @@ The launcher auto-detects the VPN routing mode in priority order:
 3. **Warning**: if neither TUN nor SOCKS is detected, the browser
    launches with a stderr warning — traffic will use the real IP.
 
-DoH (Cloudflare 1.1.1.1, "secure" mode) is set via Local State as
-defense-in-depth against DNS-level geolocation leaks.
+`--disable-quic` is unconditional — QUIC's UDP first-packet can leak
+the real IP through nftables route-hook fwmark before conntrack marks
+propagate; TCP nat-hook redirect is per-packet reliable.
 
-Explicit overrides: `FINGERPRINT_CHROMIUM_PROXY_SERVER` (force a
-specific proxy), `FINGERPRINT_CHROMIUM_NO_PROXY=1` (connect directly),
-`FINGERPRINT_CHROMIUM_SOCKS_PORT` (non-default SOCKS port),
-`FINGERPRINT_CHROMIUM_PROXY_ENV_FILE` (runtime secret file).
+DoH is forced via CLI flags (`--dns-over-https-mode=secure
+--dns-over-https-templates=https://1.1.1.1/dns-query`), not just
+Local State — avoids startup DNS race where sing-box resolver
+returns a different Google edge IP.
+
+Explicit overrides: `CLOAKBROWSER_PROXY_SERVER` (force a
+specific proxy), `CLOAKBROWSER_NO_PROXY=1` (connect directly),
+`CLOAKBROWSER_SOCKS_PORT` (non-default SOCKS port),
+`CLOAKBROWSER_PROXY_ENV_FILE` (runtime secret file).
 
 | Timer | What | When |
 |-------|------|------|
 | `nix-gc.timer` | weekly GC | Mon 00:00 |
 | `nix-optimise.timer` | weekly hard-link dedup | daily 03:45 |
 | `fstrim.timer` | SSD TRIM | monthly |
-| `donut-proxy-reaper.timer` (user) | kill stale donut-proxy workers | every 15 min |
 | `hm-backup-cleanup.timer` (user) | delete old `.hm-backup` files | weekly |
 
 ---

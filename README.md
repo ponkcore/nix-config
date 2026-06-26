@@ -44,11 +44,11 @@ hardware profiles to import, run `nixos-install`. That's it.
 - **Aggressive boot quieting** — Plymouth abstract_ring theme on the
   internal eDP panel, systemd quiet flags, and greetd running
   nwg-hello inside a sway Wayland kiosk.
-- **Anti-detect browser spike** — fingerprint-chromium test profiles
-  are packaged declaratively with per-profile seeds and rofi/desktop
-  launchers while Donut Browser remains the fallback.
-- **Reaper timers** — donut-proxy zombies (15-min sweep), HM-backup
-  files (weekly purge).
+- **Anti-detect browser** — CloakBrowser (stealth Chromium with 58
+  C++ source-level fingerprint patches) packaged declaratively with
+  per-profile seeds, screen/deviceMemory/hardware spoofing, and rofi
+  launcher.
+- **Reaper timers** — HM-backup files (weekly purge).
 - **Sysctl hardening pass** — `kexec_load_disabled`, redirect/source-
   route refusal, strict rp_filter, log_martians, tcp_rfc1337, etc.
 - **AI agent stack** — Letta Code (`talos`), opencode, OMO
@@ -72,10 +72,10 @@ hardware profiles to import, run `nixos-install`. That's it.
 | Editor | Neovim 0.11 (nixpkgs-pinned plugins, native LSP) |
 | File manager | Nautilus (GUI) + yazi (TUI) |
 | Browser | Firefox (Arkenfox + NUR addons) |
-| Anti-detect browser | Donut Browser + fingerprint-chromium spike profiles |
+| Anti-detect browser | CloakBrowser (stealth Chromium, C++ patches) |
 | Audio | PipeWire + WirePlumber |
 | Power | power-profiles-daemon + amd_pmf + lecoo-ec-daemon |
-| Proxy | Clash Verge Rev (mihomo TUN) |
+| Proxy | Throne (sing-box TUN mode) |
 | Container | Docker (on-demand) |
 | Virtualisation | libvirt + qemu_kvm |
 | Mesh VPN | Tailscale (manual start) |
