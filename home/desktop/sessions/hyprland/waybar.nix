@@ -38,14 +38,27 @@
     # instance signature reaches the manager; then waybar's
     # hyprland/workspaces module never enables IPC. Query the running
     # compositor directly and export both variables before exec.
+    #
+    # We also wait for the IPC socket2 file to appear — even with the
+    # signature, waybar's hyprland/workspaces module silently skips IPC
+    # if the socket isn't ready yet, and never retries. A 1-second
+    # settle delay after finding the signature ensures the compositor's
+    # event loop is dispatching before waybar connects.
     for _ in $(${pkgs.coreutils}/bin/seq 1 150); do
       instance_json="$($HYPRCTL instances -j 2>/dev/null || printf '[]')"
       HYPRLAND_INSTANCE_SIGNATURE="$(printf '%s' "$instance_json" | $JQ -r '.[0].instance // empty')"
       WAYLAND_DISPLAY="$(printf '%s' "$instance_json" | $JQ -r '.[0].wl_socket // empty')"
 
       if [ -n "$HYPRLAND_INSTANCE_SIGNATURE" ] && [ -n "$WAYLAND_DISPLAY" ]; then
-        export HYPRLAND_INSTANCE_SIGNATURE WAYLAND_DISPLAY
-        break
+        SOCKET="''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket2.sock"
+        if [ -S "$SOCKET" ]; then
+          export HYPRLAND_INSTANCE_SIGNATURE WAYLAND_DISPLAY
+          # Settle delay: socket exists but compositor's event loop
+          # may not be dispatching yet. 1 s is cheap insurance against
+          # waybar's silent no-IPC fallback.
+          ${pkgs.coreutils}/bin/sleep 1
+          break
+        fi
       fi
 
       ${pkgs.coreutils}/bin/sleep 0.2
@@ -64,8 +77,27 @@ in {
       After = ["graphical-session.target" "wayland-wm@Hyprland.service" "app-status-daemon.service"];
       Wants = ["app-status-daemon.service"];
     };
-    Service.ExecStart = lib.mkForce "${waybar-with-hyprland-env}";
+    Service = {
+      ExecStart = lib.mkForce "${waybar-with-hyprland-env}";
+      # ExecStartPre poll: wait for Hyprland instance to be ready
+      # before launching the wrapper. Belt-and-suspenders alongside
+      # the wrapper's own poll loop. Timeout after 5 s to avoid
+      # infinite hang if Hyprland fails to start.
+      ExecStartPre = lib.mkForce "${pkgs.bash}/bin/bash -c 'i=0; while ! ${pkgs.hyprland}/bin/hyprctl instances -j 2>/dev/null | ${pkgs.jq}/bin/jq -e \".[0].instance\" >/dev/null 2>&1 && [ $i -lt 50 ]; do sleep 0.1; i=$((i+1)); done'";
+    };
   };
+
+  # Restart waybar after HM activation when hyprland.conf changes.
+  # HM reloads hyprland.conf via hyprctl reload, which desyncs
+  # waybar's IPC state from the compositor — workspace indicators
+  # freeze. This activation hook detects a running waybar and
+  # bounces it after the reload settles. Cf. lesson 0005 Trigger B.
+  home.activation.restart-waybar-on-hyprland-change = lib.hm.dag.entryAfter ["writeBoundary"] ''
+    if ${pkgs.systemd}/bin/systemctl --user is-active --quiet waybar.service 2>/dev/null; then
+      ${pkgs.coreutils}/bin/sleep 2
+      ${pkgs.systemd}/bin/systemctl --user restart waybar.service 2>/dev/null || true
+    fi
+  '';
 
   programs.waybar.settings.mainBar = {
     "hyprland/workspaces" = {

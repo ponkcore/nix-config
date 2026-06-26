@@ -9,6 +9,7 @@
 # (hardware-configuration, WiFi quirks, EC daemon, host-only HM).
 {
   lib,
+  pkgs,
   username,
   ...
 }: {
@@ -27,6 +28,13 @@
   ];
 
   system.stateVersion = "25.11";
+
+  # Kernel — 6.18 LTS (not the NixOS default 6.12). Required for
+  # DC_SKIP_DETECTION_LT (dcdebugmask 0x200000) which eliminates
+  # amdgpu eDP DPMS-on link training latency. Also brings 7 months
+  # of amdgpu DCN3.1 fixes and better Phoenix/Hawkpoint power
+  # management. Rollback: nixos-rebuild switch --rollback.
+  boot.kernelPackages = pkgs.linuxPackages_6_18;
 
   # Host-scoped overlay: lecoo-ctrl is platform-specific (ITE IT5571-07
   # EC chip on Emdoor N155A motherboards). Lives under hosts/lecoo/pkgs/

@@ -118,6 +118,14 @@ in {
         "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1"
         "dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP"
         "systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP"
+        # UWSM finalize — explicitly export HYPRLAND_INSTANCE_SIGNATURE
+        # to the systemd activation environment. Combined with
+        # UWSM_WAIT_VARNAMES in uwsm/env-hyprland (set in
+        # home/desktop/sessions/hyprland/default.nix), this guarantees
+        # the signature is present before graphical-session.target
+        # units start — eliminating the cold-boot Waybar IPC race.
+        # Source: research 2026-06-26-waybar-ipc-freeze-deep-research §4.1
+        "uwsm finalize HYPRLAND_INSTANCE_SIGNATURE"
 
         # Pre-warm the floating-terminal ghostty process: starts the
         # GTK4+OpenGL+fontconfig stack at login (~2.5 s) without
@@ -334,6 +342,18 @@ in {
         "col.active_border" = "${rgba p.fg_bright "ee"} ${rgba p.bg "ee"} 45deg";
         "col.inactive_border" = rgba p.border_inact "aa";
         resize_on_border = true;
+      };
+
+      # Software cursor — immune to the Hyprland 0.52.1 bug where the
+      # hardware cursor plane is not re-committed after DPMS-on (lid
+      # open). With software cursor the cursor bitmap is composited
+      # into the framebuffer on every frame, so damageMonitor on
+      # DPMS-on redraws the cursor too. Trade-off: slightly higher GPU
+      # compositing load. Fixed upstream in 0.55.1 — can revert when
+      # we upgrade Hyprland.
+      # Source: research 2026-06-26-system-pain-points-deep-research §1.3
+      cursor = {
+        no_hardware_cursors = true;
       };
 
       # ── Workspace policy ───────────────────────────────────────────────

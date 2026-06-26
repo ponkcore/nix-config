@@ -27,12 +27,12 @@
   # Wallpaper paths. `wallpaper` remains the original full-resolution
   # asset for lock-screen use; `sessionWallpaper` is a pre-scaled copy
   # for the live Hyprland wallpaper daemon so hyprpaper does not keep a
-  # 6000x4000 image resident just to paint a 2880x1800 panel.
-  wallpaper = "${../assets/wallpaper.jpg}";
+  # large image resident just to paint a 2880x1800 panel.
+  wallpaper = "${../assets/wallpaper.png}";
   sessionWallpaper = "${sessionWallpaperAsset}";
-  sessionWallpaperAsset = pkgs.runCommand "wallpaper-session.jpg" {nativeBuildInputs = [pkgs.imagemagick];} ''
+  sessionWallpaperAsset = pkgs.runCommand "wallpaper-session.png" {nativeBuildInputs = [pkgs.imagemagick];} ''
     magick \
-      ${../assets/wallpaper.jpg} \
+      ${../assets/wallpaper.png} \
       -resize 2880x1800^ \
       -gravity center \
       -extent 2880x1800 \

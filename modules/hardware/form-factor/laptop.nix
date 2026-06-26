@@ -145,6 +145,18 @@
             ;;
           dpms)
             "$HYPRCTL" dispatch dpms on eDP-1 || true
+            # Force cursor plane re-commit after DPMS-on. Hyprland
+            # 0.52.1 does not re-commit the hardware cursor plane on
+            # DPMS-on — the cursor becomes invisible until moved.
+            # movecursor to current position triggers onCursorMoved
+            # → moveCursor backend call, re-committing the plane.
+            # With no_hardware_cursors=true (software cursor) this
+            # is belt-and-suspenders; without it, it's the primary
+            # fix. 0.1 s sleep lets commitDPMSState finish first.
+            # Source: research 2026-06-26-system-pain-points-deep-research §1.4
+            ${pkgs.coreutils}/bin/sleep 0.1
+            POS="$("$HYPRCTL" cursorpos 2>/dev/null | tr ',' ' ')"
+            [ -n "$POS" ] && "$HYPRCTL" dispatch movecursor $POS 2>/dev/null || true
             ;;
         esac
         blanked=false
@@ -281,6 +293,36 @@ in {
       };
     };
 
+    # ── GPU DPM force low on battery ────────────────────────────────────
+    # Force the Radeon 780M iGPU to its lowest power state on battery
+    # to reduce GPU idle power draw (~1.6W → lower). Restored to auto
+    # on AC. power_dpm_force_performance_level is available on iGPU
+    # (unlike pp_power_profile_mode which requires manual level).
+    # Risk: on high-refresh external displays this can cause bandwidth
+    # artefacts — but we no longer use external displays. eDP-1 at
+    # 2880×1800@120 is within the low DPM bandwidth budget.
+    # Source: research 2026-06-26-system-pain-points-deep-research §4.4
+    systemd.services.battery-gpu-dpm = {
+      description = "Force GPU DPM low on battery";
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = pkgs.writeShellScript "battery-gpu-dpm" ''
+          sleep 3
+          echo low > /sys/class/drm/card0/device/power_dpm_force_performance_level 2>/dev/null || true
+        '';
+      };
+    };
+
+    systemd.services.ac-gpu-dpm-restore = {
+      description = "Restore GPU DPM auto on AC";
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = pkgs.writeShellScript "ac-gpu-dpm-restore" ''
+          echo auto > /sys/class/drm/card0/device/power_dpm_force_performance_level 2>/dev/null || true
+        '';
+      };
+    };
+
     # ── udev: USB / NVMe / wakeup / PPD auto-switch ─────────────────────
     services.udev.extraRules = ''
       # USB autosuspend — 30s idle timeout. 2s was too aggressive and caused
@@ -319,10 +361,12 @@ in {
       # battery removes the double throttle — see research
       # 2026-06-25-amd-phoenix-power-ec-deep-research.result.md §1a/1d.
       SUBSYSTEM=="power_supply", KERNEL=="ADP1", ATTR{online}=="1", \
-        RUN+="${pkgs.power-profiles-daemon}/bin/powerprofilesctl set balanced"
+        RUN+="${pkgs.power-profiles-daemon}/bin/powerprofilesctl set balanced", \
+        RUN+="${pkgs.systemd}/bin/systemctl start ac-gpu-dpm-restore.service"
       SUBSYSTEM=="power_supply", KERNEL=="ADP1", ATTR{online}=="0", \
         RUN+="${pkgs.power-profiles-daemon}/bin/powerprofilesctl set power-saver", \
-        RUN+="${pkgs.systemd}/bin/systemctl start battery-epp-override.service"
+        RUN+="${pkgs.systemd}/bin/systemctl start battery-epp-override.service", \
+        RUN+="${pkgs.systemd}/bin/systemctl start battery-gpu-dpm.service"
     '';
   };
 }

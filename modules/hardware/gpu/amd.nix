@@ -25,15 +25,14 @@
       "amdgpu.abmlevel=0"
       "amdgpu.ppfeaturemask=0xfff7ffff"
       "amdgpu.sg_display=0"
-      # Disable Panel Self Refresh (0x10) + Panel Replay (0x400) +
-      # IPS dynamic mode (0x1000). On Phoenix/780M these low-power
-      # eDP features add latency to every DPMS transition — the
-      # driver enters/exits PSR/PR around each modeset, and IPS
-      # transitions add a re-init delay on DPMS-on. Disabling all
-      # three (0x1410) is the most aggressive latency reduction
-      # available on kernel 6.12.
-      # Source: research 2026-06-25-amd-phoenix-power-ec-deep-research §3b
-      "amdgpu.dcdebugmask=0x1410"
+      # Disable Panel Replay (0x400) + skip detection link training
+      # on DPMS-on (0x200000). PSR v1 stays alive (0x10 NOT set) —
+      # keeps the eDP link alive during blanking. DC_SKIP_DETECTION_LT
+      # (0x200000) was added in kernel 6.16; requires linuxPackages_6_18
+      # (set in hosts/lecoo/default.nix). Combined: zero DPMS-on
+      # latency — link stays alive (PSR v1) + detection LT skipped.
+      # Source: research 2026-06-26-system-pain-points-deep-research §2.3-2.4
+      "amdgpu.dcdebugmask=0x200400"
     ];
   };
 
