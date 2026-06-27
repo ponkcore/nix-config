@@ -386,13 +386,11 @@ in {
       # 2026-06-25-amd-phoenix-power-ec-deep-research.result.md §1a/1d.
       SUBSYSTEM=="power_supply", KERNEL=="ADP1", ATTR{online}=="1", \
         RUN+="${pkgs.power-profiles-daemon}/bin/powerprofilesctl set balanced", \
-        RUN+="${pkgs.systemd}/bin/systemctl start ac-gpu-dpm-restore.service", \
-        RUN+="${pkgs.systemd}/bin/systemctl start bluetooth-battery.service"
+        RUN+="${pkgs.systemd}/bin/systemctl start ac-gpu-dpm-restore.service"
       SUBSYSTEM=="power_supply", KERNEL=="ADP1", ATTR{online}=="0", \
         RUN+="${pkgs.power-profiles-daemon}/bin/powerprofilesctl set power-saver", \
         RUN+="${pkgs.systemd}/bin/systemctl start battery-epp-override.service", \
-        RUN+="${pkgs.systemd}/bin/systemctl start battery-gpu-dpm.service", \
-        RUN+="${pkgs.systemd}/bin/systemctl start bluetooth-battery.service"
+        RUN+="${pkgs.systemd}/bin/systemctl start battery-gpu-dpm.service"
     '';
   };
 }
