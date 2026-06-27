@@ -88,13 +88,27 @@
   # and blank the eDP panel for ~1 s. As a user-clicked mode that blink is
   # expected; as an automatic power-edge side effect it is not.
   #
-  # Does not touch display brightness, Bluetooth, Wi-Fi, or user applications.
+  # Eco mode levers (cumulative ~8-10 W saving from baseline):
+  #   - 60 Hz panel (DRM modeset, ~1s blank)          −1.5-2 W
+  #   - Hyprland animations off                        −0.2-0.3 W
+  #   - Hyprland blur/shadow off                       −0.1-0.2 W
+  #   - SMT disable (16 threads → 8 cores)             −0.5-1.5 W
+  #   - CPU boost off + 2 GHz max freq cap             −0.5-1.5 W
+  #   - EPP=power (0xFF, remove balance_power override) −0.3-0.8 W
+  #   - PPD power-saver + EC silent + GPU DPM low      (already on battery)
+  #   - Stop Docker + libvirtd                         −0.2-1 W
+  #
+  # Does not touch display brightness, Bluetooth, Wi-Fi, or user
+  # applications. BT and WiFi are managed manually by the user.
   ultra-economy-toggle = pkgs.writeShellScriptBin "ultra-economy-toggle" ''
     set -eu
 
     runtime="''${XDG_RUNTIME_DIR:-/tmp}/ultra-economy"
     state="$runtime/state"
     saved_animations="$runtime/animations"
+    saved_smt="$runtime/smt"
+    saved_boost="$runtime/boost"
+    saved_maxfreq="$runtime/maxfreq"
 
     mkdir -p "$runtime"
 
@@ -124,9 +138,28 @@
       fi
     }
 
+    # Restore CPU settings saved during eco entry.
+    restore_cpu() {
+      if [ -r "$saved_smt" ]; then
+        sudo -n ${pkgs.coreutils}/bin/tee /sys/devices/system/cpu/smt/control < "$saved_smt" >/dev/null 2>&1 || true
+        rm -f "$saved_smt"
+      fi
+      if [ -r "$saved_boost" ]; then
+        for p in /sys/devices/system/cpu/cpufreq/policy*/boost; do
+          sudo -n ${pkgs.coreutils}/bin/tee "$p" < "$saved_boost" >/dev/null 2>&1 || true
+        done
+        rm -f "$saved_boost"
+      fi
+      if [ -r "$saved_maxfreq" ]; then
+        for p in /sys/devices/system/cpu/cpufreq/policy*/amd_pstate_max_freq; do
+          sudo -n ${pkgs.coreutils}/bin/tee "$p" < "$saved_maxfreq" >/dev/null 2>&1 || true
+        done
+        rm -f "$saved_maxfreq"
+      fi
+    }
+
     if [ "$(cat "$state" 2>/dev/null || true)" = "on" ]; then
-      # Leave ultra economy. Restore the normal 120 Hz panel mode and
-      # return power policy to the current AC/battery baseline.
+      # ── Leave ultra economy ──────────────────────────────────
       ${pkgs.hyprland}/bin/hyprctl keyword monitor "eDP-1, 2880x1800@120, 0x0, 1.8" >/dev/null 2>&1 || true
 
       if [ -r "$saved_animations" ]; then
@@ -139,22 +172,68 @@
         ${pkgs.hyprland}/bin/hyprctl keyword animations:enabled 1 >/dev/null 2>&1 || true
       fi
 
+      # Restore Hyprland visual effects.
+      ${pkgs.hyprland}/bin/hyprctl keyword decoration:blur:enabled 1 >/dev/null 2>&1 || true
+      ${pkgs.hyprland}/bin/hyprctl keyword decoration:shadow:enabled 1 >/dev/null 2>&1 || true
+
+      # Restore CPU settings.
+      restore_cpu
+
+      # Restart stopped services.
+      sudo -n ${pkgs.systemd}/bin/systemctl start docker.service libvirtd.service 2>/dev/null || true
+
+      # Restore power baseline (re-enables battery-epp-override on battery).
       apply_power_baseline
+      # Re-apply EPP override since PPD may have reset it.
+      online=$(cat /sys/class/power_supply/ADP1/online 2>/dev/null || echo 0)
+      if [ "$online" = "0" ]; then
+        sudo -n ${pkgs.systemd}/bin/systemctl start battery-epp-override.service 2>/dev/null || true
+      fi
+
       echo off > "$state"
       notify_waybar
       exit 0
     fi
 
-    # Enter ultra economy. Save session-local animation state so leaving
-    # the mode restores what the user had before the click.
+    # ── Enter ultra economy ───────────────────────────────────
+    # Save session-local state so leaving the mode restores what the
+    # user had before the click.
     ${pkgs.hyprland}/bin/hyprctl getoption animations:enabled 2>/dev/null \
       | ${pkgs.gnugrep}/bin/grep -oP '^int:\s*\K[01]' > "$saved_animations" 2>/dev/null || true
 
+    # Save CPU state.
+    cat /sys/devices/system/cpu/smt/control > "$saved_smt" 2>/dev/null || true
+    cat /sys/devices/system/cpu/cpufreq/policy0/boost > "$saved_boost" 2>/dev/null || true
+    cat /sys/devices/system/cpu/cpufreq/policy0/amd_pstate_max_freq > "$saved_maxfreq" 2>/dev/null || true
+
+    # Panel: 120 → 60 Hz (DRM modeset, ~1s blank).
+    ${pkgs.hyprland}/bin/hyprctl keyword monitor "eDP-1, 2880x1800@60, 0x0, 1.8" >/dev/null 2>&1 || true
+
+    # Hyprland: disable animations + visual effects.
+    ${pkgs.hyprland}/bin/hyprctl keyword animations:enabled 0 >/dev/null 2>&1 || true
+    ${pkgs.hyprland}/bin/hyprctl keyword decoration:blur:enabled 0 >/dev/null 2>&1 || true
+    ${pkgs.hyprland}/bin/hyprctl keyword decoration:shadow:enabled 0 >/dev/null 2>&1 || true
+
+    # CPU: disable SMT (16 threads → 8 cores), disable boost, cap at 2 GHz.
+    sudo -n ${pkgs.coreutils}/bin/tee /sys/devices/system/cpu/smt/control <<< "off" >/dev/null 2>&1 || true
+    for p in /sys/devices/system/cpu/cpufreq/policy*/boost; do
+      echo 0 | sudo -n ${pkgs.coreutils}/bin/tee "$p" >/dev/null 2>&1 || true
+    done
+    for p in /sys/devices/system/cpu/cpufreq/policy*/amd_pstate_max_freq; do
+      echo 2000000 | sudo -n ${pkgs.coreutils}/bin/tee "$p" >/dev/null 2>&1 || true
+    done
+
+    # Power: PPD power-saver + EC silent + GPU DPM low.
     ${pkgs.power-profiles-daemon}/bin/powerprofilesctl set power-saver >/dev/null 2>&1 || true
     ${pkgs.lecoo-ctrl}/bin/lecoo-ctrl power silent >/dev/null 2>&1 || true
     set_gpu_level low
-    ${pkgs.hyprland}/bin/hyprctl keyword animations:enabled 0 >/dev/null 2>&1 || true
-    ${pkgs.hyprland}/bin/hyprctl keyword monitor "eDP-1, 2880x1800@60, 0x0, 1.8" >/dev/null 2>&1 || true
+
+    # EPP: let PPD set 0xFF (power) for maximum efficiency. Do NOT
+    # trigger battery-epp-override — eco mode accepts the ~1.4 GHz
+    # core parking in exchange for lower power.
+
+    # Stop heavyweight services.
+    sudo -n ${pkgs.systemd}/bin/systemctl stop docker.service libvirtd.service 2>/dev/null || true
 
     echo on > "$state"
     notify_waybar
