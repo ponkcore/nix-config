@@ -29,12 +29,16 @@
 
   system.stateVersion = "25.11";
 
-  # Kernel — 6.18 LTS (not the NixOS default 6.12). Required for
-  # DC_SKIP_DETECTION_LT (dcdebugmask 0x200000) which eliminates
-  # amdgpu eDP DPMS-on link training latency. Also brings 7 months
-  # of amdgpu DCN3.1 fixes and better Phoenix/Hawkpoint power
-  # management. Rollback: nixos-rebuild switch --rollback.
-  boot.kernelPackages = pkgs.linuxPackages_6_18;
+  # Kernel — latest (7.0.5). Upgraded from 6.18 LTS for:
+  #   - rtw89 WiFi PS beacon tracking fix (kernel 6.20+, in 7.0.5)
+  #     → enables WiFi power-save re-enabling (0.5-1.5 W saving)
+  #   - amdgpu improvements past 6.18.x regression window
+  #   - DC_SKIP_DETECTION_LT (0x200000) still present in amd_shared.h
+  #     (enum is stable across versions, confirmed via source)
+  # Not LTS — but no ZFS, no out-of-tree modules on lecoo → low risk.
+  # Rollback: nixos-rebuild switch --rollback.
+  # Source: research 2026-06-27-battery-unsolved-deep-research §12
+  boot.kernelPackages = pkgs.linuxPackages_latest;
 
   # Host-scoped overlay: lecoo-ctrl is platform-specific (ITE IT5571-07
   # EC chip on Emdoor N155A motherboards). Lives under hosts/lecoo/pkgs/

@@ -228,11 +228,14 @@
     ${pkgs.lecoo-ctrl}/bin/lecoo-ctrl power silent >/dev/null 2>&1 || true
     set_gpu_level low
 
-    # EPP: let PPD set 0xFF (power) for maximum efficiency. Stop
-    # battery-epp-override so it doesn't overwrite EPP back to
-    # balance_power. The service also has a guard that checks eco
-    # state, but stopping it explicitly is belt-and-suspenders.
+    # EPP: explicitly set power (0xFF) for maximum efficiency in eco
+    # mode. PPD power-saver sets this, but battery-epp-override may
+    # have already overwritten it. Stop the override service first,
+    # then set EPP=power directly on all CPUs.
     sudo -n ${pkgs.systemd}/bin/systemctl stop battery-epp-override.service 2>/dev/null || true
+    for cpu in /sys/devices/system/cpu/cpu*/cpufreq/energy_performance_preference; do
+      echo power | sudo -n ${pkgs.coreutils}/bin/tee "$cpu" >/dev/null 2>&1 || true
+    done
 
     # Stop heavyweight services.
     sudo -n ${pkgs.systemd}/bin/systemctl stop docker.service libvirtd.service 2>/dev/null || true
