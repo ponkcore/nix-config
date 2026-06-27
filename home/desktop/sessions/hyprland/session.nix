@@ -62,11 +62,9 @@
 
   # Render `{match, category, override?}` to the three Hyprland rules
   # that every popup needs (float / size / center). `match` is a raw
-  # Hyprland 0.53+ hyprlang selector like `match:class foo` or
-  # `match:title foo`. We pass it through verbatim so a caller can
-  # match by title when class is shared (e.g. ghostty under
-  # gtk-single-instance, where every window inherits the same class
-  # from the host process).
+  # Hyprland v2 predicate like `class:^(foo)$` or `title:^(foo)$`.
+  # In Hyprland 0.53+, `windowrulev2` was removed and `windowrule`
+  # now accepts the v2 predicate syntax directly (with regex).
   mkPopupRaw = {
     match,
     category,
@@ -86,7 +84,7 @@
     override ? {},
   }:
     mkPopupRaw {
-      match = "match:class ${class}";
+      match = "class:^(${class})$";
       inherit category override;
     };
 in {
@@ -447,14 +445,14 @@ in {
       # workspace; popups (waybar-launched panels, TUI tools, media) follow
       # the `popup` category contract defined at the top of this file.
       # Super+F toggles maximize off when you want an explicit split.
-      # Hyprland 0.53+ hyprlang syntax: `windowrule = effect, match:class foo`
-      # replaces the old `windowrulev2 = effect, class:^(foo)$`.
+      # Hyprland 0.53+: windowrulev2 removed, windowrule now accepts
+      # v2 predicate syntax with regex (class:^(foo)$).
       windowrule =
         [
           # ── Large apps: auto-maximize (fill workspace) ──────────────────
-          "maximize, match:class firefox"
-          "maximize, match:class chromium-browser"
-          "maximize, match:class virt-manager"
+          "maximize, class:^(firefox)$"
+          "maximize, class:^(chromium-browser)$"
+          "maximize, class:^(virt-manager)$"
         ]
         # ── Categorised popup panels ──────────────────────────────────────
         # Each call expands to three rules (float / size / center). See the
@@ -544,44 +542,44 @@ in {
         })
         ++ [
           # ── Utility/dialog apps: float (size left to the app) ───────────
-          "float, match:class blueman-manager"
-          "float, match:class blueman-adapters"
-          "float, match:class .blueman-manager-wrapped"
-          "float, match:class org.kde.kvantummanager"
-          "float, match:class qt5ct"
-          "float, match:class qt6ct"
-          "float, match:class nm-connection-editor"
-          "float, match:class pavucontrol"
-          "float, match:class xdg-desktop-portal-gtk"
-          "float, match:class org.gnome.Calculator"
+          "float, class:^(blueman-manager)$"
+          "float, class:^(blueman-adapters)$"
+          "float, class:^(.blueman-manager-wrapped)$"
+          "float, class:^(org.kde.kvantummanager)$"
+          "float, class:^(qt5ct)$"
+          "float, class:^(qt6ct)$"
+          "float, class:^(nm-connection-editor)$"
+          "float, class:^(pavucontrol)$"
+          "float, class:^(xdg-desktop-portal-gtk)$"
+          "float, class:^(org.gnome.Calculator)$"
 
           # ── Image viewers: float + centered native size ─────────────────
-          "float, match:class imv"
-          "float, match:class org.gnome.Loupe"
-          "float, match:class eog"
-          "center, match:class imv"
-          "center, match:class org.gnome.Loupe"
-          "center, match:class eog"
+          "float, class:^(imv)$"
+          "float, class:^(org.gnome.Loupe)$"
+          "float, class:^(eog)$"
+          "center, class:^(imv)$"
+          "center, class:^(org.gnome.Loupe)$"
+          "center, class:^(eog)$"
 
           # ── Browser picture-in-picture: float + pin to corner ───────────
           # Unique geometry (pinned to bottom-right), not a category member.
-          "float, match:title Picture-in-Picture"
-          "pin, match:title Picture-in-Picture"
-          "size 25% 25%, match:title Picture-in-Picture"
-          "move 73% 72%, match:title Picture-in-Picture"
+          "float, title:^(Picture-in-Picture)$"
+          "pin, title:^(Picture-in-Picture)$"
+          "size 25% 25%, title:^(Picture-in-Picture)$"
+          "move 73% 72%, title:^(Picture-in-Picture)$"
 
           # ── File open/save dialogs: float + center ──────────────────────
-          "float, match:title Open File"
-          "float, match:title Save File"
-          "float, match:title Open Folder"
-          "float, match:title Save As"
-          "float, match:title Select a File"
-          "float, match:title Choose Files"
-          "float, match:title Confirm to replace files"
-          "center, match:title Open File"
-          "center, match:title Save File"
-          "center, match:title Open Folder"
-          "center, match:title Save As"
+          "float, title:^(Open File)(.*)$"
+          "float, title:^(Save File)(.*)$"
+          "float, title:^(Open Folder)(.*)$"
+          "float, title:^(Save As)(.*)$"
+          "float, title:^(Select a File)(.*)$"
+          "float, title:^(Choose Files)(.*)$"
+          "float, title:^(Confirm to replace files)(.*)$"
+          "center, title:^(Open File)(.*)$"
+          "center, title:^(Save File)(.*)$"
+          "center, title:^(Open Folder)(.*)$"
+          "center, title:^(Save As)(.*)$"
         ];
 
       env = [
