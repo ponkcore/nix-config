@@ -61,16 +61,14 @@
         inherit (final) config;
       };
     in {
-      inherit (pkgsUnstable) hyprland hyprpaper hypridle hyprlock xdg-desktop-portal-hyprland mesa waybar;
-      # Mesa 26.1.3 from unstable is REQUIRED for RDNA3 with Hyprland
-      # 0.55.x — Hyprland wiki warns that mesa version mismatch causes
-      # lag and FPS drops on AMD/RDNA3. Do not remove.
+      inherit (pkgsUnstable) hyprland hyprpaper hypridle hyprlock xdg-desktop-portal-hyprland waybar;
+      # Mesa: Hyprland wiki recommends matching mesa from unstable for
+      # RDNA3 to avoid lag/FPS drops. However, mesa 26.1.3 from unstable
+      # does NOT have a binary cache for our nixpkgs commit (8fd9daa) —
+      # it compiles from source (20+ min, 100% CPU). Using mesa 25.2.6
+      # from stable for now. If rendering issues appear, pin mesa from
+      # unstable and run the build with a longer timeout.
       # Waybar 0.15.0+ required for Hyprland 0.55.x Lua IPC dispatch.
-      # Waybar 0.14.0 workspace clicks break with 0.55.x.
-      # Note: 0.15.0 has an invisibility bug (battery module infinite
-      # loop + image module regression) — our config uses custom/battery
-      # (shell script, not built-in battery module) so the battery loop
-      # does not affect us. No image modules in our config either.
       # Source: research 2026-06-27-final-comprehensive-upgrade-study §5-6
     })
     (final: _prev: {
