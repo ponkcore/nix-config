@@ -320,8 +320,9 @@ in {
     # eco toggle will set it back to 0 when activated.
     #
     # Ordering: after power-profiles-daemon.service — PPD power-saver
-    # writes boost=0 via sysfs. If we run before PPD, PPD overwrites
-    # our boost=1. Running after PPD ensures our write is the last one.
+    # writes boost=0 via sysfs asynchronously after startup. `after=`
+    # guarantees start order, but PPD applies its profile via D-Bus
+    # after init. A 3s sleep lets PPD settle before we override boost=1.
     # Source: research 2026-06-27-battery-unsolved-deep-research-2 §12
     #
     # ConditionPathExists=!/var/lib/lecoo-eco/state-on: skip boost
@@ -336,6 +337,7 @@ in {
       serviceConfig = {
         Type = "oneshot";
         ExecStart = pkgs.writeShellScript "cpu-boost-restore" ''
+          sleep 3
           for p in /sys/devices/system/cpu/cpufreq/policy*/boost; do
             echo 1 > "$p" 2>/dev/null || true
           done
