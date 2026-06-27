@@ -99,7 +99,9 @@
       indent-blankline-nvim
     ];
 
-    extraLuaConfig = ''
+    # 26.05: extraLuaConfig renamed to initLua (auto-migrated with
+    # deprecation warning, but renamed for future-proofing).
+    initLua = ''
       -- ── Leader ──────────────────────────────────────────────────────
       vim.g.mapleader = " "
       vim.g.maplocalleader = " "
@@ -126,13 +128,12 @@
       vim.opt.cursorline = true
 
       -- ── Treesitter ──────────────────────────────────────────────────
-      -- Parsers are baked into /nix/store via nvim-treesitter.withPlugins
-      -- (see programs.neovim.plugins). We only need to enable the
-      -- modules; there is no install step.
-      require("nvim-treesitter.configs").setup({
-        highlight = {enable = true},
-        indent = {enable = true},
-      })
+      -- Neovim 0.12+ has built-in treesitter highlighting and indentation
+      -- enabled by default when parsers are installed. The parsers are
+      -- baked into /nix/store via nvim-treesitter.withPlugins (see
+      -- programs.neovim.plugins). The old `require("nvim-treesitter.
+      -- configs").setup({highlight = {enable = true}})` API was removed
+      -- in nvim-treesitter 0.10+ (2026-04). No setup call needed.
 
       -- ── Colorscheme ─────────────────────────────────────────────────
       require("gruvbox").setup({
