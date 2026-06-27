@@ -43,64 +43,10 @@
     });
   })
 
-  # throne (1.0.8-unstable-2025-10-29 on 25.11): the v1 NixOS patch
-  # injected by nixpkgs makes TUN mode unusable — the GUI shows
-  # "Unable to elevate privileges when installed with Nix" because
-  # the patched FindCoreRealPath redirect collides with upstream
-  # changes. nixpkgs commit d380eba (2026-01-25) bumped to 1.0.13
-  # and rewrote both NixOS patches as v2 against the new source
-  # tree; that fix lives on nixos-unstable, not on 25.11. Drop this
-  # rebind once 25.11 receives the backport.
-  #
-  # Throne 1.1.2 from unstable is built against qtbase-6.11.0
-  # whereas 25.11's gruvbox-kvantum and qt6ct ship qtbase-6.10.2,
-  # which makes Qt's plugin loader reject them at runtime
-  # (build-version mismatch). To keep the in-app Theme picker
-  # actually working, also pull qtstyleplugin-kvantum, qt6ct and
-  # gruvbox-kvantum from unstable so all three end up on the same
-  # qtbase ABI as Throne.
-  #
-  # qtwayland is bound for the same ABI reason: 25.11 ships
-  # qtwayland 6.10.2, but Throne's qtbase is 6.11.0. We need
-  # an ABI-matched qtwayland on Throne's QT_PLUGIN_PATH so the
-  # Wayland QPA plugin finds its companion plugins (decoration
-  # client, graphics-integration-server) at runtime — without
-  # them Qt's Wayland init is not stable under Hyprland. The
-  # ABI-matched qtwayland is exposed under a dedicated attribute
-  # name (`throne-qtwayland`, NOT folded into qt6Packages —
-  # tainting that set with 6.11.0 qtwayland breaks sibling Qt
-  # apps like ayugram-desktop with "detected mismatched Qt
-  # dependencies"). home/throne.nix consumes it via runtime
-  # QT_PLUGIN_PATH and forces Throne onto Wayland with the
-  # `-platform wayland` argv (the env-var QT_QPA_PLATFORM is
-  # silently ignored by Throne 1.1.2 even when both plugins
-  # are present — see the comment in home/throne.nix).
-  # Getting Throne off XWayland was necessary to fix mixed-DPI
-  # popup sizing: on eDP-1 scale 2 + HDMI-A-1 scale 1, XWayland
-  # renders right-click context menus at the global X scale (=2)
-  # regardless of which monitor the window is on, producing
-  # popups that are bigger than the Throne window itself when
-  # the window sits on HDMI-A-1.
-  (final: _prev: let
-    pkgsUnstable = import inputs.nixpkgs-unstable {
-      inherit (final.stdenv.hostPlatform) system;
-      inherit (final) config;
-    };
-  in {
-    inherit (pkgsUnstable) throne gruvbox-kvantum;
-    qt6Packages =
-      _prev.qt6Packages
-      // {
-        inherit (pkgsUnstable.qt6Packages) qt6ct qtstyleplugin-kvantum;
-      };
-    # Throne-only: qtwayland-6.11.0 from unstable, exposed under
-    # a dedicated attribute so home/throne.nix can reach it without
-    # tainting the rest of the qt6Packages set (mixing 6.11.0
-    # qtwayland into 25.11's 6.10.2 Qt closure breaks builds — e.g.
-    # ayugram-desktop fails the qmake-finalize Qt-version sanity
-    # check with "detected mismatched Qt dependencies").
-    throne-qtwayland = pkgsUnstable.qt6Packages.qtwayland;
-  })
+  # 26.05 migration: throne, gruvbox-kvantum, Qt ABI overlay chain
+  # removed — 26.05 ships throne 1.0.13 (with corrected v2 NixOS
+  # patches), qtbase 6.11.1, and gruvbox-kvantum natively. No more
+  # ABI mismatch between Throne and system Qt packages.
 
   # bun2nix overlay — required by pkgs/letta-code for fetchBunDeps
   # and the bun2nix build hook. Sourced from the letta-code flake's

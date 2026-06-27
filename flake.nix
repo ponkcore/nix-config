@@ -4,20 +4,15 @@
   # See docs/architecture.md for the layer model and lib/mkHost.nix
   # for the helper that turns a host spec into a nixosSystem.
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-25.11";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-26.05";
 
-    # Cross-channel pull for individual packages whose stable
-    # release is regressed or behind upstream. Currently used for
-    # `throne`: nixos-25.11 ships 1.0.8-unstable-2025-10-29 with a
-    # broken v1 NixOS patch (TUN elevation does not actually work);
-    # nixos-unstable shipped 1.0.13 + corrected v2 patches in
-    # nixpkgs commit d380eba (2026-01-25). See ADR / journal entry
-    # for the rationale; remove this input once 25.11 receives the
-    # backport.
+    # Cross-channel pull kept for future use. 26.05 ships all
+    # packages we previously pinned from unstable (hyprland 0.55.4,
+    # mesa 26.1.3, throne 1.0.13, kernel 7.1.1, etc.) natively.
     nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
 
     home-manager = {
-      url = "github:nix-community/home-manager/release-25.11";
+      url = "github:nix-community/home-manager/release-26.05";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -36,7 +31,7 @@
     };
 
     # llm-agents pins its own nixpkgs because the npm packages it ships
-    # are incompatible with our nixos-25.11 channel. `inputs.nixpkgs.follows`
+    # are incompatible with our nixos channel. `inputs.nixpkgs.follows`
     # breaks the build.
     llm-agents.url = "github:numtide/llm-agents.nix";
 
@@ -51,21 +46,11 @@
 
     # mcp-nix — felixdorn/mcp-nix: NixOS/Home Manager/Nix stdlib MCP
     # server. Uses uv2nix + pyixx (Rust); pins its own nixpkgs because
-    # the Python 3.13 + fastmcp derivation chain is not on 25.11.
+    # the Python 3.13 + fastmcp derivation chain is not on 26.05.
     mcp-nix.url = "github:felixdorn/mcp-nix";
 
-    # Hyprland — pinned from upstream flake for 0.55.x. The flake
-    # provides a hyprland-packages overlay that composes all ecosystem
-    # dependencies (aquamarine, hyprlang, hyprutils, hyprland-protocols)
-    # at matching versions. User-facing tools (hyprpaper, hypridle,
-    # hyprlock, xdph) are pinned from nixpkgs-unstable in the host
-    # overlay. inputs.nixpkgs.follows = "nixpkgs-unstable" so the
-    # Hyprland flake builds against the same nixpkgs as our unstable
-    # channel pull.
-    hyprland = {
-      url = "github:hyprwm/Hyprland";
-      inputs.nixpkgs.follows = "nixpkgs-unstable";
-    };
+    # 26.05 migration: Hyprland flake input removed — 26.05 ships
+    # hyprland 0.55.4 + all ecosystem packages natively.
   };
 
   outputs = {nixpkgs, ...} @ inputs: let

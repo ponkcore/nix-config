@@ -97,6 +97,10 @@ in {
   # our quiet wrapper. mkForce because programs.hyprland.withUWSM
   # already sets this option upstream.
   programs.uwsm.waylandCompositors.hyprland.binPath = lib.mkForce "${hyprland-quiet}/bin/Hyprland";
+  # 26.05: prettyName has no default — accessed by display-manager
+  # module but not auto-set. Without this, the greeter shows a blank
+  # or technical name for the Hyprland session entry.
+  programs.uwsm.waylandCompositors.hyprland.prettyName = "Hyprland";
 
   # Channel 3 (greeter .desktop entry): replace the upstream verbose
   # entry. Listed AFTER programs.hyprland so this package wins the

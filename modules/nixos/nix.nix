@@ -17,13 +17,7 @@
       "unrar"
     ];
 
-  # Docker 28.5.2 is flagged as insecure in the updated nixpkgs
-  # (CVE-related). We use Docker on-demand with socket activation
-  # (enableOnBoot=false) and autoPrune. The vulnerability is in
-  # a component not exposed in our configuration.
-  nixpkgs.config.permittedInsecurePackages = [
-    "docker-28.5.2"
-  ];
+  # Docker insecure flag removed — 26.05 ships Docker 29.5.3.
 
   # Flakes + nix-command
   nix.settings.experimental-features = ["nix-command" "flakes"];
@@ -88,11 +82,12 @@
     "fs.inotify.max_user_instances" = 1024;
   };
 
-  # Limit core dumps — 500MB total, delete after 3 days
-  systemd.coredump.extraConfig = ''
-    MaxUse=500M
-    MaxRetentionSec=3d
-  '';
+  # Limit core dumps — 500MB total, delete after 3 days.
+  # 26.05: systemd.coredump.extraConfig removed → structured settings.
+  systemd.coredump.settings.Coredump = {
+    MaxUse = "500M";
+    MaxRetentionSec = "3d";
+  };
 
   # Limit journal size — prevent unbounded growth.
   # 500M / 3 months: enough headroom to forensically investigate a problem

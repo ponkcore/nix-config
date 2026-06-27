@@ -25,14 +25,10 @@ _: {
     wifi.powersave = false;
   };
 
-  # NetworkManager does NOT bundle its own WPA implementation — it always
-  # talks to a system-wide wpa_supplicant via D-Bus (fi.w1.wpa_supplicant1).
-  # That unit ships inside the wpa_supplicant package and is auto-activated
-  # by NM the moment it connects to a WPA network.
-  #
-  # `networking.wireless.enable = true` is the legacy "use wpa_supplicant
-  # as the primary network manager" mode and conflicts with NM. Keep false.
-  networking.wireless.enable = false;
+  # 26.05: networking.wireless.enable = false removed — the 26.05 NM
+  # module sets networking.wireless.enable = mkDefault true internally
+  # and handles wpa_supplicant correctly. Explicitly setting false
+  # conflicts with the new module logic.
 
   # ModemManager — nothing on these hosts uses cellular modems.
   networking.modemmanager.enable = false;
