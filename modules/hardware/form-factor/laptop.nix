@@ -349,13 +349,15 @@ in {
       # Autosuspend on HID causes lag/disconnect when waking from sleep.
       ACTION=="add", SUBSYSTEM=="usb", ENV{ID_USB_INTERFACES}==":0301*", TEST=="power/control", ATTR{power/control}="on"
 
-      # NVMe runtime PM — allow the NVMe controller to enter D3 (DEVSLP)
-      # when idle. APST is already enabled (confirmed via nvme get-feature
-      # 0x0c), so the drive transitions to PS3 (25 mW) / PS4 (4 mW) on
-      # its own. Runtime PM adds PCI D3 on top, saving an additional
-      # 0.3-0.8 W. Safe with nvme_noacpi=1 (that only disables ACPI PM,
-      # not runtime PM).
-      ACTION=="add", SUBSYSTEM=="nvme", TEST=="power/control", ATTR{power/control}="auto"
+      # NVMe runtime PM — allow the NVMe controller PCI device to enter
+      # D3 (DEVSLP) when idle. APST is already enabled (confirmed via
+      # nvme get-feature 0x0c), so the drive transitions to PS3 (25 mW)
+      # / PS4 (4 mW) on its own. Runtime PM adds PCI D3 on top, saving
+      # an additional 0.3-0.8 W. Safe with nvme_noacpi=1 (that only
+      # disables ACPI PM, not runtime PM). Matches PCI class 0x010802
+      # (NVM controller) — the power/control sysfs is on the PCI device,
+      # not the nvme class device.
+      ACTION=="add", SUBSYSTEM=="pci", ATTR{class}=="0x010802", TEST=="power/control", ATTR{power/control}="auto"
 
       # NVMe I/O scheduler — "none" is the recommendation for multi-queue NVMe,
       # especially DRAM-less drives. mq-deadline adds latency without throughput.
