@@ -36,6 +36,17 @@
     nix-output-monitor
     nh
 
+    # ── Power diagnostics ──
+    # turbostat must match the running kernel version — use
+    # linuxPackages_latest.turbostat (currently 7.0.5). Reports
+    # per-package/core C-states, frequency, and RAPL power.
+    # powertop: total power estimates, wakeups, device power states,
+    # tunables. Supports --auto-tune.
+    # msr module is required for turbostat MSR reads — added in
+    # boot.kernelModules via laptop.nix.
+    powertop
+    pkgs.linuxPackages_latest.turbostat
+
     # ── Nix code quality (used by .pre-commit-config.yaml) ──
     pre-commit
     alejandra

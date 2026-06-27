@@ -103,8 +103,12 @@
   ultra-economy-toggle = pkgs.writeShellScriptBin "ultra-economy-toggle" ''
     set -eu
 
+    # Session-local saved state lives in tmpfs (wiped on reboot).
+    # Persistent eco state file lives in /var/lib (survives reboots)
+    # — checked by cpu-boost-restore.service and AC-plug udev handlers.
     runtime="''${XDG_RUNTIME_DIR:-/tmp}/ultra-economy"
     state="$runtime/state"
+    persistent_state="/var/lib/lecoo-eco/state-on"
     saved_animations="$runtime/animations"
     saved_smt="$runtime/smt"
     saved_boost="$runtime/boost"
@@ -191,6 +195,7 @@
       fi
 
       echo off > "$state"
+      sudo -n ${pkgs.coreutils}/bin/rm -f "$persistent_state" 2>/dev/null || true
       notify_waybar
       exit 0
     fi
@@ -241,14 +246,21 @@
     sudo -n ${pkgs.systemd}/bin/systemctl stop docker.service libvirtd.service 2>/dev/null || true
 
     echo on > "$state"
+    # Write persistent state file — survives reboots, checked by
+    # cpu-boost-restore.service (skip boost=1 if eco active) and
+    # AC-plug udev handlers (skip power profile reset if eco active).
+    echo on | sudo -n ${pkgs.coreutils}/bin/tee "$persistent_state" >/dev/null 2>&1 || true
     notify_waybar
   '';
 
   ultra-economy-status = pkgs.writeShellScriptBin "ultra-economy-status" ''
     runtime="''${XDG_RUNTIME_DIR:-/tmp}/ultra-economy"
     state="$runtime/state"
+    persistent_state="/var/lib/lecoo-eco/state-on"
 
-    if [ "$(cat "$state" 2>/dev/null || true)" = "on" ]; then
+    # Check both session state and persistent state — persistent
+    # survives reboots, session is cleared on logout.
+    if [ "$(cat "$state" 2>/dev/null || true)" = "on" ] || [ -f "$persistent_state" ]; then
       printf '{"text":"󰗌","class":"on"}\n'
     else
       printf '{"text":"󰗌","class":"off"}\n'

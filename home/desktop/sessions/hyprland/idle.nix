@@ -10,7 +10,7 @@
 #
 # Policy:
 #   - lock on sleep (before_sleep_cmd)
-#   - idle flag set after 5 min on battery, cleared on any input
+#   - idle flag set after 30s on battery, cleared on any input
 #   - never idle-suspend: the laptop only sleeps on lid close (handled
 #     by logind/Hyprland bindl, not here).
 #   - after_sleep_cmd removed: lid-monitor handles post-resume display
@@ -32,14 +32,15 @@ in {
       };
       listener = [
         {
-          # 120 s idle on battery → set idle flag → lid-monitor DPMS-off.
-          # Reduced from 300 s: panel at 0% brightness still draws ~3 W;
-          # DPMS-off eliminates that. 120 s is a compromise between
-          # aggressive power saving and not blanking while reading.
+          # 30 s idle on battery → set idle flag → lid-monitor DPMS-off.
+          # Panel at 0% brightness still draws ~2-3 W (eDP link active);
+          # DPMS-off eliminates that entirely. 30s is aggressive but
+          # acceptable on battery — reading pauses >30s are rare, and
+          # the screen wakes instantly on any input.
           # Only fires on battery (on-battery guard). On AC the flag is
           # never set, so the screen stays on indefinitely.
-          # Source: research 2026-06-27-battery-unsolved-deep-research §11
-          timeout = 120;
+          # Source: research 2026-06-27-battery-unsolved-deep-research-2 §6
+          timeout = 30;
           on-timeout = "${on-battery}/bin/on-battery && touch ${idleFlag}";
           on-resume = "rm -f ${idleFlag}";
         }

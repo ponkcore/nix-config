@@ -224,6 +224,10 @@ in {
     # interactive use.
     environment.systemPackages = [on-battery];
 
+    # msr module — required for turbostat MSR reads (C-state residency,
+    # RAPL power). turbostat is installed via packages.nix.
+    boot.kernelModules = ["msr"];
+
     # ── Power policy: power-profiles-daemon ─────────────────────────────
     # PPD is the upstream-blessed bridge between userspace power requests
     # ("performance / balanced / power-saver") and platform mechanisms.
@@ -268,6 +272,16 @@ in {
       # suspenders. rtw89 WiFi ASPM stays disabled via modprobe.
       # Source: research 2026-06-27-battery-unsolved-deep-research §2
       "pcie_aspm=force"
+      # nohz_full: remove the scheduler tick from CPUs 1-15 when they
+      # have ≤1 runnable task. CPU0 remains the housekeeping CPU (timer,
+      # RCU callbacks). This reduces LOC (local timer) interrupts on
+      # idle CPUs, allowing deeper C-states (CC6/PC6). rcu_nocbs
+      # offloads RCU callbacks to CPU0 — required for nohz_full to be
+      # effective. On a 16-thread system at desktop idle (most cores
+      # empty), this is net beneficial for battery life.
+      # Source: research 2026-06-27-battery-unsolved-deep-research-2 §10
+      "nohz_full=1-15"
+      "rcu_nocbs=1-15"
     ];
 
     # Write ASPM policy to powersave at boot. The kernel param `force`
@@ -304,10 +318,21 @@ in {
     # because no restore path runs. This oneshot ensures boost=1 on
     # boot, so normal battery mode always has boost available. The
     # eco toggle will set it back to 0 when activated.
+    #
+    # Ordering: after power-profiles-daemon.service — PPD power-saver
+    # writes boost=0 via sysfs. If we run before PPD, PPD overwrites
+    # our boost=1. Running after PPD ensures our write is the last one.
+    # Source: research 2026-06-27-battery-unsolved-deep-research-2 §12
+    #
+    # ConditionPathExists=!/var/lib/lecoo-eco/state-on: skip boost
+    # restore if eco mode is persistent (state file exists from before
+    # reboot). The eco toggle writes this file when eco is ON.
     systemd.services.cpu-boost-restore = {
-      description = "Restore CPU boost on boot";
-      after = ["systemd-sysctl.service"];
+      description = "Restore CPU boost on boot (eco-aware)";
+      after = ["multi-user.target" "power-profiles-daemon.service"];
+      wants = ["power-profiles-daemon.service"];
       wantedBy = ["multi-user.target"];
+      unitConfig.ConditionPathExists = "!/var/lib/lecoo-eco/state-on";
       serviceConfig = {
         Type = "oneshot";
         ExecStart = pkgs.writeShellScript "cpu-boost-restore" ''
@@ -317,6 +342,11 @@ in {
         '';
       };
     };
+
+    # Eco state directory — persistent across reboots.
+    systemd.tmpfiles.rules = [
+      "d /var/lib/lecoo-eco 0755 root root -"
+    ];
 
     # ── Post-PPD EPP override on battery ───────────────────────────────
     # PPD power-saver sets EPP=power (0xFF) — parks cores at ~1.4 GHz,
@@ -336,6 +366,11 @@ in {
         Type = "oneshot";
         ExecStart = pkgs.writeShellScript "battery-epp-override" ''
           # Skip if eco mode is active — eco wants EPP=power (0xFF).
+          # Check persistent state file first (survives reboots),
+          # then session state (tmpfs, per-user).
+          if [ -f /var/lib/lecoo-eco/state-on ]; then
+            exit 0
+          fi
           for runtime in /run/user/*/ultra-economy; do
             if [ -r "$runtime/state" ] && [ "$(cat "$runtime/state" 2>/dev/null)" = "on" ]; then
               exit 0
@@ -418,26 +453,58 @@ in {
       # Disable I2C touchpad wakeup from suspend (false IRQs on s2idle entry).
       ACTION=="add", KERNEL=="PNP0C50:00", SUBSYSTEM=="i2c", TEST=="power/wakeup", ATTR{power/wakeup}="disabled"
 
-      # ── PPD auto-switch on AC plug/unplug ──────────────────────────────
+      # ── PPD auto-switch on AC plug/unplug (eco-aware) ──────────────────
       # power-profiles-daemon does not watch power-supply state itself.
-      # These rules drive `powerprofilesctl set <p>` from the AC adapter
-      # online/offline edge so the system snaps to the right profile the
-      # instant the cable goes in or out. AC defaults to `balanced` rather
-      # than `performance`: performance remains available manually, while
-      # balanced avoids needless EPP=performance fan/heat on a plugged-in
-      # laptop sitting idle. Battery defaults to `power-saver` for
-      # maximum battery life (EPP=power 0xFF, platform_profile=low-power
-      # ~15W TDP). The cold-start lag this causes is accepted in favour
-      # of runtime. If responsiveness becomes a priority, `balanced` on
-      # battery removes the double throttle — see research
-      # 2026-06-25-amd-phoenix-power-ec-deep-research.result.md §1a/1d.
+      # These rules dispatch to eco-aware systemd oneshots that check
+      # /var/lib/lecoo-eco/state-on before applying power transitions.
+      # If eco mode is active, the AC-plug handler does NOT reset PPD
+      # to balanced — eco power settings are preserved across AC cycles.
+      # AC defaults to `balanced` (not `performance`) to avoid fan/heat
+      # on an idle plugged-in laptop. Battery defaults to `power-saver`
+      # for maximum battery life.
+      # Source: research 2026-06-27-battery-unsolved-deep-research-2 §4
       SUBSYSTEM=="power_supply", KERNEL=="ADP1", ATTR{online}=="1", \
-        RUN+="${pkgs.power-profiles-daemon}/bin/powerprofilesctl set balanced", \
-        RUN+="${pkgs.systemd}/bin/systemctl start ac-gpu-dpm-restore.service"
+        RUN+="${pkgs.systemd}/bin/systemctl start --no-block lecoo-ac-plug.service"
       SUBSYSTEM=="power_supply", KERNEL=="ADP1", ATTR{online}=="0", \
-        RUN+="${pkgs.power-profiles-daemon}/bin/powerprofilesctl set power-saver", \
-        RUN+="${pkgs.systemd}/bin/systemctl start battery-epp-override.service", \
-        RUN+="${pkgs.systemd}/bin/systemctl start battery-gpu-dpm.service"
+        RUN+="${pkgs.systemd}/bin/systemctl start --no-block lecoo-ac-unplug.service"
     '';
+
+    # ── Eco-aware AC plug/unplug services ──────────────────────────────
+    # These services check /var/lib/lecoo-eco/state-on before applying
+    # power transitions. If eco is active, AC-plug does NOT reset PPD
+    # to balanced — eco power settings are preserved. AC-unplug always
+    # applies power-saver (eco or not), but skips battery-epp-override
+    # when eco is active (eco wants EPP=power, not balance_power).
+    systemd.services.lecoo-ac-plug = {
+      description = "Apply AC power settings (eco-aware)";
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = pkgs.writeShellScript "lecoo-ac-plug" ''
+          if [ -f /var/lib/lecoo-eco/state-on ]; then
+            # Eco active — keep eco power settings, only restore GPU DPM.
+            ${pkgs.systemd}/bin/systemctl start ac-gpu-dpm-restore.service 2>/dev/null || true
+            exit 0
+          fi
+          ${pkgs.power-profiles-daemon}/bin/powerprofilesctl set balanced 2>/dev/null || true
+          ${pkgs.systemd}/bin/systemctl start ac-gpu-dpm-restore.service 2>/dev/null || true
+        '';
+      };
+    };
+
+    systemd.services.lecoo-ac-unplug = {
+      description = "Apply battery power settings (eco-aware)";
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = pkgs.writeShellScript "lecoo-ac-unplug" ''
+          ${pkgs.power-profiles-daemon}/bin/powerprofilesctl set power-saver 2>/dev/null || true
+          ${pkgs.systemd}/bin/systemctl start battery-gpu-dpm.service 2>/dev/null || true
+          if [ -f /var/lib/lecoo-eco/state-on ]; then
+            # Eco active — skip EPP override, keep EPP=power.
+            exit 0
+          fi
+          ${pkgs.systemd}/bin/systemctl start battery-epp-override.service 2>/dev/null || true
+        '';
+      };
+    };
   };
 }
