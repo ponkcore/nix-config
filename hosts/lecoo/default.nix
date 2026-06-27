@@ -30,15 +30,19 @@
 
   system.stateVersion = "25.11";
 
-  # Kernel — latest (7.0.5). Upgraded from 6.18 LTS for:
-  #   - rtw89 WiFi PS beacon tracking fix (kernel 6.20+, in 7.0.5)
-  #     → enables WiFi power-save re-enabling (0.5-1.5 W saving)
-  #   - amdgpu improvements past 6.18.x regression window
-  #   - DC_SKIP_DETECTION_LT (0x200000) still present in amd_shared.h
-  #     (enum is stable across versions, confirmed via source)
+  # Kernel — latest (7.1.1) from nixpkgs-unstable overlay. Upgraded
+  # from 7.0.5 for:
+  #   - amd_dynamic_epp (CONFIG_X86_AMD_PSTATE_DYNAMIC_EPP, 7.1+)
+  #     — dynamic EPP adjustments by CPD goroutine
+  #   - PSR-SU re-enablement (7.0.x temporarily disabled for DCN
+  #     glitch avoidance; 7.1 may restore — pending verification)
+  #   - sched_ext production-ready (services.scx in NixOS 25.11)
+  #   - rtw89 WiFi PS beacon tracking (already in 7.0.5, carried forward)
+  #   - DC_SKIP_DETECTION_LT (0x200000) stable across versions
   # Not LTS — but no ZFS, no out-of-tree modules on lecoo → low risk.
   # Rollback: nixos-rebuild switch --rollback.
-  # Source: research 2026-06-27-battery-unsolved-deep-research §12
+  # Source: research 2026-06-27-kernel-7-migration-research +
+  #         2026-06-27-final-comprehensive-upgrade-study
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
   # Host-scoped overlays:
@@ -46,9 +50,10 @@
   #    flake composes all core dependencies (aquamarine, hyprlang,
   #    hyprutils, hyprland-protocols, hyprwayland-scanner, hyprcursor,
   #    hyprgraphics) at matching versions.
-  # 2. User-facing ecosystem tools pinned from nixpkgs-unstable:
+  # 2. User-facing ecosystem tools + kernel pinned from nixpkgs-unstable:
   #    hyprland 0.55.x, hyprpaper 0.8.0+ (mandatory — IPC protocol
-  #    changed in 0.53), hypridle, hyprlock, xdg-desktop-portal-hyprland.
+  #    changed in 0.53), hypridle, hyprlock, xdg-desktop-portal-hyprland,
+  #    linuxPackages_latest (kernel 7.1.x — amd_dynamic_epp, sched_ext).
   #    Uncomment mesa pin if RDNA3 rendering issues appear.
   # 3. lecoo-ctrl — platform-specific EC daemon (ITE IT5571-07 on
   #    Emdoor N155A). Lives here so future hosts without this EC
@@ -61,7 +66,7 @@
         inherit (final) config;
       };
     in {
-      inherit (pkgsUnstable) hyprland hyprpaper hypridle hyprlock xdg-desktop-portal-hyprland waybar;
+      inherit (pkgsUnstable) hyprland hyprpaper hypridle hyprlock xdg-desktop-portal-hyprland waybar linuxPackages_latest;
       # Mesa: Hyprland wiki recommends matching mesa from unstable for
       # RDNA3 to avoid lag/FPS drops. However, mesa 26.1.3 from unstable
       # does NOT have a binary cache for our nixpkgs commit (8fd9daa) —

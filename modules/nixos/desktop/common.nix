@@ -15,7 +15,8 @@
   inputs,
   ...
 }: {
-  # Throne: the overlay in pkgs/default.nix pins throne 1.1.2 from
+  # TEMPORARY WORKAROUND — Throne binary rename.
+  # The overlay in pkgs/default.nix pins throne 1.1.2 from
   # nixpkgs-unstable. The stable nixpkgs throne module (v1 patch)
   # references the old `Core` binary name; 1.1.2 renamed it to
   # `ThroneCore`. We previously imported the unstable module to fix
@@ -23,6 +24,9 @@
   # enablePkexecWrapper` which doesn't exist in stable nixpkgs.
   # Fix: use the stable module but override the wrapper binary name
   # via security.wrappers to point at ThroneCore.
+  # Remove this mkForce once nixos-25.11 throne module is updated.
+  # Track: github.com/NixOS/nixpkgs/blob/master/nixos/modules/programs/throne.nix
+  # Source: research 2026-06-27-migration-problems §8
   security.wrappers."throne-core".source = lib.mkForce "${pkgs.throne}/share/throne/ThroneCore";
 
   # Polkit — required by polkit-gnome-authentication-agent regardless
