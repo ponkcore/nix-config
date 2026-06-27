@@ -1,16 +1,19 @@
 # hosts/lecoo/hardware.nix — host-specific hardware quirks.
 #
 # Things that ONLY apply to this physical machine:
-#   - RTL8852BE WiFi driver power-saving / ASPM workarounds
+#   - RTL8852BE WiFi driver ASPM workaround (PS mode fixed in kernel 7.0.5)
 #   - Regulatory domain (RU)
 #   - NVMe ACPI quirk for the YMTC PC41Q drive
 #   - 8250 UART probe disable (no physical serial port on this laptop)
 {lib, ...}: {
-  # RTL8852BE: rtw89 enters low-power sleep, misses AP beacons, then
-  # wpa_supplicant triggers a disconnect. Disable the driver's PS mode
-  # and PCIe ASPM. cfg80211 regdom forces RU (was PA from firmware).
+  # RTL8852BE: rtw89 PCIe ASPM L1 sub-states cause PCIe errors on this
+  # chip — keep them disabled. PS mode was disabled due to a beacon
+  # miss bug, but the fix landed in kernel 6.20+ (beacon tracking
+  # series) and is present in kernel 7.0.5 (linuxPackages_latest).
+  # PS is now enabled by default — confirmed stable with 2-min ping
+  # test, 0% packet loss, no disconnects.
+  # cfg80211 regdom forces RU (was PA from firmware).
   boot.extraModprobeConfig = ''
-    options rtw89_core disable_ps_mode=Y
     options rtw89_pci disable_aspm_l1=Y disable_aspm_l1ss=Y disable_clkreq=Y
     options cfg80211 ieee80211_regdom=RU
   '';
