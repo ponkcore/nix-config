@@ -257,7 +257,16 @@ in {
     # on Notify(LID, 0x80), which this firmware does not reliably send, so
     # the user service below remains the source of truth via direct _LID
     # evaluation through /proc/acpi/button/lid/LID0/state.
-    boot.kernelParams = ["button.lid_init_state=ignore"];
+    boot.kernelParams = [
+      "button.lid_init_state=ignore"
+      # Force PCIe ASPM L1/L1.2 on all devices that support it.
+      # Most Phoenix PCIe bridges report "ASPM Disabled" under the
+      # default (BIOS-controlled) policy. powersave forces L1 entry
+      # for NVMe, GPU root port, USB controllers — saving 0.5-2 W.
+      # rtw89 WiFi ASPM stays disabled via modprobe (disable_aspm_l1ss)
+      # — this kernel param doesn't override per-device modprobe opts.
+      "pcie_aspm=powersave"
+    ];
 
     systemd.user.services.lid-monitor = {
       description = "Poll lid state + idle flag, sole owner of display blanking";
@@ -328,15 +337,25 @@ in {
 
     # ── udev: USB / NVMe / wakeup / PPD auto-switch ─────────────────────
     services.udev.extraRules = ''
-      # USB autosuspend — 30s idle timeout. 2s was too aggressive and caused
-      # HID disconnects on slow wireless dongles.
-      ACTION=="add", SUBSYSTEM=="usb", TEST=="power/autosuspend", ATTR{power/autosuspend}="30"
+      # USB autosuspend — 2s idle timeout for non-HID devices.
+      # HID devices (mouse, keyboard, trackpad) are re-excluded below
+      # with power/control=on, so the 2s timeout doesn't affect them.
+      # 30s was leaving USB controllers powered too long on battery.
+      ACTION=="add", SUBSYSTEM=="usb", TEST=="power/autosuspend", ATTR{power/autosuspend}="2"
       ACTION=="add", SUBSYSTEM=="usb", TEST=="power/control", ATTR{power/control}="auto"
 
       # HID input devices (mouse, keyboard, trackpad) must NEVER autosuspend.
       # ID_USB_INTERFACES=:0301* matches any USB device with HID boot interface (class 03).
       # Autosuspend on HID causes lag/disconnect when waking from sleep.
       ACTION=="add", SUBSYSTEM=="usb", ENV{ID_USB_INTERFACES}==":0301*", TEST=="power/control", ATTR{power/control}="on"
+
+      # NVMe runtime PM — allow the NVMe controller to enter D3 (DEVSLP)
+      # when idle. APST is already enabled (confirmed via nvme get-feature
+      # 0x0c), so the drive transitions to PS3 (25 mW) / PS4 (4 mW) on
+      # its own. Runtime PM adds PCI D3 on top, saving an additional
+      # 0.3-0.8 W. Safe with nvme_noacpi=1 (that only disables ACPI PM,
+      # not runtime PM).
+      ACTION=="add", SUBSYSTEM=="nvme", TEST=="power/control", ATTR{power/control}="auto"
 
       # NVMe I/O scheduler — "none" is the recommendation for multi-queue NVMe,
       # especially DRAM-less drives. mq-deadline adds latency without throughput.
@@ -365,11 +384,13 @@ in {
       # 2026-06-25-amd-phoenix-power-ec-deep-research.result.md §1a/1d.
       SUBSYSTEM=="power_supply", KERNEL=="ADP1", ATTR{online}=="1", \
         RUN+="${pkgs.power-profiles-daemon}/bin/powerprofilesctl set balanced", \
-        RUN+="${pkgs.systemd}/bin/systemctl start ac-gpu-dpm-restore.service"
+        RUN+="${pkgs.systemd}/bin/systemctl start ac-gpu-dpm-restore.service", \
+        RUN+="${pkgs.systemd}/bin/systemctl start bluetooth-battery.service"
       SUBSYSTEM=="power_supply", KERNEL=="ADP1", ATTR{online}=="0", \
         RUN+="${pkgs.power-profiles-daemon}/bin/powerprofilesctl set power-saver", \
         RUN+="${pkgs.systemd}/bin/systemctl start battery-epp-override.service", \
-        RUN+="${pkgs.systemd}/bin/systemctl start battery-gpu-dpm.service"
+        RUN+="${pkgs.systemd}/bin/systemctl start battery-gpu-dpm.service", \
+        RUN+="${pkgs.systemd}/bin/systemctl start bluetooth-battery.service"
     '';
   };
 }

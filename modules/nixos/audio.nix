@@ -4,7 +4,15 @@
 # routing for ALSA / PulseAudio / JACK clients. RTKit gives the audio
 # threads realtime priority — without it, low-latency capture (e.g.
 # JACK at 64 frames) has audible xruns.
-_: {
+{pkgs, ...}: {
+  # Audio codec power saving — enter D3 after 1 second of idle
+  # (default was 10s). The AMD ACP codec draws ~0.3 W when powered;
+  # faster D3 entry saves a small but measurable amount on battery.
+  # power_save_controller=Y also powers down the controller itself.
+  boot.extraModprobeConfig = ''
+    options snd_hda_intel power_save=1 power_save_controller=Y
+  '';
+
   services.pipewire = {
     enable = true;
     alsa.enable = true;
