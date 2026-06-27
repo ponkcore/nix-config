@@ -110,6 +110,11 @@ in {
   environment.sessionVariables = {
     NIXOS_OZONE_WL = "1";
     MOZ_ENABLE_WAYLAND = "1";
+    # Required for Firefox VA-API hardware video decode on Wayland.
+    # The RDD (Remote Data Decoder) sandbox blocks GPU access;
+    # disabling it allows VA-API to reach the amdgpu device.
+    MOZ_DISABLE_RDD_SANDBOX = "1";
+    LIBVA_DRIVER_NAME = "radeonsi";
     ELECTRON_OZONE_PLATFORM_HINT = "auto";
     QT_QPA_PLATFORM = "wayland;xcb";
     GDK_BACKEND = "wayland";

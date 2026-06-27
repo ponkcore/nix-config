@@ -45,7 +45,23 @@ in {
 
       extensions.packages = extensions;
 
-      settings = arkenfox;
+      settings =
+        arkenfox
+        // {
+          # ── VA-API hardware video decode ───────────────────────────
+          # Offloads H.264/H.265/AV1 decode from CPU to the VCN block
+          # on Radeon 780M, saving 1-3W during video playback.
+          # Requires MOZ_DISABLE_RDD_SANDBOX=1 (set in session env) and
+          # LIBVA_DRIVER_NAME=radeonsi (Mesa VA-API driver).
+          # Source: research 2026-06-27-unsolved-and-battery-deep-dive §4 P1
+          "media.hardware-video-decoding.enabled" = true;
+          "media.ffmpeg.vaapi.enabled" = true;
+          "media.rdd-ffmpeg.enabled" = true;
+          "media.av1.enabled" = true;
+          "gfx.webrender.all" = true;
+          # Reduce session store disk writes (15s → 60s default)
+          "browser.sessionstore.interval" = 60000;
+        };
 
       # Arkenfox-style extra user.js preferences. Only settings that
       # cannot be expressed via the typed `settings` attribute (e.g.

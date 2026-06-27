@@ -100,8 +100,20 @@
       inherit category override;
     };
 in {
-  # hyprshot — screenshot tool used in keybindings (no HM module, package only)
-  home.packages = [pkgs.hyprshot];
+  home.packages = [
+    pkgs.hyprshot
+    # hyprctl wrapper — unsets LD_LIBRARY_PATH before calling the real
+    # hyprctl. The Hyprland flake builds hyprctl with gcc-15 (needs
+    # GLIBCXX_3.4.34), but some wrappers (e.g. letta-code) set
+    # LD_LIBRARY_PATH with gcc-14 lib, which overrides hyprctl's RUNPATH
+    # and causes a version mismatch. Unsetting LD_LIBRARY_PATH lets
+    # hyprctl use its own RUNPATH (gcc-15 lib) correctly.
+    # hiPrio ensures this wrapper shadows the system hyprctl in PATH.
+    (pkgs.lib.hiPrio (pkgs.writeShellScriptBin "hyprctl" ''
+      unset LD_LIBRARY_PATH
+      exec ${pkgs.hyprland}/bin/hyprctl "$@"
+    ''))
+  ];
 
   wayland.windowManager.hyprland = {
     enable = true;
