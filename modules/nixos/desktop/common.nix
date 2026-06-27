@@ -15,19 +15,32 @@
   inputs,
   ...
 }: {
-  # TEMPORARY WORKAROUND — Throne binary rename.
+  # TEMPORARY WORKAROUND — Throne binary rename + wrapper key.
   # The overlay in pkgs/default.nix pins throne 1.1.2 from
-  # nixpkgs-unstable. The stable nixpkgs throne module (v1 patch)
-  # references the old `Core` binary name; 1.1.2 renamed it to
-  # `ThroneCore`. We previously imported the unstable module to fix
-  # this, but the newer unstable module uses `security.polkit.
-  # enablePkexecWrapper` which doesn't exist in stable nixpkgs.
-  # Fix: use the stable module but override the wrapper binary name
-  # via security.wrappers to point at ThroneCore.
-  # Remove this mkForce once nixos-25.11 throne module is updated.
+  # nixpkgs-unstable. The stable nixpkgs throne module creates
+  # security.wrappers."throne-core" (lowercase) pointing at
+  # share/throne/Core (old binary name). Throne 1.1.2 renamed the
+  # binary to `ThroneCore` (CamelCase) and the GUI looks for
+  # `/ThroneCore` in PATH — not `throne-core`. Two fixes needed:
+  # 1. Create a wrapper with the correct key "ThroneCore" (CamelCase)
+  #    so the GUI can find it.
+  # 2. Point it at the correct binary path (ThroneCore, not Core).
+  # We previously imported the unstable module to fix this, but the
+  # newer unstable module uses `security.polkit.enablePkexecWrapper`
+  # which doesn't exist in stable nixpkgs.
+  # Remove this once nixos-25.11 throne module is updated to match
+  # upstream (key="ThroneCore", source=".../ThroneCore").
   # Track: github.com/NixOS/nixpkgs/blob/master/nixos/modules/programs/throne.nix
   # Source: research 2026-06-27-migration-problems §8
+  # Updated: 2026-06-27 — found via strings(Throne) that GUI looks for
+  # "ThroneCore" not "throne-core"
   security.wrappers."throne-core".source = lib.mkForce "${pkgs.throne}/share/throne/ThroneCore";
+  security.wrappers."ThroneCore" = {
+    source = "${pkgs.throne}/share/throne/ThroneCore";
+    owner = "root";
+    group = "root";
+    capabilities = "cap_net_admin,cap_net_raw,cap_net_bind_service,cap_sys_ptrace,cap_dac_read_search,cap_setpcap+ep";
+  };
 
   # Polkit — required by polkit-gnome-authentication-agent regardless
   # of compositor. The agent itself is launched per-session.
