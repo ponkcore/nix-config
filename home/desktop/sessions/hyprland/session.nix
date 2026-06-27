@@ -148,14 +148,6 @@ in {
         # units start — eliminating the cold-boot Waybar IPC race.
         # Source: research 2026-06-26-waybar-ipc-freeze-deep-research §4.1
         "uwsm finalize HYPRLAND_INSTANCE_SIGNATURE"
-
-        # Pre-warm the floating-terminal ghostty process: starts the
-        # GTK4+OpenGL+fontconfig stack at login (~2.5 s) without
-        # showing a window (`--initial-window=false`), so the first
-        # Super+Return is a DBus-routed instant open instead of a
-        # cold start. Process stays alive for the session because of
-        # `quit-after-last-window-closed = false` in ghostty config.
-        "ghostty --class=com.mitchellh.ghostty-floating --initial-window=false"
       ];
 
       # Plain ghostty would tile under the dwindle layout. We want

@@ -9,12 +9,20 @@
 _: {
   networking.networkmanager = {
     enable = true;
-    # NetworkManager-level powersave: enables 802.11 PSM negotiation with the
-    # AP. Safe to enable globally because per-driver workarounds for chipsets
-    # that misbehave under PSM (e.g. RTL8852BE → disable_ps_mode=Y in
-    # hosts/lecoo/hardware.nix) take precedence at the module-options layer.
-    # Saves ~0.4-0.8 W on idle wifi when AP supports DTIM properly.
-    wifi.powersave = true;
+    # WiFi powersave DISABLED. rtw89 (RTL8852BE) + 802.11 PSM causes
+    # repeated deauthentications: the driver goes to sleep, misses
+    # beacons, and the AP kicks the client (reason 3 = DEAUTH_LEAVING
+    # locally_generated, reason 15 = 4WAY_HANDSHAKE_TIMEOUT on
+    # reconnect). This worsens when the screen turns off (DPMS idle)
+    # because the system enters a lower power state and PS deepens.
+    # Disabling NM powersave stops the mac80211 PS flag from being set,
+    # keeping the radio awake at the cost of ~0.4-0.8W.
+    # The rtw89 module-level disable_ps_mode is NOT set (kernel 7.0.5+
+    # beacon tracking fix), but NM powersave independently triggers PSM
+    # negotiation with the AP — this is the layer that causes the issue.
+    # Source: journalctl boot -7 analysis 2026-06-27 (8 deauth events
+    # in 15h session, correlated with idle/DPMS periods).
+    wifi.powersave = false;
   };
 
   # NetworkManager does NOT bundle its own WPA implementation — it always
