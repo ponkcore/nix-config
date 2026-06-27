@@ -298,6 +298,26 @@ in {
       };
     };
 
+    # ── Boot-time boost restore ────────────────────────────────────────
+    # Eco mode sets CPU boost=0. If the system reboots while eco is
+    # active, the state file (tmpfs) is wiped but boost stays 0
+    # because no restore path runs. This oneshot ensures boost=1 on
+    # boot, so normal battery mode always has boost available. The
+    # eco toggle will set it back to 0 when activated.
+    systemd.services.cpu-boost-restore = {
+      description = "Restore CPU boost on boot";
+      after = ["systemd-sysctl.service"];
+      wantedBy = ["multi-user.target"];
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = pkgs.writeShellScript "cpu-boost-restore" ''
+          for p in /sys/devices/system/cpu/cpufreq/policy*/boost; do
+            echo 1 > "$p" 2>/dev/null || true
+          done
+        '';
+      };
+    };
+
     # ── Post-PPD EPP override on battery ───────────────────────────────
     # PPD power-saver sets EPP=power (0xFF) — parks cores at ~1.4 GHz,
     # slow ramp, causes cold-start lag. This service runs 2 s after
