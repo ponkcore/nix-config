@@ -128,7 +128,7 @@
   boot.kernel.sysctl = {
     # Enable IP forwarding — required for TUN-based transparent proxy.
     # Without this, packets entering Meta interface cannot be forwarded
-    # to the real interface (wlan0) and vice versa.
+    # to the real interface (wlp12s0) and vice versa.
     "net.ipv4.ip_forward" = 1;
 
     # ── Hardening: kernel info leaks ─────────────────────────────────────
