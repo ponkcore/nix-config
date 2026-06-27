@@ -32,7 +32,14 @@ in {
       };
       listener = [
         {
-          timeout = 300;
+          # 120 s idle on battery → set idle flag → lid-monitor DPMS-off.
+          # Reduced from 300 s: panel at 0% brightness still draws ~3 W;
+          # DPMS-off eliminates that. 120 s is a compromise between
+          # aggressive power saving and not blanking while reading.
+          # Only fires on battery (on-battery guard). On AC the flag is
+          # never set, so the screen stays on indefinitely.
+          # Source: research 2026-06-27-battery-unsolved-deep-research §11
+          timeout = 120;
           on-timeout = "${on-battery}/bin/on-battery && touch ${idleFlag}";
           on-resume = "rm -f ${idleFlag}";
         }

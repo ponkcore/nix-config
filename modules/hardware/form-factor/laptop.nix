@@ -259,14 +259,31 @@ in {
     # evaluation through /proc/acpi/button/lid/LID0/state.
     boot.kernelParams = [
       "button.lid_init_state=ignore"
-      # Force PCIe ASPM L1/L1.2 on all devices that support it.
-      # Most Phoenix PCIe bridges report "ASPM Disabled" under the
-      # default (BIOS-controlled) policy. powersave forces L1 entry
-      # for NVMe, GPU root port, USB controllers — saving 0.5-2 W.
-      # rtw89 WiFi ASPM stays disabled via modprobe (disable_aspm_l1ss)
-      # — this kernel param doesn't override per-device modprobe opts.
-      "pcie_aspm=powersave"
+      # pcie_aspm=force: the kernel __setup parser only accepts "off"
+      # and "force" — "powersave" is silently ignored (source:
+      # drivers/pci/pcie/aspm.c, kernel 6.18). `force` overrides the
+      # FADT NO_ASPM flag that BIOS sets on Phoenix platforms, enabling
+      # ASPM L1 on devices that support it. A systemd oneshot also
+      # writes "powersave" to the policy sysfs at boot as belt-and-
+      # suspenders. rtw89 WiFi ASPM stays disabled via modprobe.
+      # Source: research 2026-06-27-battery-unsolved-deep-research §2
+      "pcie_aspm=force"
     ];
+
+    # Write ASPM policy to powersave at boot. The kernel param `force`
+    # overrides the FADT NO_ASPM flag, but the policy sysfs still
+    # shows [default]. This oneshot sets it to powersave explicitly.
+    # Confirmed working via runtime `echo powersave > .../policy`.
+    systemd.services.aspm-powersave = {
+      description = "Set PCIe ASPM policy to powersave";
+      after = ["systemd-udevd.service"];
+      wantedBy = ["multi-user.target"];
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        ExecStart = "${pkgs.bash}/bin/bash -c 'echo powersave > /sys/module/pcie_aspm/parameters/policy 2>/dev/null || true'";
+      };
+    };
 
     systemd.user.services.lid-monitor = {
       description = "Poll lid state + idle flag, sole owner of display blanking";
@@ -288,12 +305,22 @@ in {
     # (0xBF): faster ramp-up while keeping platform_profile=low-power
     # (~15W TDP) for battery life. Trade-off: slightly higher idle
     # power vs power-saver, but no more 1.4 GHz core parking.
+    # SKIPPED when eco mode is active — eco mode wants EPP=power (0xFF)
+    # for maximum efficiency. The eco toggle writes a state file that
+    # this service checks before overriding.
     # Source: research 2026-06-25-amd-phoenix-power-ec-deep-research §1b
+    # Source: research 2026-06-27-battery-unsolved-deep-research §4
     systemd.services.battery-epp-override = {
       description = "Override EPP to balance_power on battery (post-PPD)";
       serviceConfig = {
         Type = "oneshot";
         ExecStart = pkgs.writeShellScript "battery-epp-override" ''
+          # Skip if eco mode is active — eco wants EPP=power (0xFF).
+          for runtime in /run/user/*/ultra-economy; do
+            if [ -r "$runtime/state" ] && [ "$(cat "$runtime/state" 2>/dev/null)" = "on" ]; then
+              exit 0
+            fi
+          done
           sleep 2
           for cpu in /sys/devices/system/cpu/cpu*/cpufreq/energy_performance_preference; do
             echo balance_power > "$cpu" 2>/dev/null || true

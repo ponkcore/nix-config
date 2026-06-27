@@ -589,15 +589,17 @@ in {
       # between greeter (sway+nwg-hello) exit and hyprpaper startup.
       # background_color matches our palette bg so the transition is seamless
       # (black → bg → wallpaper).
-      # vrr = 1: enable Adaptive-Sync on fullscreen content only — eliminates
-      # tearing on video / games without flicker on static desktop content.
-      # The Lecoo Pro 14 panel reports adaptive-sync support via EDID; on a
-      # panel that doesn't, this option is a silent no-op.
+      # vrr = 2: enable Adaptive-Sync on fullscreen content only.
+      # This is the critical PSR enabling setting: amdgpu_dm.c gates PSR
+      # entry with `if (!vrr_active && ...)` — VRR=1 (always on) blocks
+      # PSR entirely. VRR=2 allows PSR to engage on the desktop (no
+      # fullscreen surface) while keeping VRR for games/video.
+      # Source: research 2026-06-27-battery-unsolved-deep-research §1
       misc = {
         disable_hyprland_logo = true;
         disable_splash_rendering = true;
         background_color = rgba p.bg "ff";
-        vrr = 1;
+        vrr = 2;
       };
     };
   };

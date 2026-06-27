@@ -228,9 +228,11 @@
     ${pkgs.lecoo-ctrl}/bin/lecoo-ctrl power silent >/dev/null 2>&1 || true
     set_gpu_level low
 
-    # EPP: let PPD set 0xFF (power) for maximum efficiency. Do NOT
-    # trigger battery-epp-override — eco mode accepts the ~1.4 GHz
-    # core parking in exchange for lower power.
+    # EPP: let PPD set 0xFF (power) for maximum efficiency. Stop
+    # battery-epp-override so it doesn't overwrite EPP back to
+    # balance_power. The service also has a guard that checks eco
+    # state, but stopping it explicitly is belt-and-suspenders.
+    sudo -n ${pkgs.systemd}/bin/systemctl stop battery-epp-override.service 2>/dev/null || true
 
     # Stop heavyweight services.
     sudo -n ${pkgs.systemd}/bin/systemctl stop docker.service libvirtd.service 2>/dev/null || true
