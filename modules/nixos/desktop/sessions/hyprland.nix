@@ -20,6 +20,11 @@
 #                                 stderr. Pinned via:
 #                                   programs.uwsm.waylandCompositors
 #                                       .hyprland.binPath
+#                                 Updated for 0.53+: invokes
+#                                 start-hyprland (crash recovery
+#                                 watchdog) as the inner binary.
+#                                 start-hyprland does NOT suppress
+#                                 stderr — the 2>/dev/null remains.
 #
 #   hyprland-silent-wrapper     — wraps the UWSM launcher itself with
 #                                 `>/dev/null 2>/dev/null`. UWSM emits
@@ -48,8 +53,12 @@
   pkgs,
   ...
 }: let
+  # start-hyprland is the 0.53+ crash recovery watchdog. It forks
+  # Hyprland, monitors the child, and restarts in safe mode on
+  # unclean exit. It does NOT redirect stderr — the 2>/dev/null
+  # in the wrapper remains necessary for silent boot.
   hyprland-quiet = pkgs.writeShellScriptBin "Hyprland" ''
-    exec /run/current-system/sw/bin/Hyprland "$@" 2>/dev/null
+    exec ${pkgs.hyprland}/bin/start-hyprland "$@" 2>/dev/null
   '';
 
   hyprland-silent-wrapper = pkgs.writeShellScriptBin "hyprland-silent-wrapper" ''
@@ -71,11 +80,18 @@
       DESKTOP
     '';
 in {
-  # Hyprland
+  # Hyprland — package and portal from overlay (0.55.x).
   programs.hyprland = {
     enable = true;
     withUWSM = true;
+    package = pkgs.hyprland;
+    portalPackage = pkgs.xdg-desktop-portal-hyprland;
   };
+
+  # Workaround for XDG_CURRENT_DESKTOP when using start-hyprland with
+  # UWSM: without this, UWSM sets XDG_CURRENT_DESKTOP to
+  # start-hyprland instead of Hyprland. nixpkgs issue #476375.
+  services.displayManager.defaultSession = "hyprland-uwsm";
 
   # Channel 1 (Aquamarine stderr): point UWSM's compositor binPath at
   # our quiet wrapper. mkForce because programs.hyprland.withUWSM

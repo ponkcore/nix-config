@@ -10,6 +10,7 @@
 {
   lib,
   pkgs,
+  inputs,
   username,
   ...
 }: {
@@ -40,11 +41,30 @@
   # Source: research 2026-06-27-battery-unsolved-deep-research §12
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
-  # Host-scoped overlay: lecoo-ctrl is platform-specific (ITE IT5571-07
-  # EC chip on Emdoor N155A motherboards). Lives under hosts/lecoo/pkgs/
-  # rather than the universal pkgs/ overlay so future hosts that don't
-  # have this EC don't try to build it.
+  # Host-scoped overlays:
+  # 1. Hyprland ecosystem — hyprland-packages overlay from the Hyprland
+  #    flake composes all core dependencies (aquamarine, hyprlang,
+  #    hyprutils, hyprland-protocols, hyprwayland-scanner, hyprcursor,
+  #    hyprgraphics) at matching versions.
+  # 2. User-facing ecosystem tools pinned from nixpkgs-unstable:
+  #    hyprland 0.55.x, hyprpaper 0.8.0+ (mandatory — IPC protocol
+  #    changed in 0.53), hypridle, hyprlock, xdg-desktop-portal-hyprland.
+  #    Uncomment mesa pin if RDNA3 rendering issues appear.
+  # 3. lecoo-ctrl — platform-specific EC daemon (ITE IT5571-07 on
+  #    Emdoor N155A). Lives here so future hosts without this EC
+  #    don't try to build it.
   nixpkgs.overlays = [
+    inputs.hyprland.overlays.hyprland-packages
+    (final: _prev: let
+      pkgsUnstable = import inputs.nixpkgs-unstable {
+        inherit (final.stdenv.hostPlatform) system;
+        inherit (final) config;
+      };
+    in {
+      inherit (pkgsUnstable) hyprland hyprpaper hypridle hyprlock xdg-desktop-portal-hyprland;
+      # Uncomment if rendering issues appear after upgrade:
+      # mesa = pkgsUnstable.mesa;
+    })
     (final: _prev: {
       lecoo-ctrl = final.callPackage ./pkgs/lecoo-ctrl {};
     })

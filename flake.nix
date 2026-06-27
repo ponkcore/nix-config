@@ -53,6 +53,19 @@
     # server. Uses uv2nix + pyixx (Rust); pins its own nixpkgs because
     # the Python 3.13 + fastmcp derivation chain is not on 25.11.
     mcp-nix.url = "github:felixdorn/mcp-nix";
+
+    # Hyprland — pinned from upstream flake for 0.55.x. The flake
+    # provides a hyprland-packages overlay that composes all ecosystem
+    # dependencies (aquamarine, hyprlang, hyprutils, hyprland-protocols)
+    # at matching versions. User-facing tools (hyprpaper, hypridle,
+    # hyprlock, xdph) are pinned from nixpkgs-unstable in the host
+    # overlay. inputs.nixpkgs.follows = "nixpkgs-unstable" so the
+    # Hyprland flake builds against the same nixpkgs as our unstable
+    # channel pull.
+    hyprland = {
+      url = "github:hyprwm/Hyprland";
+      inputs.nixpkgs.follows = "nixpkgs-unstable";
+    };
   };
 
   outputs = {nixpkgs, ...} @ inputs: let
