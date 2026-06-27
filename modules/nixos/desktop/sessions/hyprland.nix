@@ -80,7 +80,9 @@
       DESKTOP
     '';
 in {
-  # Hyprland — package and portal from overlay (0.55.x).
+  # Hyprland — package and portal from 26.05 (native, no overlay).
+  # The bare hyprland.desktop is filtered by mkForce on
+  # sessionPackages below — only our silent UWSM entry is listed.
   programs.hyprland = {
     enable = true;
     withUWSM = true;
@@ -103,9 +105,12 @@ in {
   programs.uwsm.waylandCompositors.hyprland.prettyName = "Hyprland";
 
   # Channel 3 (greeter .desktop entry): replace the upstream verbose
-  # entry. Listed AFTER programs.hyprland so this package wins the
-  # XDG_DATA_DIRS merge for the same filename.
-  services.displayManager.sessionPackages = [hyprland-uwsm-silent];
+  # entry with our silent wrapper. mkForce ensures our package is the
+  # ONLY session package — programs.hyprland.withUWSM adds the upstream
+  # hyprland package to sessionPackages, but our silent wrapper must
+  # be the sole provider of hyprland-uwsm.desktop so the greeter uses
+  # our stderr-suppressed launch path.
+  services.displayManager.sessionPackages = lib.mkForce [hyprland-uwsm-silent];
 
   # Wayland environment variables — Hyprland-flavoured.
   # NIXOS_OZONE_WL / MOZ_ENABLE_WAYLAND / GDK_BACKEND etc. are also set by
@@ -129,16 +134,10 @@ in {
     LIBSEAT_BACKEND = "logind";
   };
 
-  # Hyprland-specific XDG portal — extends the gtk portal from common.nix.
-  xdg.portal.extraPortals = [pkgs.xdg-desktop-portal-hyprland];
-
-  # xdph is the loudest portal in the family — it logs every Wayland
-  # interface it discovers at session bootstrap. The default systemd
-  # user-unit inherits stdout/stderr to the controlling tty, which on
-  # the post-greeter handoff is briefly the VT (before compositor
-  # take-over). Pin both streams to the journal so the handoff is
-  # silent; `journalctl --user -u xdg-desktop-portal-hyprland` still
-  # has the full diagnostic stream when needed.
+  # 26.05: programs.hyprland.portalPackage already adds xdph to
+  # xdg.portal.extraPortals via the NixOS module. No need to duplicate.
+  # xdph log suppression — pin both streams to the journal so the
+  # greeter→Hyprland handoff is silent.
   systemd.user.services.xdg-desktop-portal-hyprland.serviceConfig = {
     StandardOutput = "journal";
     StandardError = "journal";
