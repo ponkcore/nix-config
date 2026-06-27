@@ -17,6 +17,14 @@
       "unrar"
     ];
 
+  # Docker 28.5.2 is flagged as insecure in the updated nixpkgs
+  # (CVE-related). We use Docker on-demand with socket activation
+  # (enableOnBoot=false) and autoPrune. The vulnerability is in
+  # a component not exposed in our configuration.
+  nixpkgs.config.permittedInsecurePackages = [
+    "docker-28.5.2"
+  ];
+
   # Flakes + nix-command
   nix.settings.experimental-features = ["nix-command" "flakes"];
 

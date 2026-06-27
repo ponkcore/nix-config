@@ -10,21 +10,20 @@
 # package or option only makes sense for one compositor, it belongs
 # in that compositor's session file, not here.
 {
+  lib,
   pkgs,
   inputs,
   ...
 }: {
-  # Throne 1.1.2 (from nixpkgs-unstable) renamed its core binary
-  # Core -> ThroneCore. The programs.throne NixOS module shipped by
-  # 25.11 still wires security.wrappers at .../share/throne/Core, so
-  # the wrapper path no longer exists and the build fails at
-  # ensure-all-wrappers-paths-exist. We disable the stale 25.11 module
-  # and import the matching one from unstable (which references
-  # ThroneCore). Drop both lines once 25.11 backports throne >=1.1.2.
-  disabledModules = ["programs/throne.nix"];
-  imports = [
-    "${inputs.nixpkgs-unstable}/nixos/modules/programs/throne.nix"
-  ];
+  # Throne: the overlay in pkgs/default.nix pins throne 1.1.2 from
+  # nixpkgs-unstable. The stable nixpkgs throne module (v1 patch)
+  # references the old `Core` binary name; 1.1.2 renamed it to
+  # `ThroneCore`. We previously imported the unstable module to fix
+  # this, but the newer unstable module uses `security.polkit.
+  # enablePkexecWrapper` which doesn't exist in stable nixpkgs.
+  # Fix: use the stable module but override the wrapper binary name
+  # via security.wrappers to point at ThroneCore.
+  security.wrappers."throne-core".source = lib.mkForce "${pkgs.throne}/share/throne/ThroneCore";
 
   # Polkit — required by polkit-gnome-authentication-agent regardless
   # of compositor. The agent itself is launched per-session.

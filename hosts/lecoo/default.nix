@@ -61,9 +61,17 @@
         inherit (final) config;
       };
     in {
-      inherit (pkgsUnstable) hyprland hyprpaper hypridle hyprlock xdg-desktop-portal-hyprland;
-      # Uncomment if rendering issues appear after upgrade:
-      # mesa = pkgsUnstable.mesa;
+      inherit (pkgsUnstable) hyprland hyprpaper hypridle hyprlock xdg-desktop-portal-hyprland mesa waybar;
+      # Mesa 26.1.3 from unstable is REQUIRED for RDNA3 with Hyprland
+      # 0.55.x — Hyprland wiki warns that mesa version mismatch causes
+      # lag and FPS drops on AMD/RDNA3. Do not remove.
+      # Waybar 0.15.0+ required for Hyprland 0.55.x Lua IPC dispatch.
+      # Waybar 0.14.0 workspace clicks break with 0.55.x.
+      # Note: 0.15.0 has an invisibility bug (battery module infinite
+      # loop + image module regression) — our config uses custom/battery
+      # (shell script, not built-in battery module) so the battery loop
+      # does not affect us. No image modules in our config either.
+      # Source: research 2026-06-27-final-comprehensive-upgrade-study §5-6
     })
     (final: _prev: {
       lecoo-ctrl = final.callPackage ./pkgs/lecoo-ctrl {};
