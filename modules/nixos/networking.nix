@@ -6,7 +6,7 @@
 #
 # Hardware-specific WiFi quirks (rtw89 power saving, regulatory domain,
 # ASPM workarounds) belong in the host's hardware.nix.
-{pkgs, ...}: {
+_: {
   networking.networkmanager = {
     enable = true;
     # WiFi powersave DISABLED. rtw89 (RTL8852BE) + 802.11 PSM causes
@@ -33,43 +33,10 @@
   # ModemManager — nothing on these hosts uses cellular modems.
   networking.modemmanager.enable = false;
 
-  # TDLS (Tunneled Direct Link Setup) — disable for rtw89.
-  # The RTL8852BE driver fails to install TDLS peer keys (TPK),
-  # producing `nl80211: kernel reports: key addition failed` and
-  # `TDLS: Failed to set TPK to the driver`. After the failure,
-  # WiFi appears "connected" but traffic stops flowing — user must
-  # toggle WiFi off/on. wpa_supplicant repeatedly tries TDLS with
-  # peers on the same BSS (e.g., Syncthing devices), triggering
-  # the bug every few minutes. 55 failures in 14h observed.
-  # NetworkManager controls wpa_supplicant via D-Bus (not config
-  # files), so the dispatcher script uses dbus-send to set the
-  # TdlsExternalControl property on the interface, which prevents
-  # wpa_supplicant from initiating TDLS setup.
-  # Source: journalctl 2026-06-28 — root cause analysis.
-  networking.networkmanager.dispatcherScripts = [
-    {
-      source = pkgs.writeShellScript "nm-disable-tdls" ''
-        IFACE="$1"
-        ACTION="$2"
-        if [ "$ACTION" = "up" ] && [ -d "/sys/class/net/$IFACE/wireless" ]; then
-          # Get the wpa_supplicant D-Bus interface path for this ifname
-          IFPATH=$(${pkgs.dbus}/bin/dbus-send --system --print-reply \
-            --dest=fi.w1.wpa_supplicant1 \
-            /fi/w1/wpa_supplicant1 \
-            fi.w1.wpa_supplicant1.GetInterface \
-            "string:$IFACE" 2>/dev/null \
-            | ${pkgs.gnugrep}/bin/grep -oP 'object path "\K[^"]+')
-          if [ -n "$IFPATH" ]; then
-            ${pkgs.dbus}/bin/dbus-send --system --print-reply \
-              --dest=fi.w1.wpa_supplicant1 \
-              "$IFPATH" \
-              org.freedesktop.DBus.Properties.Set \
-              "string:fi.w1.wpa_supplicant1.Interface" \
-              "string:TdlsExternalControl" \
-              "variant:string:1" >/dev/null 2>&1 || true
-          fi
-        fi
-      '';
-    }
-  ];
+  # TDLS key installation bug — fixed via kernel patch (boot.kernelPatches
+  # in hosts/lecoo/default.nix). The D-Bus TdlsExternalControl dispatcher
+  # was a workaround that did NOT work (wpa_supplicant still processed
+  # incoming TDLS requests). Removed after kernel patch confirmed working:
+  # 0 key-addition failures with TDLS peer active post-reboot.
+  # Source: research 2026-06-28-rtw89-key-addition-failure.result.md
 }
