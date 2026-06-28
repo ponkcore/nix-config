@@ -48,17 +48,14 @@ in {
       settings =
         arkenfox
         // {
-          # ── VA-API hardware video decode ───────────────────────────
-          # Offloads H.264/H.265/AV1 decode from CPU to the VCN block
-          # on Radeon 780M, saving 1-3W during video playback.
-          # Requires MOZ_DISABLE_RDD_SANDBOX=1 (set in session env) and
-          # LIBVA_DRIVER_NAME=radeonsi (Mesa VA-API driver).
-          # Source: research 2026-06-27-unsolved-and-battery-deep-dive §4 P1
-          "media.hardware-video-decoding.enabled" = true;
-          "media.ffmpeg.vaapi.enabled" = true;
-          "media.rdd-ffmpeg.enabled" = true;
-          "media.av1.enabled" = true;
-          "gfx.webrender.all" = true;
+          # Firefox 152+ enables VA-API hardware decode by default for
+          # AMD GPUs with Mesa >= 24.2. No explicit about:config entries
+          # needed — media.hardware-video-decoding.enabled,
+          # media.ffmpeg.vaapi.enabled, media.rdd-ffmpeg.enabled,
+          # media.av1.enabled, and gfx.webrender.all are all default=true.
+          # MOZ_DISABLE_RDD_SANDBOX=1 removed — RDD sandbox was updated
+          # in FF 136+ to allow VA-API access without disabling sandbox.
+          # Source: audit 2026-06-28-full-session-audit §F
           # Reduce session store disk writes (15s → 60s default)
           "browser.sessionstore.interval" = 60000;
         };

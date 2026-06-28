@@ -55,15 +55,17 @@
 }: let
   # start-hyprland is the 0.53+ crash recovery watchdog. It forks
   # Hyprland, monitors the child, and restarts in safe mode on
-  # unclean exit. It does NOT redirect stderr — the 2>/dev/null
-  # in the wrapper remains necessary for silent boot.
+  # unclean exit. stderr redirected to journal (systemd-cat) instead
+  # of /dev/null — preserves silent visual boot while making crash
+  # output retrievable via `journalctl -t hyprland`.
+  # Source: audit 2026-06-28-full-session-audit §J
   hyprland-quiet = pkgs.writeShellScriptBin "Hyprland" ''
-    exec ${pkgs.hyprland}/bin/start-hyprland "$@" 2>/dev/null
+    exec ${pkgs.hyprland}/bin/start-hyprland "$@" 2> >(systemd-cat -t hyprland 2>/dev/null)
   '';
 
   hyprland-silent-wrapper = pkgs.writeShellScriptBin "hyprland-silent-wrapper" ''
     exec ${pkgs.uwsm}/bin/uwsm start -F -- ${hyprland-quiet}/bin/Hyprland \
-      >>/dev/null 2>>/dev/null
+      >> >(systemd-cat -t uwsm 2>/dev/null) 2> >(systemd-cat -t uwsm 2>/dev/null)
   '';
 
   hyprland-uwsm-silent =
@@ -119,11 +121,13 @@ in {
   environment.sessionVariables = {
     NIXOS_OZONE_WL = "1";
     MOZ_ENABLE_WAYLAND = "1";
-    # Required for Firefox VA-API hardware video decode on Wayland.
-    # The RDD (Remote Data Decoder) sandbox blocks GPU access;
-    # disabling it allows VA-API to reach the amdgpu device.
-    MOZ_DISABLE_RDD_SANDBOX = "1";
-    LIBVA_DRIVER_NAME = "radeonsi";
+    # VA-API: Firefox 152+ enables AMD GPU hardware decode by default
+    # with Mesa >= 24.2. MOZ_DISABLE_RDD_SANDBOX=1 removed — the RDD
+    # sandbox was updated in FF 136+ to allow VA-API access, so the
+    # sandbox can stay active for security. LIBVA_DRIVER_NAME is
+    # auto-selected by Mesa for AMD hardware when hardware.graphics
+    # is enabled — no explicit env var needed.
+    # Source: audit 2026-06-28-full-session-audit §F
     ELECTRON_OZONE_PLATFORM_HINT = "auto";
     QT_QPA_PLATFORM = "wayland;xcb";
     GDK_BACKEND = "wayland";

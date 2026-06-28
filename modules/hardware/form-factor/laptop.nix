@@ -421,11 +421,13 @@ in {
 
     # ── udev: USB / NVMe / wakeup / PPD auto-switch ─────────────────────
     services.udev.extraRules = ''
-      # USB autosuspend — 2s idle timeout for non-HID devices.
+      # USB autosuspend — 5s idle timeout for non-HID devices.
       # HID devices (mouse, keyboard, trackpad) are re-excluded below
-      # with power/control=on, so the 2s timeout doesn't affect them.
-      # 30s was leaving USB controllers powered too long on battery.
-      ACTION=="add", SUBSYSTEM=="usb", TEST=="power/autosuspend", ATTR{power/autosuspend}="2"
+      # with power/control=on, so the 5s timeout doesn't affect them.
+      # 2s was too aggressive for BT mouse adapter reconnect latency;
+      # 5s is the standard recommendation for laptops.
+      # Source: audit 2026-06-28-full-session-audit §H2
+      ACTION=="add", SUBSYSTEM=="usb", TEST=="power/autosuspend", ATTR{power/autosuspend}="5"
       ACTION=="add", SUBSYSTEM=="usb", TEST=="power/control", ATTR{power/control}="auto"
 
       # HID input devices (mouse, keyboard, trackpad) must NEVER autosuspend.

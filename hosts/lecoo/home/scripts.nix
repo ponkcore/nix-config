@@ -242,8 +242,19 @@
       echo power | sudo -n ${pkgs.coreutils}/bin/tee "$cpu" >/dev/null 2>&1 || true
     done
 
-    # Stop heavyweight services.
-    sudo -n ${pkgs.systemd}/bin/systemctl stop docker.service libvirtd.service 2>/dev/null || true
+    # Stop heavyweight services — but only if no containers/VMs
+    # are running. Stopping Docker mid-container can cause data
+    # loss on unclean shutdowns.
+    # Source: audit 2026-06-28-full-session-audit §N
+    if sudo -n ${pkgs.systemd}/bin/systemctl is-active docker.service >/dev/null 2>&1; then
+      running=$(${pkgs.docker}/bin/docker ps -q 2>/dev/null || true)
+      if [ -n "$running" ]; then
+        ${pkgs.libnotify}/bin/notify-send "Eco mode" "Containers running — stop them first" 2>/dev/null || true
+      else
+        sudo -n ${pkgs.systemd}/bin/systemctl stop docker.service 2>/dev/null || true
+      fi
+    fi
+    sudo -n ${pkgs.systemd}/bin/systemctl stop libvirtd.service 2>/dev/null || true
 
     echo on > "$state"
     # Write persistent state file — survives reboots, checked by

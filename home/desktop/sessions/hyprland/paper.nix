@@ -26,7 +26,7 @@
         {
           monitor = "";
           path = "${sessionWallpaper}";
-          fit_mode = "fill";
+          fit_mode = "cover";
         }
       ];
     };

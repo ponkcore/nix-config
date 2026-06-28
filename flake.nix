@@ -6,11 +6,6 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-26.05";
 
-    # Cross-channel pull kept for future use. 26.05 ships all
-    # packages we previously pinned from unstable (hyprland 0.55.4,
-    # mesa 26.1.3, throne 1.0.13, kernel 7.1.1, etc.) natively.
-    nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
-
     home-manager = {
       url = "github:nix-community/home-manager/release-26.05";
       inputs.nixpkgs.follows = "nixpkgs";
