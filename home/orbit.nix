@@ -30,9 +30,23 @@
   systemd.user.services.orbit = {
     Unit = {
       Description = "Orbit WiFi/Bluetooth manager daemon";
-      # Wait for graphical session so libnm/D-Bus is up when we
-      # start.
-      After = ["graphical-session.target"];
+      # Wait for graphical session and bluetooth.target so
+      # bluetoothd is up before Orbit registers its BlueZ pairing
+      # agent (org.bluez.Agent1 at /com/orbit/agent, capability
+      # KeyboardDisplay). Without this ordering the agent
+      # registration can race with bluetoothd startup and silently
+      # fail — all subsequent pairing attempts then get "No agent
+      # available for request type 2".
+      #
+      # bluetooth.target is the user-session Bluetooth target that
+      # systemd pulls in when bluetooth.service (system unit) is
+      # active. It is the correct dependency for user-session units
+      # that need bluetoothd. BindsTo is not used because system
+      # units are not bindable from user units — if bluetoothd is
+      # restarted independently, run:
+      #   systemctl --user restart orbit.service
+      # to re-register the agent.
+      After = ["graphical-session.target" "bluetooth.target"];
       PartOf = ["graphical-session.target"];
     };
 
