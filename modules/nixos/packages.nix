@@ -51,6 +51,10 @@
     pkgs.linuxPackages_latest.turbostat
     libva-utils
     nvme-cli
+    # amdgpu_top: GPU power domain viewer — shows VDDGFX, VDDMEM,
+    # display engine power for diagnosing SoC idle variance.
+    # Source: audit 2026-06-28-system-perfection-audit §B-5
+    amdgpu_top
 
     # ── Nix code quality (used by .pre-commit-config.yaml) ──
     pre-commit

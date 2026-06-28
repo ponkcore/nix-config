@@ -118,6 +118,13 @@ in {
   wayland.windowManager.hyprland = {
     enable = true;
     xwayland.enable = true;
+    # Explicitly keep hyprlang config generation. HM 26.05 defaults to
+    # "lua" at stateVersion >= 26.05, but our stateVersion is 25.11.
+    # The HM Lua generator has known bugs ($ character handling, issue
+    # #9341 closed "not planned"). Keep hyprlang until Hyprland drops
+    # it (estimated 0.60+) and the Lua generator is fixed.
+    # Source: audit 2026-06-28-system-perfection-audit §H-7
+    configType = "hyprlang";
     settings = {
       # Pin native panel mode + scale explicitly. The panel
       # (China Star SNE007ZA2-1, 14" 2.8K) advertises 120 Hz preferred

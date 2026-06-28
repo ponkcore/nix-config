@@ -254,7 +254,16 @@
         sudo -n ${pkgs.systemd}/bin/systemctl stop docker.service 2>/dev/null || true
       fi
     fi
-    sudo -n ${pkgs.systemd}/bin/systemctl stop libvirtd.service 2>/dev/null || true
+    # Stop libvirtd — but only if no VMs are running.
+    # Source: audit 2026-06-28-system-perfection-audit §E-5
+    if sudo -n ${pkgs.systemd}/bin/systemctl is-active libvirtd.service >/dev/null 2>&1; then
+      running_vms=$(sudo -n ${pkgs.libvirt}/bin/virsh list --state-running --name 2>/dev/null || true)
+      if [ -n "$running_vms" ]; then
+        ${pkgs.libnotify}/bin/notify-send "Eco mode" "VMs running — stop them first" 2>/dev/null || true
+      else
+        sudo -n ${pkgs.systemd}/bin/systemctl stop libvirtd.service 2>/dev/null || true
+      fi
+    fi
 
     echo on > "$state"
     # Write persistent state file — survives reboots, checked by
