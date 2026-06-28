@@ -282,6 +282,22 @@
               "$@"
           fi
 
+          # Override GTK_THEME to match the profile's colorScheme.
+          # Chromium reads the system GTK theme name from settings.ini
+          # and enables dark browser UI if the theme name contains
+          # "dark". --blink-settings only controls what web pages see
+          # (CSS prefers-color-scheme), NOT the browser chrome. Without
+          # this override, the system's Gruvbox-Dark theme leaks into
+          # CloakBrowser's UI even for light profiles.
+          case "$colorScheme" in
+            dark|Dark)
+              export GTK_THEME="Adwaita-dark"
+              ;;
+            *)
+              export GTK_THEME="Adwaita:light"
+              ;;
+          esac
+
           exec "$BROWSER" "$@"
         }
 
