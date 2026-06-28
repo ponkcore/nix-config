@@ -36,6 +36,25 @@
   # Rollback: nixos-rebuild switch --rollback.
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
+  # mac80211 TDLS key installation fix — one-line kernel patch.
+  # ieee80211_add_key in net/mac80211/cfg.c rejects TDLS peer keys
+  # because they lack WLAN_STA_ASSOC (TDLS TPK handshake completes
+  # before association). This causes "nl80211: kernel reports: key
+  # addition failed" → silent WiFi connectivity loss when TDLS peers
+  # (e.g. Syncthing devices) are on the same BSS. 64 failures in 16h
+  # observed on this hardware.
+  # Bug: mac80211 subsystem (not rtw89-specific), affects all drivers.
+  # Fix: add sta->sta.tdls to the exemption check, mirroring epp_peer.
+  # Upstream: unmerged as of kernel 7.1.2; community patch from
+  # ElXreno/nixos-config. Remove when merged into linuxPackages_latest.
+  # Source: research 2026-06-28-rtw89-key-addition-failure.result.md
+  boot.kernelPatches = [
+    {
+      name = "mac80211-tdls-key-fix";
+      patch = ./patches/0001-wifi-mac80211-allow-key-installation-for-TDLS-peers.patch;
+    }
+  ];
+
   # Host-scoped overlays:
   # 26.05 migration: Hyprland flake overlay and unstable pull overlay
   # removed — 26.05 ships all ecosystem packages natively at the same
