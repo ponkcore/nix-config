@@ -100,7 +100,7 @@
     fi
 
     locked=$(${pkgs.nix}/bin/nix flake metadata /etc/nixos --json 2>/dev/null | ${pkgs.jq}/bin/jq -r '.locks.nodes.nixpkgs.locked.rev' 2>/dev/null || echo "")
-    latest=$(${pkgs.nix}/bin/nix flake metadata github:NixOS/nixpkgs/nixos-25.11 --json 2>/dev/null | ${pkgs.jq}/bin/jq -r '.revision' 2>/dev/null || echo "")
+    latest=$(${pkgs.nix}/bin/nix flake metadata github:NixOS/nixpkgs/nixos-26.05 --json 2>/dev/null | ${pkgs.jq}/bin/jq -r '.revision' 2>/dev/null || echo "")
 
     if [ -n "$locked" ] && [ -n "$latest" ] && [ "$locked" != "$latest" ]; then
         result='{"text":"upd","class":"has-updates","tooltip":"NixOS update available"}'

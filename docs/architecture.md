@@ -147,11 +147,13 @@ headless / VM hosts.
 
 | Input | Role | Pins own nixpkgs? |
 |-------|------|-------------------|
-| `nixpkgs` | base package set, channel `nixos-25.11` | n/a |
+| `nixpkgs` | base package set, channel `nixos-26.05` | n/a |
 | `home-manager` | user environment | follows |
 | `nur` | community Firefox extensions | follows |
 | `agenix` | encrypted secrets | follows nixpkgs + home-manager |
 | `llm-agents` | opencode binary | does NOT follow — see decisions/0003 |
+| `letta-code` | memory-first coding agent (talos runtime) | follows |
+| `mcp-nix` | NixOS/Home Manager/Nix stdlib MCP server | pins own nixpkgs |
 
 ## Build flow
 
@@ -171,7 +173,8 @@ flake.nix
 ```
 
 `pkgs/default.nix` returns a list of overlays:
-- local packages (`cloakbrowser`, `devin-cli`, `lecoo-ctrl`)
+- local packages (`cloakbrowser`, `orbit`, `oh-my-pi`, `oh-my-openagent`,
+  `letta-code`, `mcp-bridge`, `mcp-nix`, `context7-mcp`, `fetch-py`)
 - NUR
 
 ## Secrets pipeline

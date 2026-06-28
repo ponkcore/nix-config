@@ -435,7 +435,7 @@ short, repeatable ritual.
 
 ### Steps
 
-1. Boot the target machine off a NixOS 25.11 installer USB.
+1. Boot the target machine off a NixOS 26.05 installer USB.
 
 2. Partition + filesystems (will be replaced by `disko.nix` later;
    for now, manual):

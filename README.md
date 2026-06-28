@@ -5,7 +5,7 @@
 > services, and secrets.
 
 ```
-NixOS 25.11   ·   Hyprland   ·   Gruvbox-warm palette   ·   home-manager   ·   agenix
+NixOS 26.05   ·   Hyprland   ·   Gruvbox-warm palette   ·   home-manager   ·   agenix
 ```
 
 ## What this is
@@ -119,7 +119,7 @@ Full architecture diagram and module breakdown:
 ## Quickstart on existing hardware
 
 ```sh
-# 1. Boot a NixOS 25.11 installer ISO on the target machine.
+# 1. Boot a NixOS 26.05 installer ISO on the target machine.
 # 2. Partition + format + mount on /mnt (see docs/handbook.md §5).
 # 3. Generate hardware-configuration:
 sudo nixos-generate-config --root /mnt
