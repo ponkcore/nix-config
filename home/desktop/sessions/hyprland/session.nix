@@ -395,12 +395,12 @@ in {
       # setup. If docking ever returns, revive the pin behind a
       # host-condition script.)
       #
-      # Smart-gaps rules retained: no gaps/border when a single
-      # tiled or fullscreen window is visible — maximises usable
-      # area on the 14" panel.
+      # Smart-gaps rules: no gaps when a single tiled or fullscreen
+      # window is visible, but keep the gradient border (matches the
+      # waybar border and multi-window tiling look).
       workspace = [
-        "w[tv1], gapsout:0, gapsin:0, border:false"
-        "f[1], gapsout:0, gapsin:0, border:false"
+        "w[tv1], gapsout:0, gapsin:0, border:true"
+        "f[1], gapsout:0, gapsin:0, border:true"
       ];
 
       # ── Window groups (tabbed containers) ─────────────────────────────
