@@ -70,10 +70,6 @@ in {
   dconf.settings = {
     "org/gnome/desktop/interface" = {
       color-scheme = "prefer-dark";
-      # libadwaita accent — closest Gruvbox-compatible preset.
-      # Maps to #c88800 (dark amber). Only 9 enum values accepted;
-      # #fabd2f is not available via gsettings.
-      accent-color = "yellow";
     };
     "org/gnome/nautilus/window-state" = {
       maximized = false;
