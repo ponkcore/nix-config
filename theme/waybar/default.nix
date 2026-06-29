@@ -187,6 +187,7 @@ in {
         padding: 0 0px;
         margin: 3px 12px;
         background-color: @bg_soft;
+        border-radius: 4px;
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
       }
 
