@@ -5,8 +5,10 @@
 #   - Mesa drivers with 32-bit support for Steam / Wine
 #   - VA-API (libva) and VDPAU→VA-API bridge for hardware video decode
 #   - Power & display feature masks tuned for Phoenix/Strix-class APUs:
-#       · ABM (Adaptive Backlight Modulation) disabled — avoids the slow
-#         backlight ramp after eDP DPMS-on / lid-open on this panel.
+#       · ABM (Adaptive Backlight Management) level 1 — DMCU firmware
+#         optimises backlight power electronics at low brightness.
+#         Est. saving 0.1–0.3 W at min brightness.
+#         Source: research 2026-06-29-battery-autonomy-9h §4a
 #       · ppfeaturemask=0xfff7ffff — unmasks GPU OD / power-profile control
 #         (matches upstream amd-power-profiles defaults; safe on Phoenix2).
 #       · sg_display=0 — disables scatter-gather display path; works around
@@ -22,7 +24,7 @@
     kernelModules = ["amdgpu"];
 
     kernelParams = [
-      "amdgpu.abmlevel=0"
+      "amdgpu.abmlevel=1"
       # ppfeaturemask: kernel default 0xfff7bfff is correct for this
       # APU. The previous value 0xfff7ffff enabled PP_OVERDRIVE_MASK
       # (bit 14, OD clock/voltage tables), but the Radeon 780M

@@ -30,21 +30,21 @@ in {
         lock_cmd = "pidof hyprlock || hyprlock";
         before_sleep_cmd = "loginctl lock-session; rm -f ${idleFlag}";
       };
-      listener = [
-        {
-          # 30 s idle on battery → set idle flag → lid-monitor DPMS-off.
-          # Panel at 0% brightness still draws ~2-3 W (eDP link active);
-          # DPMS-off eliminates that entirely. 30s is aggressive but
-          # acceptable on battery — reading pauses >30s are rare, and
-          # the screen wakes instantly on any input.
-          # Only fires on battery (on-battery guard). On AC the flag is
-          # never set, so the screen stays on indefinitely.
-          # Source: research 2026-06-27-battery-unsolved-deep-research-2 §6
-          timeout = 30;
-          on-timeout = "${on-battery}/bin/on-battery && touch ${idleFlag}";
-          on-resume = "rm -f ${idleFlag}";
-        }
-      ];
+      # Idle screen blanking on battery DISABLED — system autonomy
+      # testing. The listener below was the only idle trigger: 30s
+      # idle on battery → touch idle flag → lid-monitor DPMS-off.
+      # With the listener removed the screen stays on indefinitely
+      # on battery. Lid-close blanking (lid-monitor polling
+      # /proc/acpi/button/lid) is unaffected — only the idle-timeout
+      # path is gone. hypridle still locks the session on sleep
+      # (before_sleep_cmd above).
+      # To re-enable, restore the listener block:
+      #   listener = [{
+      #     timeout = 30;
+      #     on-timeout = "${on-battery}/bin/on-battery && touch ${idleFlag}";
+      #     on-resume = "rm -f ${idleFlag}";
+      #   }];
+      listener = [];
     };
   };
 }

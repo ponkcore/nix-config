@@ -286,16 +286,19 @@ in {
 
     # Write ASPM policy to powersave at boot. The kernel param `force`
     # overrides the FADT NO_ASPM flag, but the policy sysfs still
-    # shows [default]. This oneshot sets it to powersave explicitly.
-    # Confirmed working via runtime `echo powersave > .../policy`.
+    # shows [default]. This oneshot sets it to powersupersave —
+    # enabling both L0s and L1 substates for all PCIe devices.
+    # powersupersave is more aggressive than powersave (L1 only):
+    # est. +0.1–0.3 W saving from per-device L1 substate negotiation.
+    # Source: research 2026-06-29-4pda-power-floors-and-tlp §1
     systemd.services.aspm-powersave = {
-      description = "Set PCIe ASPM policy to powersave";
+      description = "Set PCIe ASPM policy to powersupersave";
       after = ["systemd-udevd.service"];
       wantedBy = ["multi-user.target"];
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
-        ExecStart = "${pkgs.bash}/bin/bash -c 'echo powersave > /sys/module/pcie_aspm/parameters/policy 2>/dev/null || true'";
+        ExecStart = "${pkgs.bash}/bin/bash -c 'echo powersupersave > /sys/module/pcie_aspm/parameters/policy 2>/dev/null || true'";
       };
     };
 
@@ -445,6 +448,19 @@ in {
       # not the nvme class device.
       ACTION=="add", SUBSYSTEM=="pci", ATTR{class}=="0x010802", TEST=="power/control", ATTR{power/control}="auto"
 
+      # ── Per-device runtime PM for all remaining PCI ─────────────────
+      # TLP's RUNTIME_PM_ON_BAT=auto sweeps all PCI devices. We
+      # replicate this for the specific devices that stay active:
+      #   - rtw89 WiFi (0c:00.0, class 0x028000): control=on by default
+      #   - AMD Dummy Function (class 0x130000): control=on, does nothing
+      #   - RTL8111 Ethernet (0b:00.0, r8169): control=on by default
+      # Setting control=auto permits runtime suspend when the driver
+      # allows it. Does not force suspend — the driver decides.
+      # Source: research 2026-06-29-4pda-power-floors-and-tlp §1, §5, §6
+      ACTION=="add", SUBSYSTEM=="pci", ATTR{class}=="0x028000", TEST=="power/control", ATTR{power/control}="auto"
+      ACTION=="add", SUBSYSTEM=="pci", ATTR{class}=="0x130000", TEST=="power/control", ATTR{power/control}="auto"
+      ACTION=="add", SUBSYSTEM=="pci", DRIVERS=="r8169", TEST=="power/control", ATTR{power/control}="auto"
+
       # NVMe I/O scheduler — "none" is the recommendation for multi-queue NVMe,
       # especially DRAM-less drives. mq-deadline adds latency without throughput.
       ACTION=="add|change", KERNEL=="nvme[0-9]n[0-9]", ATTR{queue/scheduler}="none"
@@ -510,5 +526,15 @@ in {
         '';
       };
     };
+
+    # ── Eco-aware service guards ──────────────────────────────────────
+    # ConditionPathExists prevents nixos-rebuild switch from restarting
+    # Docker/libvirtd when eco mode has stopped them. The condition is
+    # evaluated at every start attempt — if /var/lib/lecoo-eco/state-on
+    # exists, systemd silently skips the service. When eco is turned off
+    # (file removed), the eco toggle script explicitly starts the services.
+    # Source: research 2026-06-29-battery-autonomy-9h §7c
+    systemd.services.docker.unitConfig.ConditionPathExists = "!/var/lib/lecoo-eco/state-on";
+    systemd.services.libvirtd.unitConfig.ConditionPathExists = "!/var/lib/lecoo-eco/state-on";
   };
 }

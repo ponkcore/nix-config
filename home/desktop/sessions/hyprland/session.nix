@@ -360,7 +360,7 @@ in {
         gaps_in = 2;
         gaps_out = 3;
         border_size = 2;
-        "col.active_border" = "${rgba p.fg_bright "ee"} ${rgba p.bg "ee"} 45deg";
+        "col.active_border" = "${rgba p.bright_yellow "ee"} ${rgba p.bright_magenta "ee"} 45deg";
         "col.inactive_border" = rgba p.border_inact "aa";
         resize_on_border = true;
       };
@@ -405,7 +405,7 @@ in {
 
       # ── Window groups (tabbed containers) ─────────────────────────────
       group = {
-        "col.border_active" = "${rgba p.fg_bright "ee"} ${rgba p.bg "ee"} 45deg";
+        "col.border_active" = "${rgba p.bright_yellow "ee"} ${rgba p.bright_magenta "ee"} 45deg";
         "col.border_inactive" = rgba p.border_inact "aa";
         groupbar = {
           enabled = true;
@@ -640,7 +640,7 @@ in {
         disable_splash_rendering = true;
         background_color = rgba p.bg "ff";
         vrr = 2;
-        render_unfocused_fps = 15;
+        render_unfocused_fps = 1;
       };
     };
   };

@@ -22,10 +22,12 @@
   };
 
   # Quiet boot — shave every visible message between firmware and Plymouth.
-  # consoleLogLevel = 0 silences ALL kernel output except KERN_EMERG.
-  # initrd.systemd.enable is required for rd.systemd.show_status=false to
-  # actually take effect (older sysv-style initrd ignores it).
-  boot.consoleLogLevel = 0;
+  # consoleLogLevel = 3 allows KERN_ERR on the console (hardware errors,
+  # NVMe failures, GPU hangs) while keeping boot visually silent with
+  # Plymouth + quiet. loglevel=0 suppressed all diagnostics — loglevel=3
+  # is the community-standard compromise for production laptops.
+  # Source: research 2026-06-29-nixos-laptop-comparative-audit §W-10
+  boot.consoleLogLevel = 3;
   boot.initrd.verbose = false;
   boot.initrd.systemd.enable = true;
 
