@@ -20,8 +20,8 @@
   bg = "#282828"; # bg0 — base background (Hyprland, Ghostty)
   bg_soft = "#32302f"; # bg0_s — soft background (Waybar workspaces)
   bg_mid = "#3c3836"; # bg1 — widget backgrounds (Waybar modules, rofi)
-  bg2 = "#504945"; # bg2 — selected/active backgrounds (libadwaita override)
-  # Available but unused: #665c54 (bg3), #7c6f64 (bg4 / fg4)
+  # Available but unused: #504945 (bg2),
+  # #665c54 (bg3), #7c6f64 (bg4 / fg4)
 
   # ── Foregrounds (light → dim) ───────────────────────────────────────
   fg = "#ebdbb2"; # fg0 — main text
