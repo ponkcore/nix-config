@@ -159,18 +159,22 @@ in {
 
       #waybar > box {
         color: @fg;
-        background-color: @bg_mid;
+        /* Gradient border matching Hyprland general.col.active_border:
+           bright_yellow (#fabd2f) -> bright_magenta (#d3869b) at 45deg,
+           2px wide, alpha ee (0.933).  Layered background technique:
+           solid bg_mid clipped to padding-box (interior fill), gradient
+           clipped to border-box (border ring).  border: transparent
+           lets the gradient show through the 2px border area. */
+        background:
+          linear-gradient(@bg_mid, @bg_mid) padding-box,
+          linear-gradient(45deg, rgba(250, 189, 47, 0.933), rgba(211, 134, 155, 0.933)) border-box;
         margin: 0px 6px 3px 6px;
         padding: 0px;
-        box-shadow: 0px 1px 2px rgba(0, 0, 0, 1);
-        border-left: 1px solid @border;
-        border-right: 1px solid @border;
-        border-bottom: 1px solid @border;
+        border: 2px solid transparent;
         border-radius: 4px;
+        box-shadow: 0px 1px 2px rgba(0, 0, 0, 1);
         font-weight: normal;
         font-size: 16px;
-        transition-property: background-color;
-        transition-duration: .5s;
         min-height: 36px;
       }
 
