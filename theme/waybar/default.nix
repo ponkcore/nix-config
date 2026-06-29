@@ -130,6 +130,7 @@ in {
     style = ''
       @define-color bg_dark ${p.bg_dark};
       @define-color bg ${p.bg};
+      @define-color bg_soft ${p.bg_soft};
       @define-color bg_mid ${p.bg_mid};
       @define-color fg ${p.fg};
       @define-color fg_bright ${p.fg_bright};
@@ -185,7 +186,7 @@ in {
       #workspaces {
         padding: 0 0px;
         margin: 3px 12px;
-        background-color: @bg;
+        background-color: @bg_soft;
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
       }
 

@@ -17,9 +17,10 @@
 {
   # ── Backgrounds (dark → light) ──────────────────────────────────────
   bg_dark = "#1d2021"; # bg0_h — darkest background (Waybar bar)
-  bg = "#282828"; # bg0 — base background (Hyprland, Ghostty, Waybar workspaces)
+  bg = "#282828"; # bg0 — base background (Hyprland, Ghostty)
+  bg_soft = "#32302f"; # bg0_s — soft background (Waybar workspaces)
   bg_mid = "#3c3836"; # bg1 — widget backgrounds (Waybar modules, rofi)
-  # Available but unused: #32302f (bg0_s), #504945 (bg2),
+  # Available but unused: #504945 (bg2),
   # #665c54 (bg3), #7c6f64 (bg4 / fg4)
 
   # ── Foregrounds (light → dim) ───────────────────────────────────────
