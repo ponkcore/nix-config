@@ -137,8 +137,10 @@
     GREP="${pkgs.gnugrep}/bin/grep"
     COREUTILS="${pkgs.coreutils}/bin"
 
-    # Check TUN interface first — takes priority.
-    if $IP link show throne-tun 2>/dev/null | $GREP -q 'state UP'; then
+    # Check TUN interface first — takes priority. TUN devices report
+    # state UNKNOWN (no link layer), so we check for the interface's
+    # existence + UP flag in the angle-bracket flags, not "state UP".
+    if $IP link show throne-tun 2>/dev/null | $GREP -q '<.*UP.*>'; then
       echo '{"text":"","class":"vpn-active"}'
       exit 0
     fi
