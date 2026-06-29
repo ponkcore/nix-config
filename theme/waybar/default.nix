@@ -162,11 +162,11 @@ in {
         /* Gradient border matching Hyprland general.col.active_border:
            bright_yellow (#fabd2f) -> bright_magenta (#d3869b) at 45deg,
            2px wide, alpha ee (0.933).  Layered background technique:
-           solid bg_mid clipped to padding-box (interior fill), gradient
+           solid bg clipped to padding-box (interior fill), gradient
            clipped to border-box (border ring).  border: transparent
            lets the gradient show through the 2px border area. */
         background:
-          linear-gradient(@bg_mid, @bg_mid) padding-box,
+          linear-gradient(@bg, @bg) padding-box,
           linear-gradient(45deg, rgba(250, 189, 47, 0.933), rgba(211, 134, 155, 0.933)) border-box;
         margin: 0px 6px 3px 6px;
         padding: 0px;
