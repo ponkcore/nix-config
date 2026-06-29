@@ -73,7 +73,7 @@
     window-padding-x = 4
     window-padding-y = 4
     window-padding-balance = true
-    background-opacity = 0.95
+    background-opacity = 0.75
     window-decoration = false
 
     # Scroll
