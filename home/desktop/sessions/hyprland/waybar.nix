@@ -5,8 +5,7 @@
 #   - hyprland/workspaces  (Hyprland IPC workspaces module)
 #   - custom/telegram      (drives the telegram-toggle script)
 #   - custom/spotify       (drives the spotify-toggle script)
-#   - custom/throne        (drives the throne-toggle script)
-#   - custom/keepassxc     (drives the keepassxc-toggle script)
+#   - custom/throne        (drives the throne-toggle script, VPN-aware)
 #   - custom/bluetooth     (drives the bluetooth-toggle script)
 #   - network              (Hyprland on-click → network-toggle)
 #
@@ -17,8 +16,8 @@
   app-status,
   telegram-toggle,
   throne-toggle,
+  throne-status,
   spotify-toggle,
-  keepassxc-toggle,
   bluetooth-toggle,
   network-toggle,
   pwvucontrol-toggle,
@@ -191,39 +190,18 @@ in {
     "custom/throne" = {
       # Glyph: nf-md-shield_lock — Throne is a VPN / Xray proxy GUI;
       # the shield-with-lock reads as "secured tunnel" alongside the
-      # surrounding tray icons. Was previously fa-key; that glyph
-      # moved to custom/keepassxc where it is a more accurate fit.
-      # CSS hook `#custom-throne.running` handles active-state tint
-      # via the JSON class app-status returns. Throne reports its
-      # window class as `Throne` (capital T) — verified at runtime
-      # against `hyprctl clients`.
+      # surrounding tray icons.
+      #
+      # exec: throne-status checks the throne-tun interface first
+      # (class "vpn-active" → bright_green glow when TUN is up),
+      # then falls back to the app-status cache for the "running"
+      # class (window open but TUN down). Interval=3 polls the TUN
+      # state — interface up/down doesn't emit Hyprland events.
       format = "<span weight='heavy'>󰦝</span>";
-      exec = "${app-status}/bin/app-status Throne";
+      exec = "${throne-status}/bin/throne-status";
       return-type = "json";
-      signal = 8;
+      interval = 3;
       on-click = "${throne-toggle}/bin/throne-toggle";
-      tooltip = false;
-    };
-
-    "custom/keepassxc" = {
-      # Glyph: fa-key (), inherited from the previous custom/throne
-      # slot — reads as "password manager" / "credentials". The
-      # window class on Wayland is the lowercase reverse-DNS
-      # `org.keepassxc.KeePassXC`, verified at runtime against
-      # `hyprctl clients`. CSS hook `#custom-keepassxc.running`
-      # handles the active-state pulse via the JSON class
-      # app-status returns when a KeePassXC window is present.
-      # Note: with MinimizeOnClose=true (our seed default in
-      # home/keepassxc.nix) the close button parks the window into
-      # the tray — in that state the class is absent from
-      # `hyprctl clients`, so the next click re-launches keepassxc,
-      # which DBus-restores the existing instance instead of
-      # spawning a second process.
-      format = "<span weight='heavy'></span>";
-      exec = "${app-status}/bin/app-status org.keepassxc.KeePassXC";
-      return-type = "json";
-      signal = 8;
-      on-click = "${keepassxc-toggle}/bin/keepassxc-toggle";
       tooltip = false;
     };
 

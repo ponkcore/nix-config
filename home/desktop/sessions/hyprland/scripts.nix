@@ -61,7 +61,7 @@
     PROCPS="${pkgs.procps}/bin"
 
     runtime="''${XDG_RUNTIME_DIR:-/tmp}/waybar-app-status"
-    classes='com.ayugram.desktop spotify Throne org.keepassxc.KeePassXC'
+    classes='com.ayugram.desktop spotify Throne'
 
     write_status() {
       cls="$1"
@@ -120,6 +120,38 @@
       done
       "$COREUTILS/sleep" 1
     done
+  '';
+
+  # ── Throne VPN status ──────────────────────────────────────────────
+  # Waybar exec for custom/throne. Checks the throne-tun interface
+  # first (sing-box TUN mode), then falls back to the app-status
+  # cache for the window-running state. TUN state changes don't
+  # emit Hyprland events, so this is polled via waybar `interval=3`.
+  #
+  # Classes:
+  #   vpn-active — throne-tun interface exists (tunnel is up)
+  #   running    — Throne window is open but TUN is down
+  #   ""         — neither
+  throne-status = pkgs.writeShellScriptBin "throne-status" ''
+    IP="${pkgs.iproute2}/bin/ip"
+    GREP="${pkgs.gnugrep}/bin/grep"
+    COREUTILS="${pkgs.coreutils}/bin"
+
+    # Check TUN interface first — takes priority.
+    if $IP link show throne-tun 2>/dev/null | $GREP -q 'state UP'; then
+      echo '{"text":"","class":"vpn-active"}'
+      exit 0
+    fi
+
+    # Fall back to app-status cache for window-running state.
+    cls="Throne"
+    key=$(printf '%s' "$cls" | "$COREUTILS/tr" -c 'A-Za-z0-9_.-' '_')
+    cache="''${XDG_RUNTIME_DIR:-/tmp}/waybar-app-status/$key.json"
+    if [ -r "$cache" ]; then
+      "$COREUTILS/cat" "$cache"
+    else
+      echo '{"text":"","class":""}'
+    fi
   '';
 
   # ── Telegram/Ayugram toggle ─────────────────────────────────────────
@@ -340,6 +372,7 @@ in {
       app-status-daemon
       telegram-toggle
       throne-toggle
+      throne-status
       spotify-toggle
       keepassxc-toggle
       nautilus-open
@@ -369,6 +402,7 @@ in {
     app-status-daemon
     telegram-toggle
     throne-toggle
+    throne-status
     spotify-toggle
     keepassxc-toggle
     nautilus-open

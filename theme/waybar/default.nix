@@ -90,7 +90,6 @@
       "custom/telegram"
       "custom/spotify"
       "custom/throne"
-      "custom/keepassxc"
       "custom/separator"
     ];
 
@@ -143,6 +142,7 @@ in {
       @define-color accent ${p.accent_warm};
       @define-color red ${p.bright_red};
       @define-color warning ${p.bright_yellow};
+      @define-color bright_green ${p.bright_green};
 
       * {
         border-radius: 0;
@@ -259,7 +259,7 @@ in {
 
       #tray, #clock, #cpu, #memory, #backlight,
       #custom-language, #network, #bluetooth, #pulseaudio, #idle_inhibitor,
-      #custom-nix, #custom-telegram, #custom-spotify, #custom-throne, #custom-keepassxc, #custom-bluetooth, #custom-cpu, #custom-battery, #custom-ultra-economy, #custom-power,
+      #custom-nix, #custom-telegram, #custom-spotify, #custom-throne, #custom-bluetooth, #custom-cpu, #custom-battery, #custom-ultra-economy, #custom-power,
       #group-volume, #group-brightness {
         min-width: 13px;
         margin-top: 2px;
@@ -278,7 +278,6 @@ in {
       #custom-telegram  { font-size: 18px; color: @fg; }
       #custom-spotify   { font-size: 18px; color: @fg; }
       #custom-throne    { font-size: 18px; color: @fg; }
-      #custom-keepassxc { font-size: 18px; color: @fg; }
 
       /* App-toggle running indicator — exec script (app-status,
          home/desktop/sessions/hyprland/scripts.nix) emits
@@ -298,9 +297,16 @@ in {
 
       #custom-telegram.running,
       #custom-spotify.running,
-      #custom-throne.running,
-      #custom-keepassxc.running {
+      #custom-throne.running {
         animation: app-glow-pulse 2s ease-in-out infinite;
+      }
+
+      /* Throne VPN-active state — TUN interface is up (sing-box
+         running). bright_green reads as "secure tunnel established".
+         Takes priority over .running (app open but TUN down). */
+      #custom-throne.vpn-active {
+        color: @bright_green;
+        text-shadow: 0 0 4px @bright_green;
       }
 
       #custom-bluetooth {
