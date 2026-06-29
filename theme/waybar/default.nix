@@ -142,7 +142,7 @@ in {
       @define-color accent ${p.accent_warm};
       @define-color red ${p.bright_red};
       @define-color warning ${p.bright_yellow};
-      @define-color bright_green ${p.bright_green};
+      @define-color bright_orange ${p.bright_orange};
 
       * {
         border-radius: 0;
@@ -302,11 +302,11 @@ in {
       }
 
       /* Throne VPN-active state — TUN interface is up (sing-box
-         running). bright_green reads as "secure tunnel established".
+         running). bright_orange reads as "secure tunnel established".
          Takes priority over .running (app open but TUN down). */
       #custom-throne.vpn-active {
-        color: @bright_green;
-        text-shadow: 0 0 4px @bright_green;
+        color: @bright_orange;
+        text-shadow: 0 0 4px @bright_orange;
       }
 
       #custom-bluetooth {
