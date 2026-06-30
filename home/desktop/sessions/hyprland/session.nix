@@ -294,7 +294,7 @@ in {
       # Hardware power button: logind ignores short presses, so Hyprland
       # owns the UI path and opens the same menu as the Waybar power icon.
       bindl = [
-        ", XF86PowerOff, exec, wlogout --buttons-per-row 2"
+        ", XF86PowerOff, exec, wlogout --buttons-per-row 4 --margin-left 60 --margin-right 60 --column-spacing 6"
       ];
 
       # Resize windows with keyboard (vim-style + RU equivalents)
@@ -462,6 +462,16 @@ in {
           "specialWorkspaceOut, 1, 1.2, emphasizedAccel, slidevert"
         ];
       };
+
+      # ── Layer rules ───────────────────────────────────────────────────
+      # wlogout creates a layer-shell surface with namespace
+      # "logout_dialog". Blur everything behind it + pop-in animation
+      # for a polished session-action menu. Source: hyprstellar.
+      # Hyprland 0.55.x syntax: "rule value, match:namespace <name>"
+      layerrule = [
+        "blur true, match:namespace logout_dialog"
+        "animation popin 95%, match:namespace logout_dialog"
+      ];
 
       # ── Window rules ────────────────────────────────────────────────────
       # On a 14" 1440×900 logical panel, big apps benefit from filling the

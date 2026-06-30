@@ -42,65 +42,55 @@ in {
   xdg.configFile."wlogout/style.css".text = ''
     * {
       background-image: none;
-      font-family: 'CaskaydiaCove Nerd Font Propo';
-      font-size: 20px;
+      font-family: 'DepartureMono Nerd Font Propo';
+      font-size: 26px;
+      font-weight: bold;
+      border-radius: 10px;
     }
 
     window {
-      background-color: transparent;
+      background-color: rgba(0, 0, 0, 0);
     }
 
     button {
-      color: ${p.fg};
-      background-color: ${p.bg};
+      color: ${p.bg};
+      background-color: ${p.accent_warm};
       outline-style: none;
       border: none;
-      border-width: 0;
+      box-shadow: none;
       background-repeat: no-repeat;
       background-position: center;
-      background-size: 10%;
-      border-radius: 0;
-      box-shadow: none;
-      text-shadow: none;
-      transition: background-color 0.15s ease, color 0.15s ease, background-size 0.2s ease;
+      background-size: 45%;
     }
 
+    button:hover,
     button:focus {
-      color: ${p.hover_fg};
-      background-color: ${p.accent_warm};
-      background-size: 18%;
-      box-shadow: none;
-      outline-style: none;
-    }
-
-    button:hover {
-      color: ${p.hover_fg};
-      background-color: ${p.hover_bg};
-      background-size: 18%;
+      color: ${p.bg};
+      background-color: ${p.bright_magenta};
+      background-size: 90%;
     }
 
     #lock {
       background-image: image(url("${icons}/lock.png"));
-      border-radius: 20px 0 0 0;
-      margin: 8px 0 0 8px;
     }
 
     #logout {
       background-image: image(url("${icons}/logout.png"));
-      border-radius: 0 0 0 20px;
-      margin: 0 0 8px 8px;
     }
 
     #shutdown {
       background-image: image(url("${icons}/shutdown.png"));
-      border-radius: 0 20px 0 0;
-      margin: 8px 8px 0 0;
     }
 
     #reboot {
       background-image: image(url("${icons}/reboot.png"));
-      border-radius: 0 0 20px 0;
-      margin: 0 8px 8px 0;
+    }
+
+    #lock,
+    #logout,
+    #shutdown,
+    #reboot {
+      margin: 3px 0px;
     }
   '';
 }
