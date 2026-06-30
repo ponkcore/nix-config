@@ -22,6 +22,8 @@
   lib,
   p,
   cpu-mem,
+  volume-status,
+  brightness-status,
   desktops ? [],
   hostname ? "",
   pkgs,
@@ -87,9 +89,17 @@
       "custom/separator"
     ]
     ++ lib.optionals hasHyprland [
+      "custom/language"
+      "custom/separator"
       "custom/telegram"
       "custom/spotify"
       "custom/throne"
+      "custom/separator"
+      "custom/bluetooth"
+      "network"
+      "custom/separator"
+      "custom/brightness"
+      "custom/volume"
       "custom/separator"
     ];
 
@@ -103,18 +113,16 @@
   modulesRight =
     [
       "custom/separator"
-    ]
-    ++ lib.optionals hasHyprland ["custom/language"]
-    ++ [
-      "group/brightness"
-      "group/volume"
-      "custom/bluetooth"
-      "network"
       "custom/cpu"
+      "custom/separator"
     ]
     ++ lib.optionals isLecoo [
-      "custom/battery"
       "custom/ultra-economy"
+      "custom/separator"
+      "custom/power-draw"
+      "custom/separator"
+      "custom/battery"
+      "custom/separator"
     ]
     ++ lib.optionals (!isLecoo) ["battery"]
     ++ [
@@ -143,6 +151,7 @@ in {
       @define-color red ${p.bright_red};
       @define-color warning ${p.bright_yellow};
       @define-color bright_orange ${p.bright_orange};
+      @define-color bright_magenta ${p.bright_magenta};
 
       * {
         border-radius: 0;
@@ -150,7 +159,7 @@ in {
         text-shadow: none;
         padding: 0;
         min-height: 0;
-        font-family: 'CaskaydiaCove Nerd Font Propo';
+        font-family: 'DepartureMono Nerd Font Propo';
         font-weight: normal;
 
       }
@@ -260,7 +269,8 @@ in {
 
       #tray, #clock, #cpu, #memory, #backlight,
       #custom-language, #network, #bluetooth, #pulseaudio, #idle_inhibitor,
-      #custom-nix, #custom-telegram, #custom-spotify, #custom-throne, #custom-bluetooth, #custom-cpu, #custom-battery, #custom-ultra-economy, #custom-power,
+      #custom-nix, #custom-telegram, #custom-spotify, #custom-throne, #custom-bluetooth, #custom-cpu, #custom-battery, #custom-ultra-economy, #custom-power, #custom-power-draw,
+      #custom-volume, #custom-brightness,
       #group-volume, #group-brightness {
         min-width: 13px;
         margin-top: 2px;
@@ -268,56 +278,66 @@ in {
         padding-right: 4px;
       }
 
-      #custom-nix { font-size: 18px; }
+      /* All icon modules use CommitMono for consistent glyph rendering.
+         Text modules (clock, workspaces, language, ECO, CPU, battery
+         values) inherit DepartureMono from the global `*` selector.
+         Volume and brightness use Pango markup for the icon (CommitMono)
+         so the value text stays DepartureMono. */
+      #network, #bluetooth {
+        font-family: 'CommitMono Nerd Font Propo';
+      }
+
+      #custom-nix { font-size: 18px; font-family: 'CommitMono Nerd Font Propo'; }
 
       #custom-language {
-        font-size: 13px;
-        font-weight: 700;
+        font-size: 16px;
+        font-weight: normal;
         color: @fg_bright;
       }
 
-      #custom-telegram  { font-size: 18px; color: @fg; }
-      #custom-spotify   { font-size: 18px; color: @fg; }
-      #custom-throne    { font-size: 18px; color: @fg; }
+      #custom-telegram  { font-size: 18px; color: @fg; font-family: 'CommitMono Nerd Font Propo'; }
+      #custom-spotify   { font-size: 18px; color: @fg; font-family: 'CommitMono Nerd Font Propo'; }
+      #custom-throne    { font-size: 18px; color: @fg; font-family: 'CommitMono Nerd Font Propo'; }
 
-      /* App-toggle running indicator — exec script (app-status,
-         home/desktop/sessions/hyprland/scripts.nix) emits
-         `"class":"running"` when a Hyprland window of the matching
-         class exists. The glow pulses between 1 px and 4 px blur
-         radius — stays well inside the module's 4 px horizontal
-         padding so it never gets clipped. Glyph colour stays at
-         @fg; the animated shadow does the visual work. */
-      /* Animate the shadow's alpha channel, not its blur radius —
-         keeps the glyph itself rasterised without any halo when
-         the pulse is at its low point. fbf1c7 = @fg_bright. */
-      @keyframes app-glow-pulse {
-        0%   { text-shadow: 0 0 3px rgba(251, 241, 199, 0); }
-        50%  { text-shadow: 0 0 3px rgba(251, 241, 199, 1); }
-        100% { text-shadow: 0 0 3px rgba(251, 241, 199, 0); }
-      }
-
-      #custom-telegram.running,
-      #custom-spotify.running,
-      #custom-throne.running {
-        animation: app-glow-pulse 2s ease-in-out infinite;
+      /* App-toggle: when not running, dim to inactive workspace
+         button color. When running — full @fg color.
+         vpn-active-* classes imply running, so they're excluded
+         from the dim rule.
+         No glow / pulse. */
+      #custom-telegram:not(.running),
+      #custom-spotify:not(.running),
+      #custom-throne:not(.running):not(.vpn-active-ac):not(.vpn-active-battery) {
+        color: @border_inact;
       }
 
       /* Throne VPN-active state — TUN interface is up (sing-box
-         running). bright_orange reads as "secure tunnel established".
-         Takes priority over .running (app open but TUN down). */
-      #custom-throne.vpn-active {
-        color: @bright_orange;
-        text-shadow: 0 0 4px @bright_orange;
+         running). Visual depends on power state (class emitted by
+         throne-status script):
+           .vpn-active-ac       → animated shimmer yellow ↔ magenta
+           .vpn-active-battery  → static bright_yellow */
+      @keyframes throne-shimmer {
+        0%   { color: @warning; }
+        50%  { color: @bright_magenta; }
+        100% { color: @warning; }
+      }
+
+      #custom-throne.vpn-active-ac {
+        animation: throne-shimmer 6s ease-in-out infinite;
+      }
+
+      #custom-throne.vpn-active-battery {
+        color: @warning;
       }
 
       #custom-bluetooth {
         font-size: 18px;
         color: @fg;
+        font-family: 'CommitMono Nerd Font Propo';
       }
 
-      #custom-cpu { font-size: 18px; }
+      #custom-cpu { font-size: 16px; }
 
-      #custom-battery { font-size: 18px; }
+      #custom-battery { font-size: 16px; }
 
       /* Battery low warning — exec script emits `"class":"low"`
          when discharging below 20 %; waybar renders that as a CSS
@@ -325,18 +345,21 @@ in {
       #custom-battery.low { color: @red; }
 
       #custom-ultra-economy {
-        font-size: 18px;
-        color: @fg;
+        font-size: 16px;
+        font-weight: normal;
+        color: @border_inact;
       }
 
       #custom-ultra-economy.on {
-        color: @bright_green;
-        text-shadow: 0 0 4px @bright_green;
+        color: @warning;
       }
+
+      /* Power-draw: normal @fg color in all states. */
 
       #custom-power {
         font-size: 18px;
         color: @fg;
+        font-family: 'CommitMono Nerd Font Propo';
       }
 
       #custom-power:hover {
@@ -403,7 +426,7 @@ in {
         border: 1px solid @border;
         border-radius: 4px;
         padding: 3px 0px;
-        font-family: 'CaskaydiaCove Nerd Font Propo';
+        font-family: 'DepartureMono Nerd Font Propo';
         font-size: 18px;
       }
 
@@ -441,7 +464,7 @@ in {
         /* Same family as the bar itself for tonal consistency.
            Bold + 12 px reads as "footnote-tier" auxiliary text
            against the bar's 16-18 px. */
-        font-family: 'CaskaydiaCove Nerd Font Propo';
+        font-family: 'DepartureMono Nerd Font Propo';
         font-size: 12px;
         font-weight: 700;
       }
@@ -484,7 +507,7 @@ in {
 
       "custom/power" = {
         format = "<span weight='heavy'></span>";
-        on-click = "wlogout --buttons-per-row 2";
+        on-click = "wlogout --buttons-per-row 4 --margin-left 60 --margin-right 60 --column-spacing 6";
         tooltip = false;
       };
 
@@ -492,10 +515,11 @@ in {
       # data only inside `format`, not `tooltip-format`. We use the
       # cpu-mem script to emit a JSON tooltip with avg CPU + RAM.
       "custom/cpu" = {
-        format = "<span weight='heavy'>󰑹</span>";
+        format = "{text}";
         exec = "${cpu-mem}/bin/cpu-mem";
         return-type = "json";
         interval = 5;
+        tooltip = false;
         on-click = "ghostty --class=com.mitchellh.ghostty-btop -e btop";
       };
 
@@ -534,60 +558,87 @@ in {
         # leave the slot click-through.
       };
 
-      "group/volume" = {
-        orientation = "horizontal";
-        drawer = {
-          transition-duration = 500;
-          transition-left-to-right = true;
-          children-class = "drawer-child";
-          click-to-reveal = false;
-        };
-        modules = ["pulseaudio#output" "pulseaudio/slider"];
-      };
-
-      "pulseaudio#output" = {
-        format = "{icon}";
-        format-muted = "󰖁";
-        format-icons = {
-          headphone = "";
-          default = ["󰕿" "󰖀" "󰕾"];
-        };
-        max-volume = 100;
-        scroll-step = 2;
-        smooth-scrolling-threshold = 1;
-        on-click-right = "pamixer -t";
+      "custom/volume" = {
+        exec = "${volume-status}/bin/volume-status";
+        return-type = "json";
+        interval = 1;
+        format = "{text}";
+        on-click = "pamixer -t";
+        on-scroll-up = "pamixer -i 1";
+        on-scroll-down = "pamixer -d 1";
         tooltip = false;
       };
 
-      "pulseaudio/slider" = {
-        min = 0;
-        max = 100;
-        orientation = "horizontal";
-      };
+      # Builtin pulseaudio module kept for reference — replaced by
+      # custom/volume above for padded 2-digit display + font control.
+      # To restore: replace custom/volume in modules-right with
+      # group/volume and uncomment the group + pulseaudio configs below.
+      # "group/volume" = {
+      #   orientation = "horizontal";
+      #   drawer = {
+      #     transition-duration = 500;
+      #     transition-left-to-right = true;
+      #     children-class = "drawer-child";
+      #     click-to-reveal = false;
+      #   };
+      #   modules = ["pulseaudio#output" "pulseaudio/slider"];
+      # };
+      #
+      # "pulseaudio#output" = {
+      #   format = "{icon} {volume}%";
+      #   format-muted = "󰖁";
+      #   format-icons = {
+      #     headphone = "";
+      #     default = ["󰕿" "󰖀" "󰕾"];
+      #   };
+      #   max-volume = 99;
+      #   scroll-step = 2;
+      #   smooth-scrolling-threshold = 1;
+      #   on-click-right = "pamixer -t";
+      #   tooltip = false;
+      # };
+      #
+      # "pulseaudio/slider" = {
+      #   min = 0;
+      #   max = 100;
+      #   orientation = "horizontal";
+      # };
 
-      "group/brightness" = {
-        orientation = "horizontal";
-        drawer = {
-          transition-duration = 500;
-          transition-left-to-right = true;
-          children-class = "drawer-child";
-          click-to-reveal = false;
-        };
-        modules = ["backlight" "backlight/slider"];
-      };
-
-      "backlight" = {
-        device = "amdgpu_bl1";
-        format = "<span weight='heavy'>󰃟</span>";
+      "custom/brightness" = {
+        exec = "${brightness-status}/bin/brightness-status";
+        return-type = "json";
+        interval = 1;
+        format = "{text}";
+        on-scroll-up = "${pkgs.brightnessctl}/bin/brightnessctl -d amdgpu_bl1 set +1%";
+        on-scroll-down = "${pkgs.brightnessctl}/bin/brightnessctl -d amdgpu_bl1 set 1%-";
         tooltip = false;
       };
 
-      "backlight/slider" = {
-        min = 0;
-        max = 100;
-        orientation = "horizontal";
-        device = "amdgpu_bl1";
-      };
+      # Builtin backlight module kept for reference — replaced by
+      # custom/brightness above for padded 2-digit display + font control.
+      # "group/brightness" = {
+      #   orientation = "horizontal";
+      #   drawer = {
+      #     transition-duration = 500;
+      #     transition-left-to-right = true;
+      #     children-class = "drawer-child";
+      #     click-to-reveal = false;
+      #   };
+      #   modules = ["backlight" "backlight/slider"];
+      # };
+      #
+      # "backlight" = {
+      #   device = "amdgpu_bl1";
+      #   format = "<span weight='heavy'>󰃟</span> {percent}%";
+      #   tooltip = false;
+      # };
+      #
+      # "backlight/slider" = {
+      #   min = 0;
+      #   max = 100;
+      #   orientation = "horizontal";
+      #   device = "amdgpu_bl1";
+      # };
 
       "custom/language" = {
         exec = "${hyprland-language}/bin/hyprland-language";

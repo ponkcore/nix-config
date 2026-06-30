@@ -62,7 +62,7 @@
       if [ "$DT" -gt 0 ]; then
         USAGE=$(( (100 * (DT - DI)) / DT ))
         if [ "$USAGE" -lt 0 ]; then USAGE=0; fi
-        if [ "$USAGE" -gt 100 ]; then USAGE=100; fi
+        if [ "$USAGE" -gt 99 ]; then USAGE=99; fi
       fi
     fi
     printf "%s\n" "$CUR" > "$PREV"
@@ -72,6 +72,7 @@
     MA=$(${pkgs.gawk}/bin/awk '/^MemAvailable:/ {print $2; exit}' /proc/meminfo)
     MU=$((MT - MA))
     RAM_PCT=$(( 100 * MU / MT ))
+    if [ "$RAM_PCT" -gt 99 ]; then RAM_PCT=99; fi
     RAM_USED=$(${pkgs.gawk}/bin/awk -v k=$MU 'BEGIN{ printf "%.1f", k/1048576 }')
     RAM_TOT=$(${pkgs.gawk}/bin/awk -v k=$MT 'BEGIN{ printf "%.1f", k/1048576 }')
 
@@ -79,8 +80,45 @@
     # layout as the battery widget (hosts/lecoo/home/scripts.nix):
     #    nf-oct-cpu       (U+F4BC) — CPU avg usage
     #    nf-fa-memory     (U+EFC5) — RAM usage
-    TOOLTIP=$(printf '%s%% \uf4bc | %s%% \uefc5' "''${USAGE}" "''${RAM_PCT}")
-    ${pkgs.jq}/bin/jq -cRn --arg t "$TOOLTIP" '{text:"", tooltip:$t}'
+    TOOLTIP=$(printf '\uf4bc %02d%% | \uefc5 %02d%%' "''${USAGE}" "''${RAM_PCT}")
+    TEXT="$TOOLTIP"
+    ${pkgs.jq}/bin/jq -cRn --arg t "$TEXT" --arg tip "$TOOLTIP" '{text:$t, tooltip:$tip}'
+  '';
+
+  # ── Volume status (waybar custom/volume) ───────────────────────────
+  # Pango markup: icon in CommitMono, value in DepartureMono (from `*`).
+  # Capped at 99, zero-padded to 2 digits for stable bar width.
+  volume-status = pkgs.writeShellScriptBin "volume-status" ''
+    VOL=$(${pkgs.pamixer}/bin/pamixer --get-volume 2>/dev/null || echo 0)
+    MUTED=$(${pkgs.pamixer}/bin/pamixer --get-mute 2>/dev/null || echo "false")
+
+    [ "$VOL" -gt 99 ] && VOL=99
+
+    if [ "$MUTED" = "true" ]; then
+      ICON="󰖁"
+    elif [ "$VOL" -gt 50 ]; then
+      ICON="󰕾"
+    elif [ "$VOL" -gt 25 ]; then
+      ICON="󰖀"
+    else
+      ICON="󰕿"
+    fi
+
+    TEXT="<span font_family='CommitMono Nerd Font Propo'>$ICON</span> $(printf '%02d' "$VOL")%"
+    ${pkgs.jq}/bin/jq -cn --arg t "$TEXT" '{text:$t, tooltip:false}'
+  '';
+
+  # ── Brightness status (waybar custom/brightness) ───────────────────
+  # Pango markup: icon in CommitMono, value in DepartureMono (from `*`).
+  # Capped at 99, zero-padded to 2 digits for stable bar width.
+  brightness-status = pkgs.writeShellScriptBin "brightness-status" ''
+    BRIGHT=$(cat /sys/class/backlight/amdgpu_bl1/brightness 2>/dev/null || echo 0)
+    MAX=$(cat /sys/class/backlight/amdgpu_bl1/max_brightness 2>/dev/null || echo 1)
+    PCT=$(( 100 * BRIGHT / MAX ))
+    [ "$PCT" -gt 99 ] && PCT=99
+
+    TEXT="<span font_family='CommitMono Nerd Font Propo' weight='heavy'>󰃟</span> $(printf '%02d' "$PCT")%"
+    ${pkgs.jq}/bin/jq -cn --arg t "$TEXT" '{text:$t, tooltip:false}'
   '';
 
   # ── NixOS update check ─────────────────────────────────────────────
@@ -119,6 +157,8 @@ in {
       notification-status
       update-check
       cpu-mem
+      volume-status
+      brightness-status
       ;
   };
 
@@ -127,5 +167,7 @@ in {
     notification-status
     update-check
     cpu-mem
+    volume-status
+    brightness-status
   ];
 }

@@ -8,6 +8,7 @@
 {
   battery-lecoo,
   lecoo-toggle,
+  power-draw,
   ultra-economy-status,
   ultra-economy-toggle,
   ...
@@ -18,14 +19,14 @@
       exec-on-event = true;
       interval = 5;
       return-type = "json";
-      format = "{icon}";
+      format = "{icon} {text}";
       format-icons = {
         charging = ["󰢜" "󰂆" "󰂇" "󰂈" "󰢝" "󰂉" "󰢞" "󰂊" "󰂋" "󰂅"];
         discharging = ["󰁺" "󰁻" "󰁼" "󰁽" "󰁾" "󰁿" "󰂀" "󰂁" "󰂂" "󰁹"];
         full = ["󰁹"];
       };
       on-click-right = "${lecoo-toggle}/bin/lecoo-toggle";
-      tooltip = true;
+      tooltip = false;
     };
 
     "custom/ultra-economy" = {
@@ -35,6 +36,14 @@
       signal = 8;
       format = "{text}";
       on-click = "${ultra-economy-toggle}/bin/ultra-economy-toggle";
+      tooltip = false;
+    };
+
+    "custom/power-draw" = {
+      exec = "${power-draw}/bin/power-draw";
+      return-type = "json";
+      interval = 2;
+      format = "{text}";
       tooltip = false;
     };
   };

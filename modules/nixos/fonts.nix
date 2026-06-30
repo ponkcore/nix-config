@@ -15,6 +15,8 @@
       noto-fonts-cjk-serif
       nerd-fonts.jetbrains-mono
       nerd-fonts.caskaydia-cove
+      nerd-fonts.commit-mono
+      nerd-fonts.departure-mono
       nerd-fonts.bigblue-terminal
       nerd-fonts.monaspace
       noto-fonts-color-emoji

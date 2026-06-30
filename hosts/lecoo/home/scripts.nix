@@ -281,24 +281,55 @@
     # Check both session state and persistent state — persistent
     # survives reboots, session is cleared on logout.
     if [ "$(cat "$state" 2>/dev/null || true)" = "on" ] || [ -f "$persistent_state" ]; then
-      printf '{"text":"󰗌","class":"on"}\n'
+      printf '{"text":"ECO","class":"on"}\n'
     else
-      printf '{"text":"󰗌","class":"off"}\n'
+      printf '{"text":"ECO","class":"off"}\n'
     fi
+  '';
+
+  # ── Real-time power draw (waybar custom/power-draw) ────────────────
+  # On battery: BAT0/power_now gives total system draw (SoC + NVMe +
+  #   WiFi + display + peripherals) — accurate.
+  # On AC: amdgpu hwmon power1_input (PPT) gives SoC package power —
+  #   doesn't include NVMe/WiFi/display, but best available without
+  #   root. RAPL energy_uj is root-only.
+  # Format: always "XX.XW" (zero-padded, 1 decimal) for stable width.
+  power-draw = pkgs.writeShellScriptBin "power-draw" ''
+    AC=$(cat /sys/class/power_supply/ADP1/online 2>/dev/null || echo 0)
+    ECO=""
+    if [ -f /var/lib/lecoo-eco/state-on ]; then
+      ECO="1"
+    fi
+    if [ "$AC" = "1" ]; then
+      PW=$(cat /sys/class/hwmon/hwmon1/power1_input 2>/dev/null || echo 0)
+    else
+      PW=$(cat /sys/class/power_supply/BAT0/power_now 2>/dev/null || echo 0)
+    fi
+    WATTS=$(${pkgs.gawk}/bin/awk -v u="$PW" 'BEGIN{printf "%04.1f", u/1000000}')
+    if [ -n "$ECO" ]; then
+      CLASS="eco"
+    elif [ "$AC" = "1" ]; then
+      CLASS="ac"
+    else
+      CLASS="battery"
+    fi
+    printf '{"text":"%sW","class":"%s"}\n' "$WATTS" "$CLASS"
   '';
 
   # ── Merged battery + lecoo status (waybar custom/battery exec) ─────
   battery-lecoo = pkgs.writeShellScriptBin "battery-lecoo" ''
     CAP=$(cat /sys/class/power_supply/BAT0/capacity 2>/dev/null || echo "0")
+    [ "$CAP" -gt 99 ] && CAP=99
     STATUS=$(cat /sys/class/power_supply/BAT0/status 2>/dev/null || echo "Unknown")
 
     LECOO_OUTPUT=$(${pkgs.lecoo-ctrl}/bin/lecoo-ctrl charge 2>/dev/null)
     if echo "$LECOO_OUTPUT" | ${pkgs.gnugrep}/bin/grep -q "Full Capacity"; then
-      LECOO_LIMIT="100"
+      LECOO_LIMIT="99"
     else
       LECOO_LIMIT=$(echo "$LECOO_OUTPUT" | ${pkgs.gnugrep}/bin/grep -oP 'Stop charging at:\s*\K\d+' 2>/dev/null)
-      [ -z "$LECOO_LIMIT" ] && LECOO_LIMIT="?"
+      [ -z "$LECOO_LIMIT" ] && LECOO_LIMIT="0"
     fi
+    [ "$LECOO_LIMIT" -gt 99 ] && LECOO_LIMIT=99
 
     case "$STATUS" in
       Charging)    ALT="charging" ;;
@@ -318,9 +349,10 @@
     # Tooltip uses Nerd Font glyphs:
     #   󱊣  nf-md-battery_high (U+F12A3) — current charge level
     #   󱞜  nf-md-battery_lock (U+F179C) — EC-enforced charge ceiling
-    TOOLTIP="$CAP% 󱊣 | $LECOO_LIMIT% 󱞜"
+    TOOLTIP=$(printf '%02d%% | %02d%%' "$CAP" "$LECOO_LIMIT")
+    TEXT="$(printf '%02d' "$CAP")% | $(printf '%02d' "$LECOO_LIMIT")%"
     printf '{"text":"%s","alt":"%s","class":"%s","percentage":%s,"tooltip":"%s"}\n' \
-      "$CAP" "$ALT" "$CLASS" "$CAP" "$TOOLTIP"
+      "$TEXT" "$ALT" "$CLASS" "$CAP" "$TOOLTIP"
   '';
 in {
   _module.args = {
@@ -330,6 +362,7 @@ in {
       ultra-economy-toggle
       ultra-economy-status
       battery-lecoo
+      power-draw
       ;
   };
 
@@ -339,5 +372,6 @@ in {
     ultra-economy-toggle
     ultra-economy-status
     battery-lecoo
+    power-draw
   ];
 }

@@ -197,10 +197,13 @@ in {
       # then falls back to the app-status cache for the "running"
       # class (window open but TUN down). Interval=3 polls the TUN
       # state — interface up/down doesn't emit Hyprland events.
+      # Signal=8 gives instant updates when the Throne window
+      # opens/closes (app-status-daemon sends SIGRTMIN+8).
       format = "<span weight='heavy'>󰦝</span>";
       exec = "${throne-status}/bin/throne-status";
       return-type = "json";
       interval = 3;
+      signal = 8;
       on-click = "${throne-toggle}/bin/throne-toggle";
       tooltip = false;
     };
@@ -219,14 +222,13 @@ in {
       on-click = "${network-toggle}/bin/network-toggle";
     };
 
-    # Hyprland-aware override of the universal `pulseaudio#output`
-    # slot: keep formatting / icons / scroll behaviour from
-    # theme/waybar/default.nix and attach a hide/show on-click that
-    # toggles pwvucontrol via Hyprland special-workspace IPC.
-    # Right-click stays as `pamixer -t` (mute) from the universal
-    # config.
-    "pulseaudio#output" = {
-      on-click = "${pwvucontrol-toggle}/bin/pwvucontrol-toggle";
+    # Hyprland-aware override of the universal `custom/volume`
+    # slot: attach a hide/show on-click that toggles pwvucontrol via
+    # Hyprland special-workspace IPC. Mute (on-click in the universal
+    # config) is moved to on-click-right here.
+    "custom/volume" = {
+      on-click = lib.mkForce "${pwvucontrol-toggle}/bin/pwvucontrol-toggle";
+      on-click-right = lib.mkForce "pamixer -t";
     };
 
     # Hyprland-aware override of the universal `custom/cpu` slot:

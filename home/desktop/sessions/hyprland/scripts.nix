@@ -141,7 +141,20 @@
     # state UNKNOWN (no link layer), so we check for the interface's
     # existence + UP flag in the angle-bracket flags, not "state UP".
     if $IP link show throne-tun 2>/dev/null | $GREP -q '<.*UP.*>'; then
-      echo '{"text":"","class":"vpn-active"}'
+      # Power-state-aware class so CSS can render different visuals:
+      #   eco / battery → static yellow (subtle, power-conscious)
+      #   AC            → animated gradient shimmer (yellow ↔ magenta)
+      eco_on=""
+      if [ -f /var/lib/lecoo-eco/state-on ]; then
+        eco_on="1"
+      fi
+      ac_on=$(cat /sys/class/power_supply/ADP1/online 2>/dev/null || echo 0)
+
+      if [ -n "$eco_on" ] || [ "$ac_on" != "1" ]; then
+        echo '{"text":"","class":"vpn-active-battery"}'
+      else
+        echo '{"text":"","class":"vpn-active-ac"}'
+      fi
       exit 0
     fi
 
