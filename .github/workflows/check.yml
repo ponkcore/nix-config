@@ -77,18 +77,21 @@ jobs:
       - name: nil diagnostics
         run: |
           nix shell nixpkgs#nil -c sh -eu -c '
-            out="$(
-              git ls-files "*.nix" \
-                ":(exclude)hosts/lecoo/hardware-configuration.nix" \
-                ":(exclude)pkgs/letta-code/bun.nix" \
-                | while IFS= read -r file; do
-                    nil diagnostics "$file"
-                  done
-            )"
-            if [ -n "$out" ]; then
-              printf "%s\n" "$out"
-              exit 1
-            fi
+            fail=0
+            git ls-files "*.nix" \
+              ":(exclude)hosts/lecoo/hardware-configuration.nix" \
+              ":(exclude)pkgs/letta-code/bun.nix" \
+              | while IFS= read -r file; do
+                  out="$(nil diagnostics "$file" 2>&1)"
+                  rc=$?
+                  if [ -n "$out" ]; then
+                    printf "%s\n" "$out"
+                  fi
+                  if [ "$rc" -ne 0 ]; then
+                    fail=1
+                  fi
+                done
+            exit "$fail"
           '
 
   secrets-scan:
