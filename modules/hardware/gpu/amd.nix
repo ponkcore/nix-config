@@ -12,7 +12,12 @@
 #         microcontroller — the same firmware that crashes. Triggers:
 #         AC unplug (DPM/ABM power-state shift) and content-change
 #         (video stop → ABM backlight readjustment). Reverted to 0.
-#         Source: journalctl --boot=-1/-3 2026-06-30 DMCUB error logs
+#         Source: researches/2026-06-30-amdgpu-dmcub-crash-deep-research.result.md
+#       · PSR + Panel Replay — DISABLED (dcdebugmask 0x10 + 0x400).
+#         Both are DMCUB-managed features that can trigger firmware
+#         crashes under concurrent load. PSR was already not engaging
+#         (Hyprland 120Hz), so 0x10 is harmless. Red Hat BZ #2359116
+#         confirms PSR-off eliminates DMCUB crashes.
 #       · ppfeaturemask=0xfff7ffff — unmasks GPU OD / power-profile control
 #         (matches upstream amd-power-profiles defaults; safe on Phoenix2).
 #       · sg_display=0 — disables scatter-gather display path; works around
@@ -45,17 +50,21 @@
       # no-op. Reverted to default to avoid a misleading config entry.
       # Source: research 2026-06-27-nixos-followup-research §1.2
       "amdgpu.sg_display=0"
-      # Disable Panel Replay (0x400) + skip detection link training
-      # on DPMS-on (0x200000). PSR v1 stays alive (0x10 NOT set) —
-      # keeps the eDP link alive during blanking. DC_SKIP_DETECTION_LT
-      # (0x200000) was added in kernel 6.16; requires linuxPackages_6_18
-      # (set in hosts/lecoo/default.nix). Combined: zero DPMS-on
-      # latency — link stays alive (PSR v1) + detection LT skipped.
-      # dcdebugmask defaults to 0 in kernel 6.18 — both bits still
-      # necessary, cannot simplify to 0x400.
+      # Disable Panel Replay (0x400) + PSR (0x10) + skip detection
+      # link training on DPMS-on (0x200000). PSR v1 and Panel Replay
+      # are both DMCUB-managed features — disabling them removes two
+      # DMCUB command pathways that can trigger firmware crashes under
+      # concurrent load (ABM + PSR + DPM transitions). Red Hat BZ
+      # #2359116 confirms: "if we turn off PSR, it totally goes away."
+      # PSR was already not engaging on this system (Hyprland 120Hz
+      # page flips prevent the 500ms quiet period), so 0x10 is a
+      # harmless belt-and-suspenders mitigation.
+      # DC_SKIP_DETECTION_LT (0x200000) was added in kernel 6.16.
+      # Combined: 0x200410 = PSR off + Panel Replay off + skip LT.
+      # Source: research 2026-06-30-amdgpu-dmcub-crash-deep-research §3,§7
       # Source: research 2026-06-26-system-pain-points-deep-research §2.3-2.4
       # Source: research 2026-06-27-nixos-followup-research §1.3
-      "amdgpu.dcdebugmask=0x200400"
+      "amdgpu.dcdebugmask=0x200410"
     ];
   };
 
