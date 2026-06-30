@@ -154,18 +154,6 @@
     # silenced legitimate deadlock diagnostics. Set explicitly to override
     # any leftover runtime value from older generations.
     "kernel.watchdog" = 1;
-    # Panic + auto-reboot on soft lockup and kernel panic. The SP5100
-    # TCO hardware watchdog (RuntimeWatchdogSec=30s in systemd.nix) is
-    # the primary recovery mechanism for total system freezes (e.g.,
-    # amdgpu DMCUB crash → hard lockup). These sysctls are a secondary
-    # layer: if the kernel detects a soft lockup and panics, the system
-    # reboots after 10s instead of hanging at the panic screen.
-    # hardlockup_panic=1 is set for documentation but has no effect
-    # while nmi_watchdog=0 (NMI watchdog is the hardlockup detector).
-    # Source: researches/2026-06-30-amdgpu-dmcub-crash-deep-research.result.md §1,§7
-    "kernel.softlockup_panic" = 1;
-    "kernel.hardlockup_panic" = 1;
-    "kernel.panic" = 10; # auto-reboot 10s after panic
     # Block kexec_load: stop a privileged process (post-CAP_SYS_BOOT) from
     # booting an unsigned kernel. Defence-in-depth on a secure-boot-less laptop.
     "kernel.kexec_load_disabled" = 1;

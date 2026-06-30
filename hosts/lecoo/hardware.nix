@@ -34,15 +34,8 @@
     "8250.nr_uarts=0"
   ];
 
-  # sp5100_tco — AMD southbridge hardware watchdog timer.
-  # Previously blacklisted for "shutdown warnings" but now re-enabled
-  # as the primary DMCUB crash recovery mechanism. When systemd pings
-  # /dev/watchdog every 15s (RuntimeWatchdogSec=30s), a total system
-  # freeze (e.g., amdgpu DMCUB firmware crash → flip_done timeout →
-  # hard lockup) stops the pings, and the hardware watchdog triggers
-  # an automatic system reset after 30s — no manual reboot required.
-  # The "shutdown warnings" were cosmetic (spurious events during
-  # normal shutdown when systemd closes the watchdog device); they
-  # do not affect runtime operation.
-  boot.kernelModules = ["sp5100_tco"];
+  # sp5100_tco — AMD southbridge watchdog, causes "shutdown" warnings
+  # on this platform and provides no value (power-profiles-daemon +
+  # lecoo-ec-daemon handle thermal/power policy already).
+  boot.blacklistedKernelModules = ["sp5100_tco"];
 }

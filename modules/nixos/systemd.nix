@@ -8,17 +8,9 @@ _: {
   systemd.settings.Manager = {
     DefaultTimeoutStopSec = "30s";
     DefaultDeviceTimeoutSec = "10s";
-    # Hardware watchdog — pings /dev/watchdog (sp5100_tco on AMD
-    # southbridge) every 15s. If the system freezes (e.g., amdgpu
-    # DMCUB firmware crash → flip_done timeout → hard lockup),
-    # pings stop and the hardware watchdog triggers a system reset
-    # after 30s. This is the only reliable recovery mechanism for
-    # DMCUB crashes: gpu_recovery=1 does not cover display firmware
-    # hangs, and no kernel-level DMCUB reset path exists.
-    # Source: researches/2026-06-30-amdgpu-dmcub-crash-deep-research.result.md §2,§7
-    RuntimeWatchdogSec = "30s";
-    RebootWatchdogSec = "5min";
-    WatchdogDevice = "/dev/watchdog";
+    RuntimeWatchdogSec = 0;
+    RebootWatchdogSec = 0;
+    WatchdogDevice = "/dev/null";
   };
 
   # ── User manager timeouts ──
