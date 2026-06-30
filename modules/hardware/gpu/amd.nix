@@ -5,10 +5,14 @@
 #   - Mesa drivers with 32-bit support for Steam / Wine
 #   - VA-API (libva) and VDPAU→VA-API bridge for hardware video decode
 #   - Power & display feature masks tuned for Phoenix/Strix-class APUs:
-#       · ABM (Adaptive Backlight Management) level 1 — DMCU firmware
-#         optimises backlight power electronics at low brightness.
-#         Est. saving 0.1–0.3 W at min brightness.
-#         Source: research 2026-06-29-battery-autonomy-9h §4a
+#       · ABM (Adaptive Backlight Management) — DISABLED (level 0).
+#         Was enabled at level 1 on 2026-06-29 for ~0.2 W saving, but
+#         correlated with recurring DMCUB firmware crashes (2 system
+#         freezes on 2026-06-30). ABM is handled by the DMCUB
+#         microcontroller — the same firmware that crashes. Triggers:
+#         AC unplug (DPM/ABM power-state shift) and content-change
+#         (video stop → ABM backlight readjustment). Reverted to 0.
+#         Source: journalctl --boot=-1/-3 2026-06-30 DMCUB error logs
 #       · ppfeaturemask=0xfff7ffff — unmasks GPU OD / power-profile control
 #         (matches upstream amd-power-profiles defaults; safe on Phoenix2).
 #       · sg_display=0 — disables scatter-gather display path; works around
@@ -24,7 +28,16 @@
     kernelModules = ["amdgpu"];
 
     kernelParams = [
-      "amdgpu.abmlevel=1"
+      # ABM disabled — see header comment above. DMCUB firmware crashes
+      # correlated with ABM level 1 (2 system freezes on 2026-06-30).
+      "amdgpu.abmlevel=0"
+      # gpu_recovery=1 — auto-reset GPU on compute/graphics ring buffer
+      # hang. NOTE: does NOT prevent DMCUB (display firmware) crashes —
+      # DMCUB is a separate microcontroller; gpu_reset() only covers
+      # GFX/compute pipeline hangs. Two DMCUB freezes occurred on
+      # 2026-06-30 despite this parameter being set. Kept for non-DMCUB
+      # GPU hangs, but not a defence against display firmware crashes.
+      "amdgpu.gpu_recovery=1"
       # ppfeaturemask: kernel default 0xfff7bfff is correct for this
       # APU. The previous value 0xfff7ffff enabled PP_OVERDRIVE_MASK
       # (bit 14, OD clock/voltage tables), but the Radeon 780M
