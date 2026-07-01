@@ -68,6 +68,7 @@ in {
       ./media.nix
       ./ayugram.nix
       ./spotify.nix
+      ./vesktop.nix
       ./orbit.nix
       ./throne.nix
       # Desktop dispatcher — pulls in compositor-agnostic theme plus the

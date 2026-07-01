@@ -117,6 +117,8 @@ in {
 
   wayland.windowManager.hyprland = {
     enable = true;
+    package = null;
+    portalPackage = null;
     xwayland.enable = true;
     # Explicitly keep hyprlang config generation. HM 26.05 defaults to
     # "lua" at stateVersion >= 26.05, but our stateVersion is 25.11.
@@ -497,6 +499,14 @@ in {
           class = "com.ayugram.desktop";
           category = popup.chat;
         })
+        ++ [
+          # AyuGram media viewer is a native Wayland fullscreen Qt
+          # window. With fullscreen-only VRR (`misc:vrr = 2`), mouse
+          # movement in this viewer can degrade into frame-by-frame
+          # cursor motion after a short delay. Keep VRR for games/video,
+          # but disable it for this specific photo viewer.
+          "no_vrr on, match:class com.ayugram.desktop, match:title Media viewer"
+        ]
         # Throne (Xray/sing-box GUI) — popup.app sizing matches the
         # spotify / pwvucontrol slot family (70%×80%). The class is
         # bare `Throne` (capital T), verified at runtime against

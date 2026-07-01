@@ -33,6 +33,18 @@
 }: let
   iniFormat = pkgs.formats.ini {};
 
+  keepassxcWrapped = pkgs.symlinkJoin {
+    name = "keepassxc-wrapped";
+    paths = [pkgs.keepassxc];
+    nativeBuildInputs = [pkgs.makeWrapper];
+    postBuild = ''
+      rm $out/bin/keepassxc
+      makeWrapper ${pkgs.keepassxc}/bin/keepassxc $out/bin/keepassxc \
+        --set-default QT_STYLE_OVERRIDE kvantum \
+        --unset QT_QPA_PLATFORMTHEME
+    '';
+  };
+
   seedFile = iniFormat.generate "keepassxc.ini" {
     General = {
       # Lock workspace after 5 minutes of inactivity.
@@ -57,6 +69,7 @@
       UpdateBinaryPath = false;
     };
     GUI = {
+      ApplicationTheme = "dark";
       MinimizeToTray = true;
       ShowTrayIcon = true;
       TrayIconAppearance = "monochrome-dark";
@@ -64,7 +77,17 @@
     };
   };
 in {
-  home.packages = [pkgs.keepassxc];
+  home.packages = [
+    # ── KeePassXC wrapper: neutralise Qt6 platform theme for Qt5 app ─
+    # KeePassXC is Qt5. The global session sets QT_QPA_PLATFORMTHEME=qt6ct
+    # (to serve Qt6 apps like Throne). Qt5 cannot load the qt6ct plugin,
+    # which makes the platformtheme fall back on Qt5 defaults (Fusion)
+    # most of the time — but single-instance D-Bus restore / startup timing
+    # makes Kvantum styling flaky. This per-app wrapper keeps the
+    # well-tested Hyprland launch env intact for everything else while
+    # giving KeePassXC a predictable Qt5 environment every time.
+    keepassxcWrapped
+  ];
 
   # Pre-create the secrets directory so Syncthing has something to mount
   # into on first activation. 700 — owner-only — defends the .kdbx.
@@ -80,6 +103,24 @@ in {
     ini="$HOME/.config/keepassxc/keepassxc.ini"
     if [ ! -e "$ini" ]; then
       install -D -m600 ${seedFile} "$ini"
+    fi
+
+    # Keep the already-mutable live config deterministic for the one UI
+    # value that caused regressions: KeePassXC defaults GUI/ApplicationTheme
+    # to "auto", which can resolve to light depending on portal/system theme
+    # state at startup. Preserve all other runtime state; do not rewrite the
+    # whole ini because it may contain KeeShare key material.
+    if [ -e "$ini" ] && ! ${pkgs.gnugrep}/bin/grep -q '^ApplicationTheme=dark$' "$ini"; then
+      ${pkgs.gawk}/bin/awk '
+        BEGIN { in_gui = 0; done = 0 }
+        /^\[GUI\]$/ { print; in_gui = 1; next }
+        /^\[/ && in_gui && !done { print "ApplicationTheme=dark"; done = 1; in_gui = 0 }
+        in_gui && /^ApplicationTheme=/ { if (!done) { print "ApplicationTheme=dark"; done = 1 }; next }
+        { print }
+        END { if (in_gui && !done) print "ApplicationTheme=dark" }
+      ' "$ini" > "$ini.tmp"
+      install -m600 "$ini.tmp" "$ini"
+      rm -f "$ini.tmp"
     fi
   '';
 }

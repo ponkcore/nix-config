@@ -269,6 +269,12 @@
     exec ${pkgs.nautilus}/bin/nautilus --new-window
   '';
 
+  keepassxc-launch = pkgs.writeShellScript "keepassxc-launch" ''
+    export QT_STYLE_OVERRIDE=kvantum
+    unset QT_QPA_PLATFORMTHEME
+    exec ${pkgs.keepassxc}/bin/keepassxc "$@"
+  '';
+
   # ── KeePassXC toggle ────────────────────────────────────────────────
   # Same special-workspace pattern as throne-toggle / spotify-toggle.
   # KeePassXC's window class on Wayland is `org.keepassxc.KeePassXC`
@@ -284,7 +290,7 @@
 
     win=$($HYPRCTL clients -j 2>/dev/null | $JQ -r '.[] | select(.class == "org.keepassxc.KeePassXC") | "\(.address) \(.workspace.name)"' 2>/dev/null | head -1)
 
-    KEEPASSXC="${pkgs.keepassxc}/bin/keepassxc"
+    KEEPASSXC="${keepassxc-launch}"
 
     if [ -z "$win" ]; then
       $KEEPASSXC &
