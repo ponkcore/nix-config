@@ -289,12 +289,27 @@
           # (CSS prefers-color-scheme), NOT the browser chrome. Without
           # this override, the system's Gruvbox-Dark theme leaks into
           # CloakBrowser's UI even for light profiles.
+          #
+          # PORTAL LEAK FIX: xdg-desktop-portal-gtk reports
+          # org.freedesktop.appearance.color-scheme=1 (prefer-dark) to
+          # all apps, derived from gtk-theme-name=Gruvbox-Dark in
+          # settings.ini. GTK_THEME env var does NOT affect the portal
+          # (separate process). Chromium 146 reads the portal and
+          # overrides --blink-settings for prefers-color-scheme.
+          #
+          # Fix: set DBUS_SESSION_BUS_ADDRESS to a non-existent path so
+          # Chromium cannot connect to the session bus and read the
+          # portal. Proxy and DNS are configured via CLI flags (no
+          # D-Bus needed). File dialogs fall back to Chromium's
+          # built-in picker. This is per-process — does NOT affect
+          # other apps or the system.
           case "$colorScheme" in
             dark|Dark)
               export GTK_THEME="Adwaita-dark"
               ;;
             *)
               export GTK_THEME="Adwaita:light"
+              export DBUS_SESSION_BUS_ADDRESS="unix:path=/dev/null/cloakbrowser-no-dbus"
               ;;
           esac
 
