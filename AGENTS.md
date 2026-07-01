@@ -31,7 +31,7 @@ flake.nix                    Inputs, outputs, host registrations
 flake.lock                   Pinned input revisions (always commit)
 lib/
   mkHost.nix                 Helper: builds a nixosSystem from a host spec
-  palette.nix                Gruvbox-warm color tokens (used by theme/)
+  palette.nix                Gruvbox dark medium color tokens (used by theme/)
 hosts/
   lecoo/                     Lenovo Lecoo Pro 14 2025
     default.nix              Composition (which profiles to import)

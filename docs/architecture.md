@@ -223,7 +223,7 @@ greetd → sway (Wayland kiosk) → nwg-hello (GTK3 greeter)
      (laptop hosts only)
 ```
 
-Palette: `lib/palette.nix` — 25 Gruvbox-warm tokens. Distributed to
+Palette: `lib/palette.nix` — 25 Gruvbox dark medium tokens. Distributed to
 theme modules via `_module.args.p`, to a few HM modules by direct
 import (`fzf.nix`, `wlogout.nix`, `yazi.nix`, `fish.nix`,
 `modules/nixos/desktop/greeter/greetd.nix`).

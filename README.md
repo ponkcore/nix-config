@@ -5,7 +5,7 @@
 > services, and secrets.
 
 ```
-NixOS 26.05   ·   Hyprland   ·   Gruvbox-warm palette   ·   home-manager   ·   agenix
+NixOS 26.05   ·   Hyprland   ·   Gruvbox dark medium palette   ·   home-manager   ·   agenix
 ```
 
 ## What this is
@@ -69,7 +69,7 @@ hardware profiles to import, run `nixos-install`. That's it.
 | Wallpaper | hyprpaper |
 | Terminal | Ghostty |
 | Shell | fish + starship |
-| Editor | Neovim 0.11 (nixpkgs-pinned plugins, native LSP) |
+| Editor | Neovim 0.12 (nixpkgs-pinned plugins, native LSP) |
 | File manager | Nautilus (GUI) + yazi (TUI) |
 | Browser | Firefox (Arkenfox + NUR addons) |
 | Anti-detect browser | CloakBrowser (stealth Chromium, C++ patches) |
@@ -91,7 +91,7 @@ flake.nix                Inputs + nixosConfigurations
 flake.lock               Pinned input revisions
 lib/
   mkHost.nix             Helper: builds a nixosSystem from a host spec
-  palette.nix            Gruvbox-warm color tokens
+  palette.nix            Gruvbox dark medium color tokens
 hosts/
   lecoo/                 Lenovo Lecoo Pro 14 2025
 modules/

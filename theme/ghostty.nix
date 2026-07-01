@@ -1,5 +1,5 @@
 # ghostty.nix — terminal emulator (libghostty, native Wayland).
-# Palette via _module.args.p — gruvbox-warm 16-color terminal mapping.
+# Palette via _module.args.p — Gruvbox dark medium 16-color terminal mapping.
 # `xdg-terminal-exec` package is added here so Terminal=true desktop
 # entries (nvim.desktop etc.) launch correctly.
 {

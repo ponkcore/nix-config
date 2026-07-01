@@ -173,7 +173,7 @@ _: {
     };
   };
 
-  # Prompt: starship — gruvbox-warm palette, informative but compact
+  # Prompt: starship — Gruvbox dark medium palette, informative but compact
   programs.starship = {
     enable = true;
     settings = {

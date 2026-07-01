@@ -15,7 +15,7 @@
 # Imported from home/desktop/default.nix when desktops is non-empty.
 # Headless/server hosts never see this file.
 {pkgs, ...}: let
-  # Palette derived from Gruvbox warm tones: amber, parchment, burnt umber.
+  # Palette derived from Gruvbox dark medium tones: amber, parchment, burnt umber.
   p = import ../lib/palette.nix;
 
   # Color helpers — convert palette tokens into the surface formats

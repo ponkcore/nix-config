@@ -14,7 +14,7 @@
 # Theme + position config — declarative under XDG_CONFIG_HOME so the
 # daemon picks it up at startup and `orbit reload-theme` /
 # `orbit reload-config` keep working live. Colors come from the
-# Gruvbox-warm palette (lib/palette.nix); the only Orbit-specific
+# Gruvbox dark medium palette (lib/palette.nix); the only Orbit-specific
 # tunables are window position (top-right under the Waybar) and
 # window opacity.
 {
@@ -87,7 +87,7 @@
   '';
 
   # ── Theme tokens ────────────────────────────────────────────────────
-  # Mirrors the Gruvbox-warm palette used everywhere else in the
+  # Mirrors the Gruvbox dark medium palette used everywhere else in the
   # config. accent_primary is the "highlighted action" colour — we
   # use accent_warm (the same warm beige Waybar uses as @accent) so
   # Orbit's selection rectangles do not clash with the bar's tone.

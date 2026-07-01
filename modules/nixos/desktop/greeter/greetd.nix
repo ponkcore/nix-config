@@ -202,7 +202,7 @@
     }
   );
 
-  # ── nwg-hello CSS — gruvbox-warm theme ───────────────────────────
+  # ── nwg-hello CSS — Gruvbox dark medium theme ───────────────────────────
   # Selectors come from the nwg-hello default stylesheet:
   #   window, #form-wrapper, entry, button, #power-button,
   #   #welcome-label, #clock-label, #date-label,
