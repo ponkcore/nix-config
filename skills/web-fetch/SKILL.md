@@ -11,8 +11,8 @@ dependency-free (python3 stdlib only) replacement that **enforces talos's §7
 guardrails** in code — not just by convention.
 
 ## When to use
-Last resort, only with a concrete URL, after `nixos-options` / `nix-lang` /
-`context7-docs` cannot answer. Priority: builtin → nixos-options → nix-lang →
+Last resort, only with a concrete URL, after `nixos-options` /
+`context7-docs` cannot answer. Priority: builtin → nixos-options →
 context7-docs → **web-fetch** → delegate/ask.
 
 ## How to call

@@ -153,7 +153,6 @@ headless / VM hosts.
 | `agenix` | encrypted secrets | follows nixpkgs + home-manager |
 | `llm-agents` | opencode binary | does NOT follow — see decisions/0003 |
 | `letta-code` | memory-first coding agent (talos runtime) | follows |
-| `mcp-nix` | NixOS/Home Manager/Nix stdlib MCP server | pins own nixpkgs |
 
 ## Build flow
 
@@ -174,7 +173,7 @@ flake.nix
 
 `pkgs/default.nix` returns a list of overlays:
 - local packages (`cloakbrowser`, `orbit`, `oh-my-pi`, `oh-my-openagent`,
-  `letta-code`, `mcp-bridge`, `mcp-nix`, `context7-mcp`, `fetch-py`)
+  `letta-code`, `mcp-bridge`, `context7-mcp`, `fetch-py`)
 - NUR
 
 ## Secrets pipeline

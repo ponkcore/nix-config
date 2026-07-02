@@ -39,11 +39,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # mcp-nix — felixdorn/mcp-nix: NixOS/Home Manager/Nix stdlib MCP
-    # server. Uses uv2nix + pyixx (Rust); pins its own nixpkgs because
-    # the Python 3.13 + fastmcp derivation chain is not on 26.05.
-    mcp-nix.url = "github:felixdorn/mcp-nix";
-
     # 26.05 migration: Hyprland flake input removed — 26.05 ships
     # hyprland 0.55.4 + all ecosystem packages natively.
   };

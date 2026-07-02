@@ -18,7 +18,7 @@ no key ever appears on the command line.
 ## When to use
 Before writing or debugging code against an external library/framework where
 exact, current API details matter (function signatures, config keys, examples).
-Priority: builtin → nixos-options → nix-lang → **context7-docs** → web-fetch.
+Priority: builtin → nixos-options → **context7-docs** → web-fetch.
 For Nix/NixOS facts use the nix skills first; context7 is for general
 programming libraries.
 

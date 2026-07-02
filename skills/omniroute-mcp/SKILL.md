@@ -1,6 +1,6 @@
 ---
 name: omniroute-mcp
-description: Access the VPS MCP proxy via mcp-bridge over remote HTTP/SSE. Filtered to web_search + web_fetch only. Use when web search or page fetch is needed and nixos-options/nix-lang/context7-docs/web-fetch cannot answer.
+description: Access the VPS MCP proxy via mcp-bridge over remote HTTP/SSE. Filtered to web_search + web_fetch only. Use when web search or page fetch is needed and nixos-options/context7-docs/web-fetch cannot answer.
 ---
 
 # omniroute-mcp
@@ -97,7 +97,7 @@ routing, combo, quota, admin, and diagnostic tools.
 ## Priority
 
 This skill is the last resort in the tool chain:
-builtin → nixos-options → nix-lang → context7-docs → web-fetch
+builtin → nixos-options → context7-docs → web-fetch
 (local `fetch.py`) → **omniroute-mcp** (remote search/fetch) →
 delegate/ask.
 

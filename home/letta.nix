@@ -24,7 +24,6 @@ in {
   home.packages = with pkgs; [
     mcp-bridge
     mcp-nixos
-    mcp-nix
     context7-mcp
     fetch-py
     uv
@@ -33,9 +32,6 @@ in {
   home.file = {
     ".letta/skills/nixos-options/SKILL.md" = {
       source = ../skills/nixos-options/SKILL.md;
-    };
-    ".letta/skills/nix-lang/SKILL.md" = {
-      source = ../skills/nix-lang/SKILL.md;
     };
     ".letta/skills/context7-docs/SKILL.md" = {
       source = ../skills/context7-docs/SKILL.md;
