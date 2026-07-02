@@ -23,6 +23,10 @@ _: {
     # Source: journalctl boot -7 analysis 2026-06-27 (8 deauth events
     # in 15h session, correlated with idle/DPMS periods).
     wifi.powersave = false;
+    # Prevent NM from managing libvirt's NAT bridge — virbr0 is owned
+    # by libvirtd (dnsmasq + iptables NAT). If NM touches it, network
+    # conflicts and broken VM connectivity result.
+    unmanaged = ["virbr0"];
   };
 
   # 26.05: networking.wireless.enable = false removed — the 26.05 NM

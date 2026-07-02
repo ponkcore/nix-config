@@ -66,7 +66,14 @@
     # transparent proxying. Without this, nixos-fw-log-refuse rejects
     # return traffic from TUN, breaking all connectivity when TUN mode
     # is active.
-    trustedInterfaces = ["throne-tun"];
+    # Trust Throne's TUN interface — sing-box creates throne-tun for
+    # transparent proxying. Without this, nixos-fw-log-refuse rejects
+    # return traffic from TUN, breaking all connectivity when TUN mode
+    # is active.
+    # Trust libvirt's NAT bridge — VMs on virbr0 (192.168.122.0/24)
+    # need unfiltered access to the host for NAT/ DHCP/ guest-to-host
+    # communication. Without this, VM networking is broken.
+    trustedInterfaces = ["throne-tun" "virbr0"];
     # Log packets that would be refused but rate-limit to keep journal sane.
     # Useful for forensic review after a public-network session; the
     # 5/min rate cap prevents log-flood DoS.
