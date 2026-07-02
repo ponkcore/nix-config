@@ -20,6 +20,21 @@
   # skips runtime Npm.add()/Bun install.
   ohMyOpenagentPlugin = "file://${pkgs.oh-my-openagent}/lib/node_modules/oh-my-openagent";
 
+  # omo-codegraph — NixOS-compatible launcher for the codegraph MCP
+  # that oh-my-openagent provisions in ~/.omo/codegraph/.
+  #
+  # omo downloads a standalone Node binary for generic Linux that NixOS
+  # cannot run (dynamically linked, no ld-linux). This wrapper uses the
+  # NixOS Node from nix-store instead. The OMO_CODEGRAPH_BIN env var
+  # (set below) tells omo to use this wrapper as the codegraph command,
+  # bypassing the broken provisioned binary entirely.
+  #
+  # --liftoff-only avoids V8 turboshaft WASM Zone OOM (codegraph #293).
+  omoCodegraph = pkgs.writeShellScriptBin "omo-codegraph" ''
+    exec ${pkgs.nodejs_22}/bin/node --liftoff-only \
+      "$HOME/.omo/codegraph/lib/dist/bin/codegraph.js" "$@"
+  '';
+
   # Shared Fireworks model catalogue.
   # IDs use direct Fireworks format: accounts/fireworks/models/<name>.
   # omniroute proxy prepends "fireworks/" routing prefix via fireworksModels.
@@ -312,7 +327,12 @@ in {
   # opencode binary from llm-agents flake
   home.packages = [
     inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system}.opencode
+    omoCodegraph
   ];
+
+  # Tell omo to use our NixOS-compatible wrapper instead of the broken
+  # provisioned binary in ~/.omo/codegraph/bin/codegraph.
+  home.sessionVariables.OMO_CODEGRAPH_BIN = "${omoCodegraph}/bin/omo-codegraph";
 
   # opencode declarative state — Home Manager symlinks into
   # ~/.config/opencode/ from /nix/store. Three families:
@@ -382,10 +402,13 @@ in {
           default_strategy = "reset";
         };
         # Disable omo built-in MCP servers that duplicate our own:
-        #   context7  — we have our own context7 with API key
         #   websearch — duplicates omniroute web_search
         #   grep_app  — not needed
-        disabled_mcps = ["context7" "websearch" "grep_app"];
+        # context7 is NOT disabled: the remote context7 from
+        # opencode.json overrides omo's built-in context7 in the MCP
+        # merge (userMcp spreads last), so there is no duplication.
+        # Disabling it via disabled_mcps kills BOTH (delete merged[name]).
+        disabled_mcps = ["websearch" "grep_app"];
         experimental = {
           dynamic_context_pruning = {
             enabled = false;
