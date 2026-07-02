@@ -297,23 +297,52 @@
           # (separate process). Chromium 146 reads the portal and
           # overrides --blink-settings for prefers-color-scheme.
           #
-          # Fix: set DBUS_SESSION_BUS_ADDRESS to a non-existent path so
-          # Chromium cannot connect to the session bus and read the
-          # portal. Proxy and DNS are configured via CLI flags (no
-          # D-Bus needed). File dialogs fall back to Chromium's
-          # built-in picker. This is per-process — does NOT affect
-          # other apps or the system.
+          # Fix: xdg-dbus-proxy filters the session bus — allows
+          # org.freedesktop.portal.FileChooser (file dialogs) but
+          # blocks org.freedesktop.portal.Settings (color-scheme
+          # leak). Previous approach (DBUS_SESSION_BUS_ADDRESS to
+          # /dev/null) blocked ALL D-Bus — file upload broke.
+          # Proxy and DNS use CLI flags — no D-Bus needed beyond
+          # FileChooser. Per-process, does NOT affect other apps.
           case "$colorScheme" in
             dark|Dark)
               export GTK_THEME="Adwaita-dark"
+              exec "$BROWSER" "$@"
               ;;
             *)
               export GTK_THEME="Adwaita:light"
-              export DBUS_SESSION_BUS_ADDRESS="unix:path=/dev/null/cloakbrowser-no-dbus"
+              # D-Bus filtering proxy: allows FileChooser (file upload
+              # dialogs) but blocks Settings (which leaks color-scheme=dark
+              # from xdg-desktop-portal-gtk reading Gruvbox-Dark from
+              # settings.ini). Previous approach (DBUS_SESSION_BUS_ADDRESS
+              # to /dev/null) blocked ALL D-Bus — file dialogs broke.
+              PROXY_SOCKET="''${XDG_RUNTIME_DIR}/cloakbrowser-dbus-$$.sock"
+              ${pkgs.xdg-dbus-proxy}/bin/xdg-dbus-proxy \
+                "unix:path=''${XDG_RUNTIME_DIR}/bus" \
+                "$PROXY_SOCKET" \
+                --filter \
+                --see=org.freedesktop.portal.Desktop \
+                --call=org.freedesktop.portal.Desktop=org.freedesktop.portal.FileChooser.* \
+                --call=org.freedesktop.portal.Desktop=org.freedesktop.portal.Request.* \
+                --broadcast=org.freedesktop.portal.Desktop=org.freedesktop.portal.Request.* \
+                &
+              PROXY_PID=$!
+              i=0
+              while [ $i -lt 20 ]; do
+                [ -S "$PROXY_SOCKET" ] && break
+                ${pkgs.coreutils}/bin/sleep 0.05
+                i=$((i + 1))
+              done
+              if [ ! -S "$PROXY_SOCKET" ]; then
+                printf 'WARNING: dbus-proxy failed — no file dialogs\n' >&2
+                export DBUS_SESSION_BUS_ADDRESS="unix:path=/dev/null/cloakbrowser-no-dbus"
+              else
+                export DBUS_SESSION_BUS_ADDRESS="unix:path=$PROXY_SOCKET"
+              fi
+              trap 'kill "$PROXY_PID" 2>/dev/null || true; rm -f "$PROXY_SOCKET" 2>/dev/null || true' EXIT
+              "$BROWSER" "$@"
               ;;
           esac
-
-          exec "$BROWSER" "$@"
         }
 
         cmd_validate() {
