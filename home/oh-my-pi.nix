@@ -11,6 +11,8 @@
 }: {
   home.packages = [
     pkgs.oh-my-pi
+    pkgs.repomix
+    pkgs.github-mcp-server
   ];
 
   # --- Provider + model catalogue ---------------------------------------
@@ -93,6 +95,19 @@
           "X-Context7-API-Key" = "\${CONTEXT7_API_KEY}";
         };
       };
+      repomix = {
+        type = "stdio";
+        command = "${pkgs.repomix}/bin/repomix";
+        args = ["--mcp"];
+      };
+      github = {
+        type = "stdio";
+        command = "${pkgs.github-mcp-server}/bin/github-mcp-server";
+        args = ["stdio" "--toolsets=default,code_security,secret_protection"];
+        env = {
+          GITHUB_PERSONAL_ACCESS_TOKEN = "\${GITHUB_TOKEN}";
+        };
+      };
     };
     disabledServers = [];
   };
@@ -131,10 +146,16 @@
     fi
     mkdir -p "$HOME/.omp/agent"
     umask 077
+    GH_TOKEN="$(${pkgs.gh}/bin/gh auth token 2>/dev/null || true)"
+    if [ -z "$GH_TOKEN" ]; then
+      echo "ERROR: gh auth token returned empty — run 'gh auth login' first." >&2
+      exit 1
+    fi
     cat > "$OUT" <<EOF
     OMNIROUTE_API_KEY=$OMNIROUTE_API_KEY
     OMP_PROXY_KEY=$OMP_PROXY_KEY
     CONTEXT7_API_KEY=$CONTEXT7_API_KEY
+    GITHUB_TOKEN=$GH_TOKEN
     EOF
   '';
 }

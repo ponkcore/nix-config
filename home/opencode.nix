@@ -361,6 +361,33 @@
           DO_NOT_TRACK = "1";
         };
       };
+      # Repomix — packs an entire repository into a single AI-readable
+      # file. Complements codegraph (symbol-level) with whole-repo
+      # context for planning large refactors. MCP mode: `repomix --mcp`.
+      repomix = {
+        type = "local";
+        command = ["${pkgs.repomix}/bin/repomix" "--mcp"];
+        enabled = true;
+      };
+      # GitHub MCP — official GitHub MCP server. 86 tools across 22
+      # toolsets. We enable a focused set (not "all") to avoid prompt
+      # pollution: repos, pull_requests, issues, code_security,
+      # secret_protection. GITHUB_PERSONAL_ACCESS_TOKEN is read from
+      # environment — gh CLI is already auth'd, but the MCP server
+      # needs the token explicitly. The activation script below
+      # injects it from /run/agenix/tokens.
+      github = {
+        type = "local";
+        command = [
+          "${pkgs.github-mcp-server}/bin/github-mcp-server"
+          "stdio"
+          "--toolsets=default,code_security,secret_protection"
+        ];
+        enabled = true;
+        environment = {
+          GITHUB_PERSONAL_ACCESS_TOKEN = "REPLACE_GITHUB_TOKEN";
+        };
+      };
     };
     # plugin: oh-my-openagent NOT loaded by default — use `omo` fish function
     # to launch opencode with the Nix-store file:// plugin spec via
@@ -372,6 +399,8 @@ in {
   home.packages = [
     inputs.llm-agents.packages.${pkgs.stdenv.hostPlatform.system}.opencode
     omoCodegraph
+    pkgs.repomix
+    pkgs.github-mcp-server
   ];
 
   # Tell omo to use our NixOS-compatible wrapper instead of the broken
@@ -485,6 +514,9 @@ in {
   #   CONTEXT7_API_KEY   — X-Context7-API-Key header for context7 MCP
   #   OMP_PROXY_KEY      — X-Proxy-Key header for VPS MCP proxy
   #
+  # GITHUB_PERSONAL_ACCESS_TOKEN is NOT in tokens.age — it is sourced
+  # from `gh auth token` at activation time (gh CLI is already auth'd).
+  #
   # If /run/agenix/tokens is missing or unreadable, activation fails
   # loudly with the message below. To recover: re-encrypt the file
   # with `agenix -e secrets/tokens.age` (see docs/handbook.md §Secrets).
@@ -512,15 +544,23 @@ in {
       echo "ERROR: OMP_PROXY_KEY missing in $SECRETS" >&2
       exit 1
     fi
+    # GitHub token from gh CLI (already auth'd, no need to store in agenix)
+    GH_TOKEN="$(${pkgs.gh}/bin/gh auth token 2>/dev/null || true)"
+    if [ -z "$GH_TOKEN" ]; then
+      echo "ERROR: gh auth token returned empty — run 'gh auth login' first." >&2
+      exit 1
+    fi
     mkdir -p "${config.xdg.configHome}/opencode"
     umask 077
     ${pkgs.jq}/bin/jq \
       --arg key "$OMNIROUTE_API_KEY" \
       --arg c7  "$CONTEXT7_API_KEY" \
       --arg proxy "$OMP_PROXY_KEY" \
+      --arg ghtoken "$GH_TOKEN" \
       '.provider.omniroute.options.apiKey = $key
        | .mcp.context7.headers["X-Context7-API-Key"] = $c7
-       | .mcp.omniroute.headers["X-Proxy-Key"] = $proxy' \
+       | .mcp.omniroute.headers["X-Proxy-Key"] = $proxy
+       | .mcp.github.environment.GITHUB_PERSONAL_ACCESS_TOKEN = $ghtoken' \
       ${opencodeJsonTemplate} \
       > "$OUT.tmp"
     chmod 600 "$OUT.tmp"
