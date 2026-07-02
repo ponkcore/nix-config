@@ -38,5 +38,9 @@
   # Node.js LTS — base runtime for JS tooling, MCP servers (oh-my-openagent
   # stdio MCPs: lsp, codegraph, git_bash), and npx experiments.
   # Do NOT use `npm install -g` — use buildNpmPackage or `nix shell` instead.
-  home.packages = [pkgs.nodejs_22];
+  #
+  # Python 3 — base runtime for scripting, MCP servers (mcp-bridge,
+  # mcp-nixos, context7, fetch-py), and quick automation. Do NOT use
+  # `pip install --user` — use `python3 -m venv` or `nix shell` instead.
+  home.packages = [pkgs.nodejs_22 pkgs.python3];
 }
