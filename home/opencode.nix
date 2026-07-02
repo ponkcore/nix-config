@@ -388,6 +388,16 @@
           GITHUB_PERSONAL_ACCESS_TOKEN = "REPLACE_GITHUB_TOKEN";
         };
       };
+      # Semgrep — SAST (Static Application Security Testing). Scans
+      # code for security vulnerabilities by structural AST rules:
+      # SQL injection, XSS, hardcoded secrets, insecure deserialization,
+      # taint flows. Runs as `semgrep mcp` (stdio). LGPL-2.1 (fine for
+      # personal use — no distribution). In nixpkgs as semgrep 1.161.0.
+      semgrep = {
+        type = "local";
+        command = ["${pkgs.semgrep}/bin/semgrep" "mcp"];
+        enabled = true;
+      };
     };
     # plugin: oh-my-openagent NOT loaded by default — use `omo` fish function
     # to launch opencode with the Nix-store file:// plugin spec via
@@ -401,6 +411,7 @@ in {
     omoCodegraph
     pkgs.repomix
     pkgs.github-mcp-server
+    pkgs.semgrep
   ];
 
   # Tell omo to use our NixOS-compatible wrapper instead of the broken

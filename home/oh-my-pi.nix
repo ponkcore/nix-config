@@ -13,6 +13,7 @@
     pkgs.oh-my-pi
     pkgs.repomix
     pkgs.github-mcp-server
+    pkgs.semgrep
   ];
 
   # --- Provider + model catalogue ---------------------------------------
@@ -107,6 +108,11 @@
         env = {
           GITHUB_PERSONAL_ACCESS_TOKEN = "\${GITHUB_TOKEN}";
         };
+      };
+      semgrep = {
+        type = "stdio";
+        command = "${pkgs.semgrep}/bin/semgrep";
+        args = ["mcp"];
       };
     };
     disabledServers = [];
