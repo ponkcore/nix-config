@@ -256,7 +256,10 @@
 
   # JSON template stored in /nix/store. Contains placeholders, NOT real keys.
   # The activation script below substitutes apiKeys at runtime using jq.
-  opencodeJsonTemplate = builtins.toFile "opencode-template.json" (builtins.toJSON {
+  # pkgs.writeText (not builtins.toFile) because the template references
+  # nix store paths (omoCodegraph, nodejs_22, oh-my-openagent) —
+  # builtins.toFile cannot embed derivation references.
+  opencodeJsonTemplate = pkgs.writeText "opencode-template.json" (builtins.toJSON {
     "$schema" = "https://opencode.ai/config.json";
     autoupdate = false; # NixOS: updates only via flake lock + rebuild
     # Compaction tuning — wider context windows above only help if
@@ -315,6 +318,47 @@
         enabled = true;
         headers = {
           X-Proxy-Key = "REPLACE_OMP_PROXY_KEY";
+        };
+      };
+      # LSP — Language Server Protocol bridge from oh-my-openagent.
+      # Provides diagnostics, goto_definition, find_references,
+      # rename, symbols via real language servers (tsserver, pyright,
+      # rust-analyzer, etc.). Runs the lsp-daemon CLI from the
+      # oh-my-openagent nix-store path with NixOS Node.
+      # When omo is loaded, this entry overrides omo's built-in lsp
+      # (userMcp spreads last in the MCP merge) — same binary, same
+      # result. When omo is NOT loaded, plain opencode uses this
+      # entry directly.
+      lsp = {
+        type = "local";
+        command = [
+          "${pkgs.nodejs_22}/bin/node"
+          "${pkgs.oh-my-openagent}/lib/node_modules/oh-my-openagent/packages/lsp-daemon/dist/cli.js"
+          "mcp"
+        ];
+        enabled = true;
+        environment = {
+          LSP_TOOLS_MCP_PROJECT_CONFIG = ".opencode/lsp.json:.omo/lsp.json:.omo/lsp-client.json";
+        };
+      };
+      # Codegraph — semantic code graph from oh-my-openagent.
+      # Provides codegraph_search, codegraph_callers, codegraph_callees,
+      # codegraph_impact, codegraph_explore via tree-sitter AST.
+      # Uses our omo-codegraph wrapper (NixOS Node) instead of the
+      # broken provisioned standalone binary.
+      codegraph = {
+        type = "local";
+        command = [
+          "${omoCodegraph}/bin/omo-codegraph"
+          "serve"
+          "--mcp"
+        ];
+        enabled = true;
+        environment = {
+          CODEGRAPH_INSTALL_DIR = "${config.home.homeDirectory}/.omo/codegraph";
+          CODEGRAPH_NO_DOWNLOAD = "1";
+          CODEGRAPH_TELEMETRY = "0";
+          DO_NOT_TRACK = "1";
         };
       };
     };
