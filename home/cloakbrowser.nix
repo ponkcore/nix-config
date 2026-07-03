@@ -324,6 +324,8 @@
                 --see=org.freedesktop.portal.Desktop \
                 --call=org.freedesktop.portal.Desktop=org.freedesktop.portal.FileChooser.* \
                 --call=org.freedesktop.portal.Desktop=org.freedesktop.portal.Request.* \
+                --call=org.freedesktop.portal.Desktop=org.freedesktop.DBus.Properties.* \
+                --call=org.freedesktop.portal.Desktop=org.freedesktop.DBus.Introspectable.* \
                 --broadcast=org.freedesktop.portal.Desktop=org.freedesktop.portal.Request.* \
                 &
               PROXY_PID=$!
