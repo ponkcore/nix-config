@@ -27,6 +27,7 @@ in {
     context7-mcp
     fetch-py
     uv
+    github-mcp-server
   ];
 
   home.file = {
@@ -41,6 +42,9 @@ in {
     };
     ".letta/skills/omniroute-mcp/SKILL.md" = {
       source = ../skills/omniroute-mcp/SKILL.md;
+    };
+    ".letta/skills/github-mcp/SKILL.md" = {
+      source = ../skills/github-mcp/SKILL.md;
     };
   };
 
@@ -122,6 +126,17 @@ in {
     end
 
     set -gx LETTA_LOCAL_BACKEND_EXPERIMENTAL 1
+
+    # GitHub MCP: source token from gh CLI (already auth'd via
+    # gh auth login). Not stored in agenix — same pattern as
+    # omo/omp. GITHUB_PERSONAL_ACCESS_TOKEN is consumed by
+    # github-mcp-server via mcp-bridge (env inheritance).
+    set -l gh_token (${pkgs.gh}/bin/gh auth token 2>/dev/null)
+    if test -n "$gh_token"
+      set -gx GITHUB_PERSONAL_ACCESS_TOKEN "$gh_token"
+    else
+      echo "talos: gh auth token returned empty — GitHub MCP will fail." >&2
+    end
 
     cd "$brain"
 
