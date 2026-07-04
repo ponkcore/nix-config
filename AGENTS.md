@@ -70,6 +70,11 @@ modules/
                              (sole owner of display blanking — polls lid
                              state + idle flag from hypridle)
 home/                        Home Manager modules (per-user config)
+  agent-instructions/       Global NixOS rules for AI coding agents
+    AGENTS.md               Shared rules (deployed to opencode/omp/agy)
+    templates/              DevShell flake.nix templates (Python/Node/Rust/Go/Polyglot)
+    nixos-constraints/      On-demand skill for opencode error recovery
+  agent-rules.nix           HM module: deploys agent-instructions/ to agent paths
 theme/                       Wayland theme bundle (palette via _module.args.p)
 pkgs/                        Local package derivations (overlay)
 secrets/                     agenix-encrypted secrets + secrets.nix authorisation

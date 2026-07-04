@@ -1,0 +1,10 @@
+# .envrc — place in project root
+# Requires: nix-direnv enabled via Home Manager
+# (programs.direnv.nix-direnv.enable = true)
+#
+# After adding this file, run: direnv allow
+# The devShell will activate automatically when you cd into this
+# directory. Agents inherit this environment if launched from a
+# direnv-hooked shell.
+
+use flake

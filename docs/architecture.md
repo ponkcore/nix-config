@@ -274,3 +274,7 @@ Layer 2 (web/banking/notes/2FA) lives in the KeePass vault. Layer 3
 | Hyprland system enable + UWSM | `modules/nixos/desktop/sessions/hyprland.nix` |
 | Hyprland user config | `home/desktop/sessions/hyprland/` |
 | Gruvbox palette source | `lib/palette.nix` |
+| nix-ld (FHS binary shim) | `modules/nixos/packages.nix` |
+| Agent global instructions | `home/agent-rules.nix` (deploys `home/agent-instructions/AGENTS.md` to opencode/omp/agy paths) |
+| DevShell templates | `home/agent-rules.nix` (deploys to `~/.local/share/nixos-templates/`) |
+| nixos-constraints skill | `home/agent-rules.nix` (deploys to `~/.config/opencode/skill/`) |

@@ -10,6 +10,13 @@
 # home/direnv.nix). System-wide installs leak ~2 GB of closures into
 # every host and force lock-step upgrades across unrelated projects.
 {pkgs, ...}: {
+  # nix-ld — provides /lib64/ld-linux-x86-64.so.2 shim so unpatched
+  # pre-built binaries (GitHub releases, downloaded tools) run
+  # transparently without steam-run or patchelf. Required for AI
+  # coding agents that download and execute binaries at runtime.
+  # See: https://github.com/nix-community/nix-ld
+  programs.nix-ld.enable = true;
+
   environment.systemPackages = with pkgs; [
     # ── Basics ──
     curl
@@ -21,6 +28,16 @@
     #    per-project devShells via direnv) ──
     gcc
     gnumake
+    # patchelf — patches ELF interpreter/rpath on prebuilt binaries.
+    # Referenced in the global AGENTS.md FHS binary procedure as the
+    # permanent fix for scripted/CI use. nix-ld handles transparent
+    # runtime; patchelf is for one-time binary patching.
+    patchelf
+    # steam-run — FHS chroot via bubblewrap. Referenced in the
+    # global AGENTS.md and nixos-constraints skill as the fallback
+    # when nix-ld does not suffice (e.g. binaries needing full FHS
+    # library tree, not just the dynamic linker).
+    steam-run
 
     # ── Modern CLI replacements (system-level only; bat/eza/fzf/zoxide/delta live in HM) ──
     ripgrep

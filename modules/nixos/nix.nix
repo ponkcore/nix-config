@@ -14,6 +14,7 @@
       "obsidian"
       "oh-my-openagent"
       "spotify"
+      "steam-unwrapped"
       "unrar"
     ];
 

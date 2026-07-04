@@ -55,6 +55,7 @@ in {
       ./antigravity.nix
 
       ./direnv.nix
+      ./agent-rules.nix
       ./yazi.nix
       ./ssh.nix
       ./letta.nix
