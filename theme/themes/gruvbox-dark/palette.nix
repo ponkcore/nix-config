@@ -3,12 +3,13 @@
 # Standard Gruvbox dark medium palette (gruvbox-community).
 # Previous revision used a custom "warm" variant with desaturated
 # colors and a yellow/fg mix-up; reverted to canonical values.
-# To roll back: git checkout lib/palette.nix && nixos-rebuild switch.
+# To roll back: git checkout theme/themes/gruvbox-dark/palette.nix && nixos-rebuild switch.
 #
 # Single source of truth distributed three ways:
 #   1. theme/default.nix exports it as `_module.args.p` for theme/* modules
 #   2. home/{fzf,wlogout,yazi,fastfetch}.nix receive `p` via _module.args
-#   3. Direct import from modules/nixos/desktop/greeter/greetd.nix (greetd CSS)
+#   3. modules/nixos/desktop/greeter/greetd.nix imports it directly for
+#      greeter CSS (pre-boot — no _module.args available at system level)
 #
 # Token semantics — see docs/architecture.md §4 for the role of each.
 #

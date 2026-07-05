@@ -5,6 +5,7 @@
 {
   pkgs,
   p,
+  theme, # reserved for future per-theme structural overrides
   ...
 }: {
   # Ghostty is in nixpkgs but has no HM module yet — use home.packages + xdg.configFile

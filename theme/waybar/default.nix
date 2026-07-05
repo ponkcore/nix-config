@@ -1,9 +1,12 @@
-# theme/waybar/default.nix — compositor-agnostic waybar skeleton.
+# theme/waybar/default.nix — compositor-agnostic waybar renderer.
 #
-# Owns the visual contract: CSS, palette wiring, module slot order,
-# and configs for modules that hold across any compositor and any host
-# (clock, network, cpu, audio, brightness, power, separator, nix
-# rebuild button).
+# Reads structural parameters (position, margins, border-radius, module
+# layout, extra CSS) from the active theme attrset (`theme.waybar.*`)
+# and generates the waybar config + CSS from the palette (`p`).
+#
+# This is a RENDERER, not a config. To change the bar layout, create a
+# new theme in theme/themes/<name>/default.nix and set it as active in
+# theme/default.nix. Do not hardcode layout values here.
 #
 # Slots that depend on a specific session live in
 # home/desktop/sessions/<name>/waybar.nix:
@@ -15,12 +18,14 @@
 #   - custom/battery       (Lecoo-aware: merges system battery with EC
 #                           charge mode via the lecoo-ctrl daemon)
 #
-# Composition: this file declares the slot order; missing fragments are
-# filtered out at activation time so a host that opts out of a slot
-# does not need to redefine the layout.
+# Composition: the theme provides the base module layout; this renderer
+# extends it with session/host-specific modules. If a module in the
+# list has no definition (because no session/host supplied it) waybar
+# silently skips it.
 {
   lib,
   p,
+  theme,
   cpu-mem,
   volume-status,
   brightness-status,
@@ -31,6 +36,10 @@
 }: let
   hasHyprland = builtins.elem "hyprland" desktops;
   isLecoo = hostname == "lecoo";
+
+  # Shorthand for the waybar section of the active theme.
+  wb = theme.waybar;
+  m = wb.margins;
 
   # Waybar's native `hyprland/language` renders `...` on the current
   # Hyprland/Waybar pair, despite `hyprctl devices -j` exposing the
@@ -78,16 +87,19 @@
     fi
   '';
 
-  # Module slot order — referenced by name in modules-{left,center,right}.
-  # If the corresponding config fragment is not present (because no
-  # session/host module supplied it) waybar simply ignores the entry.
+  # ── Module layout ──────────────────────────────────────────────────
+  # The theme provides the base slot order. The renderer extends it
+  # with session-specific modules (Hyprland IPC app toggles) and
+  # host-specific modules (lecoo battery, power-draw, ultra-economy).
+  #
+  # For modulesRight, host-specific modules are injected before
+  # "custom/power" — the injection point is found by splitting the
+  # theme's list at that element. This lets a theme freely rearrange
+  # the right side as long as "custom/power" marks where host modules
+  # go.
+
   modulesLeft =
-    [
-      "custom/separator"
-      "custom/nix"
-      "clock"
-      "custom/separator"
-    ]
+    wb.modulesLeft
     ++ lib.optionals hasHyprland [
       "custom/language"
       "custom/separator"
@@ -103,19 +115,29 @@
       "custom/separator"
     ];
 
-  modulesCenter = lib.optionals hasHyprland ["hyprland/workspaces"];
+  modulesCenter = lib.optionals hasHyprland wb.modulesCenter;
 
-  # custom/battery is the lecoo-aware merged battery+EC widget; only the
-  # lecoo host supplies its config (in hosts/lecoo/home/waybar.nix).
-  # Other laptop hosts fall back to the standard built-in "battery"
-  # module, which reads /sys/class/power_supply directly and needs no
-  # config.
-  modulesRight =
-    [
-      "custom/separator"
-      "custom/cpu"
-      "custom/separator"
-    ]
+  # Split theme's modulesRight at "custom/power" to inject host modules.
+  # Nixpkgs lib has no takeWhile/dropWhile, so a manual recursive split.
+  modulesRight = let
+    splitAt = pred: list: let
+      go = acc: remaining:
+        if remaining == []
+        then {
+          pre = acc;
+          post = [];
+        }
+        else if pred (lib.head remaining)
+        then {
+          pre = acc;
+          post = remaining;
+        }
+        else go (acc ++ [(lib.head remaining)]) (lib.tail remaining);
+    in
+      go [] list;
+    split = splitAt (mod: mod == "custom/power") wb.modulesRight;
+  in
+    split.pre
     ++ lib.optionals isLecoo [
       "custom/ultra-economy"
       "custom/separator"
@@ -125,10 +147,7 @@
       "custom/separator"
     ]
     ++ lib.optionals (!isLecoo) ["battery"]
-    ++ [
-      "custom/power"
-      "custom/separator"
-    ];
+    ++ split.post;
 in {
   programs.waybar = {
     enable = true;
@@ -179,10 +198,10 @@ in {
         background:
           linear-gradient(@bg_dark, @bg_dark) padding-box,
           linear-gradient(45deg, rgba(250, 189, 47, 0.933), rgba(211, 134, 155, 0.933)) border-box;
-        margin: 0px 6px 3px 6px;
+        margin: ${toString m.top}px ${toString m.right}px ${toString m.bottom}px ${toString m.left}px;
         padding: 0px;
         border: 2px solid transparent;
-        border-radius: 4px;
+        border-radius: ${toString wb.borderRadius}px;
         box-shadow: 0px 1px 2px rgba(0, 0, 0, 1);
         font-weight: normal;
         font-size: 16px;
@@ -479,15 +498,16 @@ in {
         color: @border_inact;
       }
 
+      ${wb.extraStyle}
     '';
 
     settings.mainBar = {
       exclusive = true;
       reload_style_on_change = true;
-      position = "top";
-      width = 496;
-      spacing = 0;
-      margin-top = 0;
+      position = wb.position;
+      width = wb.width;
+      spacing = wb.spacing;
+      margin-top = m.top;
 
       modules-left = modulesLeft;
       modules-center = modulesCenter;

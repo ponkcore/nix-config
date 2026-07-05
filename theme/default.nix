@@ -1,22 +1,45 @@
 # theme/default.nix — compositor-agnostic Wayland theming.
 #
-# Aggregator: exports the gruvbox palette `p`, the wallpaper path, and
-# the color helpers `c` to all submodules via _module.args, then
-# imports the user-level UI bits that work under ANY Wayland compositor
-# — waybar, mako, rofi, ghostty, and the script library.
+# Aggregator: selects the active theme, then exports the theme's
+# palette `p`, color helpers `c`, wallpaper path, and the full theme
+# attrset to all submodules via _module.args. Submodules are renderers:
+# they consume `theme` to generate component-specific config (waybar
+# layout, CSS, mako colors, rofi theme, ghostty palette).
+#
+# To add a theme: create theme/themes/<name>/ with palette.nix and
+# default.nix (see theme/themes/gruvbox-dark/ for the template). Then
+# add it to `themes` below and set `activeTheme`.
+#
+# To switch themes at runtime without rebuild (future): a rofi
+# selector writes the theme name to a mutable state file; a script
+# copies the theme's CSS into a writable active-theme.css and sends
+# SIGUSR1 to waybar. The declarative structure here is the base.
 #
 # Helper scripts (notification toggle, lecoo charge mode, telegram
-# toggle, etc.) live in theme/scripts.nix to keep this file focused
-# on visual concerns. Compositor-specific config (Hyprland keybinds,
-# hyprlock, hypridle, hyprpaper; future niri/swaylock/swayidle/swaybg;
-# future GNOME dconf) lives in home/desktop/sessions/<name>/ and is
-# imported by home/desktop/default.nix based on the active session set.
+# toggle, etc.) live in theme/scripts.nix. Compositor-specific config
+# (Hyprland keybinds, hyprlock, hypridle, hyprpaper) lives in
+# home/desktop/sessions/<name>/.
 #
 # Imported from home/desktop/default.nix when desktops is non-empty.
 # Headless/server hosts never see this file.
 {pkgs, ...}: let
-  # Palette derived from Gruvbox dark medium tones: amber, parchment, burnt umber.
-  p = import ../lib/palette.nix;
+  # ── Theme registry ────────────────────────────────────────────────
+  # Each theme is a Nix module that returns { palette, wallpaper,
+  # waybar, mako, rofi, ghostty } attrsets. Add new themes here.
+  themes = {
+    gruvbox-dark = import ./themes/gruvbox-dark/default.nix {inherit pkgs;};
+  };
+
+  # Active theme — change this to switch. In future: driven by a
+  # mutable state file so a rofi selector can switch without rebuild.
+  activeThemeName = "gruvbox-dark";
+  theme = themes.${activeThemeName};
+
+  # Palette — extracted from the active theme for convenience.
+  # Submodules that only need colors (mako, rofi, ghostty) use `p`
+  # directly; modules that need structural data (waybar layout) use
+  # `theme.waybar.*`.
+  p = theme.palette;
 
   # Color helpers — convert palette tokens into the surface formats
   # different consumers expect (Hyprland literals, rofi rasi rgba,
@@ -28,23 +51,23 @@
   # asset for lock-screen use; `sessionWallpaper` is a pre-scaled copy
   # for the live Hyprland wallpaper daemon so hyprpaper does not keep a
   # large image resident just to paint a 2880x1800 panel.
-  wallpaper = "${../assets/wallpaper.png}";
+  wallpaper = "${theme.wallpaper}";
   sessionWallpaper = "${sessionWallpaperAsset}";
   sessionWallpaperAsset = pkgs.runCommand "wallpaper-session.png" {nativeBuildInputs = [pkgs.imagemagick];} ''
     magick \
-      ${../assets/wallpaper.png} \
+      ${theme.wallpaper} \
       -resize 2880x1800^ \
       -gravity center \
       -extent 2880x1800 \
       "$out"
   '';
 in {
-  # _module.args makes p, c, and wallpaper paths available as function
-  # arguments to ALL submodules imported below (e.g.,
-  # `{ pkgs, p, c, wallpaper, ... }:`). The script bin args are wired up
-  # in scripts.nix.
+  # _module.args makes p, c, wallpaper, and the full theme attrset
+  # available as function arguments to ALL submodules imported below.
+  # Submodules can destructure what they need:
+  #   { pkgs, p, c, theme, ... }: { ... }
   _module.args = {
-    inherit p c wallpaper sessionWallpaper;
+    inherit p c wallpaper sessionWallpaper theme;
   };
 
   imports = [
