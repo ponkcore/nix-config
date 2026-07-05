@@ -28,12 +28,12 @@
   # waybar, mako, rofi, ghostty } attrsets. Add new themes here.
   themes = {
     gruvbox-dark = import ./themes/gruvbox-dark/default.nix {inherit pkgs;};
-    gruvbox-dark-pill = import ./themes/gruvbox-dark-pill/default.nix {};
+    matteogini = import ./themes/matteogini/default.nix {};
   };
 
   # Active theme — change this to switch. In future: driven by a
   # mutable state file so a rofi selector can switch without rebuild.
-  activeThemeName = "gruvbox-dark-pill";
+  activeThemeName = "matteogini";
   theme = themes.${activeThemeName};
 
   # Palette — extracted from the active theme for convenience.
