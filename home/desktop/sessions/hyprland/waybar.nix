@@ -22,6 +22,7 @@
   network-toggle,
   pwvucontrol-toggle,
   btop-toggle,
+  theme,
   pkgs,
   ...
 }: let
@@ -141,32 +142,44 @@ in {
   '';
 
   programs.waybar.settings.mainBar = {
-    "hyprland/workspaces" = {
-      on-click = "activate";
-      cursor = true;
-      format = "{icon}";
-      format-icons = {
-        "1" = "1";
-        "2" = "2";
-        "3" = "3";
-        "4" = "4";
-        "5" = "5";
-        "6" = "6";
-        "7" = "7";
-        "8" = "8";
-        "9" = "9";
+    "hyprland/workspaces" =
+      {
+        on-click = "activate";
+        cursor = true;
+      }
+      // (theme.waybar.workspaces or {
+        format = "{icon}";
+        format-icons = {
+          "1" = "1";
+          "2" = "2";
+          "3" = "3";
+          "4" = "4";
+          "5" = "5";
+          "6" = "6";
+          "7" = "7";
+          "8" = "8";
+          "9" = "9";
+        };
+        persistent-workspaces = {
+          "1" = [];
+          "2" = [];
+          "3" = [];
+          "4" = [];
+          "5" = [];
+          "6" = [];
+          "7" = [];
+          "8" = [];
+          "9" = [];
+        };
+      });
+
+    "hyprland/window" = {
+      icon = false;
+      format = "{title}";
+      rewrite = {
+        "(.*) — Mozilla Firefox" = "$1";
       };
-      persistent-workspaces = {
-        "1" = [];
-        "2" = [];
-        "3" = [];
-        "4" = [];
-        "5" = [];
-        "6" = [];
-        "7" = [];
-        "8" = [];
-        "9" = [];
-      };
+      max-width = 100;
     };
 
     "custom/telegram" = {

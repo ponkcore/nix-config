@@ -102,6 +102,7 @@
 in {
   home.packages = [
     pkgs.hyprshot
+    pkgs.blueman
     # hyprctl wrapper — unsets LD_LIBRARY_PATH before calling the real
     # hyprctl. The Hyprland flake builds hyprctl with gcc-15 (needs
     # GLIBCXX_3.4.34), but some wrappers (e.g. letta-code) set

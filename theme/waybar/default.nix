@@ -29,6 +29,9 @@
   cpu-mem,
   volume-status,
   brightness-status,
+  notification-toggle,
+  notification-status,
+  theme-select,
   desktops ? [],
   hostname ? "",
   pkgs,
@@ -663,6 +666,169 @@ in {
       "custom/language" = {
         exec = "${hyprland-language}/bin/hyprland-language";
         return-type = "json";
+        tooltip = false;
+      };
+
+      # ── Built-in modules (used by pill theme) ───────────────────
+      # These are here so the pill theme can reference them in its
+      # module layout without duplicating definitions. The default
+      # gruvbox-dark theme doesn't use them — it uses custom/*
+      # equivalents. Both sets coexist; waybar ignores undefined
+      # modules in the layout list.
+
+      "pulseaudio" = {
+        format = "{icon}";
+        format-bluetooth = "󰂰";
+        format-muted = "󰖁";
+        format-icons = {
+          headphones = "󰋋";
+          bluetooth = "󰥰";
+          handsfree = "󰋌";
+          headset = "󰋎";
+          phone = "󰏲";
+          portable = "󰓃";
+          car = "󰄋";
+          default = ["󰕿" "󰖀" "󰕾"];
+        };
+        justify = "center";
+        on-click = "pamixer -t";
+        on-click-right = "pwvucontrol";
+        tooltip-format = "{volume}%";
+      };
+
+      "bluetooth" = {
+        format-on = "󰂯";
+        format-off = "";
+        format-disabled = "󰂲";
+        format-connected = "󰂴";
+        format-connected-battery = "{device_battery_percentage}% 󰂴";
+        tooltip-format = "{controller_alias}\t{controller_address}\n\n{num_connections} connected";
+        tooltip-format-connected = "{controller_alias}\t{controller_address}\n\n{num_connections} connected\n\n{device_enumerate}";
+        tooltip-format-enumerate-connected = "{device_alias}\t{device_address}";
+        tooltip-format-enumerate-connected-battery = "{device_alias}\t{device_address}\t{device_battery_percentage}%";
+        on-click = "blueman-manager";
+      };
+
+      "battery" = {
+        interval = 1;
+        states = {
+          good = 95;
+          warning = 30;
+          critical = 20;
+        };
+        format = "{icon} ";
+        format-charging = "{capacity}% 󰂄 ";
+        format-plugged = "{capacity}% 󰂄";
+        format-alt = "{time} {icon}";
+        format-icons = ["󰁻" "󰁼" "󰁾" "󰂀" "󰂂" "󰁹"];
+      };
+
+      "memory" = {
+        format = "󰍛 {used}GB";
+        interval = 10;
+        on-click = "ghostty --class=com.mitchellh.ghostty-btop -e btop";
+      };
+
+      "disk" = {
+        format = "󰋊 {percentage_used}%";
+        path = "/";
+        interval = 30;
+      };
+
+      "cpu" = {
+        format = "󰓅 {usage}%";
+        interval = 5;
+      };
+
+      "keyboard-state" = {
+        numlock = false;
+        capslock = true;
+        format = "{name} {icon}";
+        format-icons = {
+          locked = "󰌾";
+          unlocked = "󰌿";
+        };
+      };
+
+      "tray" = {
+        icon-size = 16;
+        spacing = 10;
+      };
+
+      # ── Drawer groups (pill theme) ──────────────────────────────
+
+      "group/tools" = {
+        orientation = "inherit";
+        drawer = {
+          transition-duration = 300;
+          children-class = "not-memory";
+          transition-left-to-right = true;
+        };
+        modules = ["custom/tools" "custom/clipboard"];
+      };
+
+      "group/settings" = {
+        orientation = "inherit";
+        drawer = {
+          transition-duration = 300;
+          children-class = "not-memory";
+          transition-left-to-right = true;
+        };
+        modules = ["custom/settings" "custom/waybarthemes"];
+      };
+
+      "group/hardware" = {
+        orientation = "inherit";
+        drawer = {
+          transition-duration = 300;
+          children-class = "not-memory";
+          transition-left-to-right = false;
+        };
+        modules = ["custom/system" "disk" "cpu" "memory"];
+      };
+
+      # ── Drawer handle modules ───────────────────────────────────
+
+      "custom/tools" = {
+        format = "󰽘";
+        tooltip = false;
+      };
+
+      "custom/settings" = {
+        format = "󰒓";
+        tooltip = false;
+      };
+
+      "custom/system" = {
+        format = "󰇄";
+        tooltip = false;
+      };
+
+      # ── Custom modules (pill theme) ─────────────────────────────
+
+      "custom/clipboard" = {
+        format = "󰅇";
+        on-click = "cliphist list | ${pkgs.rofi}/bin/rofi -dmenu -i | cliphist decode | ${pkgs.wl-clipboard}/bin/wl-copy";
+        tooltip-format = "Clipboard";
+      };
+
+      "custom/waybarthemes" = {
+        format = "󰏘";
+        on-click = "${theme-select}/bin/theme-select";
+        tooltip-format = "Switch theme";
+      };
+
+      "custom/empty" = {
+        format = "";
+      };
+
+      "custom/notification" = {
+        exec = "${notification-status}/bin/notification-status";
+        return-type = "json";
+        interval = 1;
+        signal = 8;
+        format = "{text}";
+        on-click = "${notification-toggle}/bin/notification-toggle";
         tooltip = false;
       };
     };
