@@ -10,12 +10,13 @@ ShellRoot {
     PanelWindow {
     id: root
 
-    property color colBg: "#000000"
-    property color colFg: "#ffffff"
-    property color colAccent: "#ffffff"
-    property color colMuted: Qt.rgba(1, 1, 1, 0.4)
-    property color colHover: Qt.rgba(1, 1, 1, 0.1)
-    property color colCrit: "#ff0000"
+    // Gruvbox dark medium palette
+    property color colBg: "#282828"      // bg0
+    property color colFg: "#ebdbb2"      // fg0
+    property color colAccent: "#fabd2f"  // bright_yellow
+    property color colMuted: Qt.rgba(0.918, 0.859, 0.698, 0.4)  // fg @ 0.4 alpha
+    property color colHover: Qt.rgba(0.918, 0.859, 0.698, 0.1)  // fg @ 0.1 alpha
+    property color colCrit: "#fb4934"   // bright_red
     property string fontFamily: "JetBrainsMono Nerd Font"
     property int fontSize: 10 // Reduced font size to match waybar 9px
     property int windowCount: 0
@@ -413,7 +414,7 @@ ShellRoot {
         opacity: (!root.isAnyPopupAnimActive) || root.isBarMode ? 1.0 : 0.0
         
         anchors.top: parent.top
-        anchors.topMargin: root.isBarMode ? 0 : 4
+        anchors.topMargin: 1 // 1px gap from top edge
         anchors.horizontalCenter: parent.horizontalCenter
         height: 32
         width: root.isBarMode ? parent.width : notchLayout.implicitWidth + 32
@@ -840,7 +841,7 @@ ShellRoot {
             Rectangle {
                 id: animRect
                 anchors.top: parent.top
-                anchors.topMargin: controlCenter.show ? 16 : (root.isBarMode ? 0 : 4)
+                anchors.topMargin: 1 // 1px gap from top edge, same as bar
                 anchors.horizontalCenter: parent.horizontalCenter
                 
                 MouseArea {
