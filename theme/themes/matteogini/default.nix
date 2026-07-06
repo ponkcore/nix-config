@@ -10,6 +10,10 @@ _: {
   palette = import ../gruvbox-dark/palette.nix;
   wallpaper = ../../../assets/wallpaper.png;
 
+  # This theme uses quickshell as its bar backend, not waybar.
+  # The quickshell config lives in pkgs/quickshell-config/.
+  bar = "quickshell";
+
   waybar = {
     position = "top";
     width = 0;

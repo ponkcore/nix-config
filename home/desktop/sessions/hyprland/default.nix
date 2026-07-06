@@ -16,6 +16,7 @@
     ./paper.nix
     ./scripts.nix
     ./waybar.nix
+    ./quickshell.nix
   ];
 
   # UWSM env — block graphical-session.target until

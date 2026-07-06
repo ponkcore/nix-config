@@ -15,6 +15,10 @@ _: {
   palette = import ./palette.nix;
   wallpaper = ../../../assets/wallpaper.png;
 
+  # Bar backend: "waybar" or "quickshell". Determines which systemd
+  # service gets WantedBy=graphical-session.target.
+  bar = "waybar";
+
   # ── Waybar ────────────────────────────────────────────────────────
   # Structural parameters consumed by theme/waybar/default.nix.
   # Changing these changes the bar layout without touching CSS.
