@@ -424,8 +424,8 @@ ShellRoot {
         Behavior on width { NumberAnimation { duration: root.batteryMode ? 0 : 400; easing.type: Easing.OutExpo } }
         Behavior on radius { NumberAnimation { duration: root.batteryMode ? 0 : 400; easing.type: Easing.OutExpo } }
         Behavior on anchors.topMargin { NumberAnimation { duration: root.batteryMode ? 0 : 400; easing.type: Easing.OutExpo } }
-        border.color: Qt.rgba(root.colFg.r, root.colFg.g, root.colFg.b, 0.1)
-        border.width: root.isBarMode ? 0 : 1
+        border.color: root.colAccent
+        border.width: 2
         
         RowLayout {
             id: notchLayout
@@ -465,8 +465,8 @@ ShellRoot {
                 }
                 textColor: {
                     if (isCrit) return root.colCrit;
-                    if (isWarn) return "#FFA500";
-                    if (root.batteryCharging) return "#76B900";
+                    if (isWarn) return root.colAccent;
+                    if (root.batteryCharging) return "#b8bb26";
                     return root.colFg;
                 }
                 bgColor: "transparent"
@@ -478,7 +478,7 @@ ShellRoot {
             Mod {
                 property bool isActive: root.stopwatchRunning || root.stopwatchSeconds > 0
                 text: "󱎫 " + root.stopwatchText
-                textColor: root.stopwatchRunning ? "#FFA500" : root.colFg
+                textColor: root.stopwatchRunning ? root.colAccent : root.colFg
                 bgColor: "transparent"
                 show: isActive && !controlCenter.show && !root.showOsd
                 onClicked: controlCenter.show = true
@@ -487,7 +487,7 @@ ShellRoot {
             Mod {
                 property bool isActive: root.timerRunning || (root.timerSeconds > 0 && root.timerSeconds < root.timerTotal)
                 text: "󰔛 " + root.timerText
-                textColor: root.timerRunning ? "#FFA500" : root.colFg
+                textColor: root.timerRunning ? root.colAccent : root.colFg
                 bgColor: "transparent"
                 show: isActive && !controlCenter.show && !root.showOsd
                 onClicked: controlCenter.show = true
@@ -495,14 +495,14 @@ ShellRoot {
             
             Mod {
                 text: root.batteryMode ? "  Power Saver" : "  Performance"
-                textColor: root.batteryMode ? "#FFCC00" : "#76B900"
+                textColor: root.batteryMode ? root.colAccent : "#b8bb26"
                 bgColor: "transparent"
                 show: root.showBatteryModeIndicator && !controlCenter.show && !root.showOsd
             }
 
             Mod {
                 text: ""
-                textColor: root.micMuted ? root.colMuted : "#FFA500"
+                textColor: root.micMuted ? root.colMuted : root.colAccent
                 bgColor: "transparent"
                 show: root.showMicIndicator && !controlCenter.show && !root.showOsd
             }
@@ -579,8 +579,8 @@ ShellRoot {
                 height: parent.height - 4
                 radius: 2
                 color: {
-                    if (battIcon.charging) return "#76B900";
-                    if (battIcon.level <= 0.2) return "#FF3B30";
+                    if (battIcon.charging) return "#b8bb26";
+                    if (battIcon.level <= 0.2) return "#fb4934";
                     return battIcon.colFg;
                 }
                 Behavior on width { NumberAnimation { duration: root.batteryMode ? 0 : 300; easing.type: Easing.OutCubic } }
@@ -854,8 +854,8 @@ ShellRoot {
                 
                 color: Qt.rgba(root.colBg.r, root.colBg.g, root.colBg.b, 0.95)
                 radius: controlCenter.show ? 24 : (root.isBarMode ? 0 : 16)
-                border.color: Qt.rgba(root.colFg.r, root.colFg.g, root.colFg.b, 0.1)
-                border.width: (controlCenter.show || !root.isBarMode) ? 1 : 0
+                border.color: root.colAccent
+                border.width: 2
                 
                 // DYNAMIC ISLAND FLUID ANIMATION
                 opacity: (!controlCenter.show && height <= 36) ? 0.0 : 1.0
@@ -974,7 +974,7 @@ ShellRoot {
                                         let cap = parseInt(root.batteryCap);
                                         let isCrit = cap <= 15 && !root.batteryCharging;
                                         let isWarn = cap <= 30 && cap > 15 && !root.batteryCharging;
-                                        return isCrit ? root.colCrit : (isWarn ? "#FFA500" : (root.batteryCharging ? "#76B900" : root.colFg));
+                                        return isCrit ? root.colCrit : (isWarn ? root.colAccent : (root.batteryCharging ? "#b8bb26" : root.colFg));
                                     }
                                     font.family: root.fontFamily
                                     font.pixelSize: 18 
@@ -1013,7 +1013,7 @@ ShellRoot {
                         
                         RowLayout {
                             Layout.fillWidth: true
-                            Text { text: ""; color: "#1DB954"; font.family: root.fontFamily; font.pixelSize: 18 }
+                            Text { text: ""; color: "#b8bb26"; font.family: root.fontFamily; font.pixelSize: 18 }
                             Text {
                                 text: root.spotifyText
                                 color: root.colFg
@@ -1030,7 +1030,7 @@ ShellRoot {
                             spacing: 8
                             Item { Layout.fillWidth: true }
                             ModernButton { Layout.preferredWidth: 48; Layout.preferredHeight: 40; iconText: "󰒮"; onClicked: { pSpotPrev.running = true } }
-                            ModernButton { Layout.preferredWidth: 64; Layout.preferredHeight: 40; iconText: root.spotifyStatus === "Playing" ? "󰏤" : "󰐊"; isActive: root.spotifyStatus === "Playing"; accent: "#1DB954"; onClicked: { pSpotPlay.running = true } }
+                            ModernButton { Layout.preferredWidth: 64; Layout.preferredHeight: 40; iconText: root.spotifyStatus === "Playing" ? "󰏤" : "󰐊"; isActive: root.spotifyStatus === "Playing"; accent: "#b8bb26"; onClicked: { pSpotPlay.running = true } }
                             ModernButton { Layout.preferredWidth: 48; Layout.preferredHeight: 40; iconText: "󰒭"; onClicked: { pSpotNext.running = true } }
                             Item { Layout.fillWidth: true }
                         }
@@ -1140,7 +1140,7 @@ ShellRoot {
                             text: "Bluetooth"
                             iconText: root.bluetoothStatus === "on" ? "" : "󰂲"
                             isActive: root.bluetoothStatus === "on"
-                            accent: "#007AFF"
+                            accent: root.colAccent
                             onMainClicked: { bluetoothMenuPopup.show = true; controlCenter.show = false }
                             onRightIconClicked: { bluetoothMenuPopup.show = true; controlCenter.show = false }
                             onIconClicked: { 
@@ -1153,7 +1153,7 @@ ShellRoot {
                             text: root.wifiText === "Disconnected" ? "Wi-Fi" : root.wifiText
                             iconText: root.wifiIcon
                             isActive: root.wifiText !== "Disconnected"
-                            accent: "#007AFF"
+                            accent: root.colAccent
                             onMainClicked: { wifiMenuPopup.show = true; controlCenter.show = false }
                             onRightIconClicked: { wifiMenuPopup.show = true; controlCenter.show = false }
                             onIconClicked: { 
@@ -1173,7 +1173,7 @@ ShellRoot {
                             text: root.stopwatchText
                             iconText: "󱎫"
                             isActive: root.stopwatchRunning || root.stopwatchSeconds > 0
-                            accent: "#FFA500"
+                            accent: root.colAccent
                             onMainClicked: {
                                 if (root.stopwatchRunning) {
                                     root.stopwatchRunning = false;
@@ -1200,7 +1200,7 @@ ShellRoot {
                             text: root.timerText
                             iconText: "󰔛"
                             isActive: root.timerRunning || (root.timerSeconds > 0 && root.timerSeconds < root.timerTotal)
-                            accent: "#FFA500"
+                            accent: root.colAccent
                             onMainClicked: {
                                 root.pomodoroState = 0;
                                 if (root.timerRunning) {
@@ -1250,7 +1250,7 @@ ShellRoot {
                             text: root.gpuMode.charAt(0)
                             iconText: "󰢮"
                             isActive: root.gpuMode === "Hybrid" || root.gpuMode === "Nvidia"
-                            accent: "#76B900"
+                            accent: "#b8bb26"
                             onClicked: { gpuPopup.show = !gpuPopup.show; notesPopup.show = false; timerPopup.show = false }
                         }
                         ModernButton {
@@ -1264,7 +1264,7 @@ ShellRoot {
                             text: ""
                             iconText: root.batteryMode ? "" : ""
                             isActive: root.batteryMode
-                            accent: "#FFCC00"
+                            accent: root.colAccent
                             onClicked: pToggleBatteryMode.running = true
                         }
                         ModernButton {
@@ -1272,7 +1272,7 @@ ShellRoot {
                             text: ""
                             iconText: "󰄉"
                             isActive: root.pomodoroState > 0
-                            accent: root.pomodoroState === 1 ? "#FF4500" : "#00FA9A"
+                            accent: root.pomodoroState === 1 ? "#fb4934" : "#b8bb26"
                             onClicked: {
                                 if (root.pomodoroState === 0) {
                                     root.pomodoroState = 1; // Start work
