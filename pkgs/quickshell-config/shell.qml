@@ -126,8 +126,7 @@ ShellRoot {
     Process { id: pMicMute; command: ["wpctl", "set-mute", "@DEFAULT_AUDIO_SOURCE@", "toggle"] }
     Process { id: pVolMute; command: ["wpctl", "set-mute", "@DEFAULT_AUDIO_SINK@", "toggle"] }
     Process { id: pVolSet } // Dynamic volume setter
-    Process { id: pBatLimitSet }
-    Process { id: pBlueberry; command: ["blueberry"] }
+    Process { id: pBlueberry; command: ["blueman-manager"] }
 
     Process { id: pWifiToggle; command: ["sh", "-c", "if [ \"$(nmcli radio wifi)\" = \"enabled\" ]; then nmcli radio wifi off; else nmcli radio wifi on; fi"] }
     Process { id: pBtToggle; command: ["sh", "-c", "if bluetoothctl show | grep -q 'Powered: yes'; then rfkill block bluetooth; else rfkill unblock bluetooth; fi"] }
@@ -213,17 +212,10 @@ ShellRoot {
         command: ["brightnessctl", "s", "50%"]
     }
 
-    Process { id: pKbdBrightSet }
-
-    Process { id: pWattSet }
-
     Process { id: pSpotPlay; command: ["playerctl", "--player=spotify", "play-pause"] }
     Process { id: pSpotNext; command: ["playerctl", "--player=spotify", "next"] }
-    Process { id: pGpu; command: ["sh", "-c", "supergfxctl -m Hybrid; hyprctl dispatch \"hl.dsp.exit()\""] }
 
-    Process { id: pGpuInt; command: ["sh", "-c", "supergfxctl -m Integrated; hyprctl dispatch \"hl.dsp.exit()\""] }
-    Process { id: pGpuHyb; command: ["sh", "-c", "supergfxctl -m Hybrid; hyprctl dispatch \"hl.dsp.exit()\""] }
-    
+    // Config editor shortcuts — paths patched by derivation substituteInPlace
     Process { id: pNoteHyprland; command: ["zeditor", "/home/matteo/.config/hypr"] }
     Process { id: pNoteWaybar; command: ["zeditor", "/home/matteo/.config/waybar/"] }
     Process { id: pNoteTofi; command: ["zeditor", "/home/matteo/.config/tofi/"] }
@@ -257,31 +249,8 @@ ShellRoot {
             }
         }
     }
-    Process {
-        command: ["sh", "-c", "while true; do asusctl battery info 2>/dev/null; sleep 10; done"]
-        running: true; stdout: SplitParser { 
-            onRead: data => {
-                var d = data.trim();
-                if (d.includes("Current battery charge limit:")) {
-                    var m = d.match(/(\d+)%/);
-                    if (m) root.batLimit = parseInt(m[1]);
-                }
-            }
-        }
-    }
-    Process {
-        command: ["sh", "-c", "while true; do sudo ryzenadj -i 2>/dev/null | awk -F'|' '/STAPM LIMIT/ {print int($3)}'; sleep 10; done"]
-        running: true; stdout: SplitParser { 
-            onRead: data => {
-                var d = parseInt(data.trim());
-                if (!isNaN(d) && d > 0) root.cpuWattage = d;
-            }
-        }
-    }
-    Process {
-        command: ["sh", "-c", "while true; do supergfxctl -g 2>/dev/null || echo '?'; sleep 3; done"]
-        running: true; stdout: SplitParser { onRead: data => root.gpuMode = data.trim() }
-    }
+    // ASUS-specific background polls removed (asusctl battery, ryzenadj,
+    // supergfxctl, asusctl leds) — not available on AMD Phoenix.
     Process {
         command: ["sh", "-c", "while true; do wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null; sleep 0.5; done"]
         running: true; stdout: SplitParser { 
@@ -337,19 +306,7 @@ ShellRoot {
         }
     }
 
-    Process {
-        command: ["sh", "-c", "while true; do asusctl leds get 2>/dev/null | awk '{print $NF}'; sleep 3; done"]
-        running: true; stdout: SplitParser { 
-            onRead: data => {
-                var d = data.trim().toLowerCase();
-                if (d === 'off') root.kbdBrightnessLevel = "0";
-                else if (d === 'low') root.kbdBrightnessLevel = "1";
-                else if (d === 'med') root.kbdBrightnessLevel = "2";
-                else if (d === 'high') root.kbdBrightnessLevel = "3";
-            }
-        }
-    }
-
+    // ASUS keyboard brightness poll removed — not available on AMD Phoenix.
 
     // A helper to make clickable modules easily
     component Mod: MouseArea {
@@ -1427,8 +1384,8 @@ ShellRoot {
                     spacing: 8
                     
                     
-                    ModernButton { text: "Integrated"; iconText: "󰍛"; onClicked: { pGpuInt.running = true; gpuPopup.show = false; controlCenter.show = false } }
-                    ModernButton { text: "Hybrid"; iconText: "󰢮"; onClicked: { pGpuHyb.running = true; gpuPopup.show = false; controlCenter.show = false } }
+                    // GPU mode buttons removed — no dual-GPU on AMD Phoenix
+                    ModernButton { text: "N/A"; iconText: "󰢮"; onClicked: { gpuPopup.show = false; controlCenter.show = false } }
                 }
             }
         }

@@ -127,13 +127,8 @@ in
       substituteInPlace $out/ThemeSwitcher.qml \
         --replace "/home/matteo/.config/hypr/scripts/switch_theme.sh" "${pkgs.coreutils}/bin/true"
 
-      # Remove ASUS-specific Process blocks by replacing with no-ops
-      # supergfxctl, asusctl, ryzenadj, setwatt
-      substituteInPlace $out/shell.qml \
-        --replace "supergfxctl" "echo" \
-        --replace "asusctl" "echo" \
-        --replace "ryzenadj" "echo" \
-        --replace "setwatt" "echo"
+      # ASUS-specific Process blocks (supergfxctl, asusctl, ryzenadj,
+      # setwatt) removed from QML source directly — no substitution needed.
     '';
 
     meta = with pkgs.lib; {
