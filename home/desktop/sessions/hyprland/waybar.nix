@@ -22,6 +22,7 @@
   network-toggle,
   pwvucontrol-toggle,
   btop-toggle,
+  theme,
   pkgs,
   ...
 }: let
@@ -75,6 +76,7 @@ in {
     Unit = {
       After = ["graphical-session.target" "wayland-wm@Hyprland.service" "app-status-daemon.service"];
       Wants = ["app-status-daemon.service"];
+      Conflicts = ["quickshell.service"];
     };
     Service = {
       ExecStart = lib.mkForce "${waybar-with-hyprland-env}";
@@ -84,6 +86,15 @@ in {
       # infinite hang if Hyprland fails to start.
       ExecStartPre = lib.mkForce "${pkgs.bash}/bin/bash -c 'i=0; while ! ${pkgs.hyprland}/bin/hyprctl instances -j 2>/dev/null | ${pkgs.jq}/bin/jq -e \".[0].instance\" >/dev/null 2>&1 && [ $i -lt 50 ]; do sleep 0.1; i=$((i+1)); done'";
     };
+    # Auto-start only when the active theme uses waybar as its bar.
+    # When theme.bar == "quickshell", waybar's WantedBy is emptied
+    # (mkForce []) so systemd removes the old symlink and waybar
+    # does not auto-start. Conflicts= is a safety net for manual
+    # starts, but WantedBy= is the real gate.
+    Install =
+      if (theme.bar or "waybar") == "waybar"
+      then {WantedBy = ["graphical-session.target"];}
+      else {WantedBy = lib.mkForce [];};
   };
 
   # Restart waybar after HM activation when hyprland.conf changes.
@@ -141,32 +152,44 @@ in {
   '';
 
   programs.waybar.settings.mainBar = {
-    "hyprland/workspaces" = {
-      on-click = "activate";
-      cursor = true;
-      format = "{icon}";
-      format-icons = {
-        "1" = "1";
-        "2" = "2";
-        "3" = "3";
-        "4" = "4";
-        "5" = "5";
-        "6" = "6";
-        "7" = "7";
-        "8" = "8";
-        "9" = "9";
+    "hyprland/workspaces" =
+      {
+        on-click = "activate";
+        cursor = true;
+      }
+      // (theme.waybar.workspaces or {
+        format = "{icon}";
+        format-icons = {
+          "1" = "1";
+          "2" = "2";
+          "3" = "3";
+          "4" = "4";
+          "5" = "5";
+          "6" = "6";
+          "7" = "7";
+          "8" = "8";
+          "9" = "9";
+        };
+        persistent-workspaces = {
+          "1" = [];
+          "2" = [];
+          "3" = [];
+          "4" = [];
+          "5" = [];
+          "6" = [];
+          "7" = [];
+          "8" = [];
+          "9" = [];
+        };
+      });
+
+    "hyprland/window" = {
+      icon = false;
+      format = "{title}";
+      rewrite = {
+        "(.*) — Mozilla Firefox" = "$1";
       };
-      persistent-workspaces = {
-        "1" = [];
-        "2" = [];
-        "3" = [];
-        "4" = [];
-        "5" = [];
-        "6" = [];
-        "7" = [];
-        "8" = [];
-        "9" = [];
-      };
+      max-width = 100;
     };
 
     "custom/telegram" = {

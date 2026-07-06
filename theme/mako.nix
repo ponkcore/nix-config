@@ -1,4 +1,8 @@
-{p, ...}: {
+{
+  p,
+  theme, # reserved for future per-theme structural overrides
+  ...
+}: {
   # mako — Wayland notification daemon.
   #
   # In Home Manager 25.11 the `services.mako` module installs the package

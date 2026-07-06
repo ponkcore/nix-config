@@ -5,9 +5,10 @@
 {
   p,
   c,
+  theme, # reserved for future per-theme structural overrides
   ...
 }: {
-  # Rofi — palette theme file (colors interpolated from lib/palette.nix)
+  # Rofi — palette theme file (colors interpolated from theme palette)
   xdg.dataFile."rofi/themes/palette.rasi".text = ''
     * {
         bg:       ${c.rasiRGBA p.bg};

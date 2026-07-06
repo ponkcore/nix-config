@@ -149,6 +149,64 @@
     echo "$result" > "$cache_file"
     echo "$result"
   '';
+
+  # ── Theme selector (rofi → nixos-rebuild) ─────────────────────────
+  # Lists available themes from theme/themes/, prompts via rofi, then
+  # calls theme-switch to change the active theme in theme/default.nix
+  # and rebuild. Not seamless (~5s rebuild) but fully declarative.
+  theme-select = pkgs.writeShellScriptBin "theme-select" ''
+    THEMES_DIR="/etc/nixos/theme/themes"
+    CURRENT=$(grep 'activeThemeName' "$THEMES_DIR/../default.nix" | head -1 | sed 's/.*"\(.*\)".*/\1/')
+
+    # List theme directories, mark current with ●
+    ENTRIES=$(${pkgs.findutils}/bin/find "$THEMES_DIR" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort)
+    FORMATTED=""
+    for entry in $ENTRIES; do
+      if [ "$entry" = "$CURRENT" ]; then
+        FORMATTED="● $entry''\n$FORMATTED"
+      else
+        FORMATTED="$FORMATTED○ $entry''\n"
+      fi
+    done
+    FORMATTED=$(printf '%b' "$FORMATTED" | sed '/^$/d')
+
+    SELECTED=$(printf '%s\n' "$FORMATTED" | ${pkgs.rofi}/bin/rofi -dmenu -i -p 'Theme' -theme palette)
+    [ -z "$SELECTED" ] && exit 0
+
+    # Strip the marker prefix
+    THEME=$(echo "$SELECTED" | sed 's/^[●○] //')
+
+    ${theme-switch}/bin/theme-switch "$THEME"
+  '';
+
+  # ── Theme switcher (sed + nixos-rebuild) ──────────────────────────
+  # Changes activeThemeName in theme/default.nix and rebuilds.
+  # This is the declarative path: the Nix expression is the source of
+  # truth, so we modify it and rebuild. Waybar restarts as part of
+  # HM activation.
+  theme-switch = pkgs.writeShellScriptBin "theme-switch" ''
+    if [ -z "$1" ]; then
+      echo "usage: theme-switch <theme-name>"
+      exit 1
+    fi
+
+    THEME_FILE="/etc/nixos/theme/default.nix"
+    THEMES_DIR="/etc/nixos/theme/themes"
+
+    if [ ! -d "$THEMES_DIR/$1" ]; then
+      echo "theme '$1' not found in $THEMES_DIR"
+      exit 1
+    fi
+
+    # Replace the activeThemeName value. The sed pattern matches:
+    #   activeThemeName = "old-name";
+    # and replaces with:
+    #   activeThemeName = "new-name";
+    ${pkgs.gnused}/bin/sed -i "s/activeThemeName = \".*\";/activeThemeName = \"$1\";/" "$THEME_FILE"
+
+    echo "switching to theme: $1"
+    sudo nixos-rebuild switch --flake /etc/nixos#lecoo 2>&1 | tail -5
+  '';
 in {
   # Expose every script as a function arg to other theme modules.
   _module.args = {
@@ -159,6 +217,8 @@ in {
       cpu-mem
       volume-status
       brightness-status
+      theme-select
+      theme-switch
       ;
   };
 
@@ -169,5 +229,7 @@ in {
     cpu-mem
     volume-status
     brightness-status
+    theme-select
+    theme-switch
   ];
 }

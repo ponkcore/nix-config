@@ -53,8 +53,9 @@
   pkgs,
   ...
 }: let
-  # Palette — shared via lib/palette.nix.
-  p = import ../../../../lib/palette.nix;
+  # Palette — shared via theme/themes/gruvbox-dark/palette.nix.
+  # Pre-boot system module: no _module.args available, import directly.
+  p = import ../../../../theme/themes/gruvbox-dark/palette.nix;
 
   # Greeter wrapper — runs sway under dbus-run-session.
   #

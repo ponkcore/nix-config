@@ -5,4 +5,11 @@
 # (services.foo = ...; services.bar = ...;) which is the idiomatic style for
 # NixOS modules — nesting under a single attrset adds visual noise and breaks
 # diff locality when adding an unrelated `services.*` line.
-disabled = ["repeated_keys"]
+#
+# [04] "assignment_inherit" is disabled: statix suggests replacing
+# `modules-left = modulesLeft;` with `inherit modulesLeft;`, but this
+# breaks when the local binding name differs from the attribute name
+# (e.g. `modules-left = modulesLeft;` where the attr is `modules-left`
+# and the binding is `modulesLeft`). The `inherit` syntax cannot rename
+# on assignment, making the suggestion incorrect for these cases.
+disabled = ["repeated_keys", "manual_inherit_from"]
