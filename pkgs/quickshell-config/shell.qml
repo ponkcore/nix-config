@@ -1107,7 +1107,7 @@ ShellRoot {
                                 Layout.preferredWidth: 24
                                 Layout.preferredHeight: 24
                                 hoverEnabled: true
-                                onClicked: pBrightSet.command = ["brightnessctl", "s", "100%"]; pBrightSet.running = true
+                                onClicked: { pBrightSet.command = ["brightnessctl", "s", "100%"]; pBrightSet.running = true }
                                 scale: containsPress ? 0.9 : (containsMouse ? 1.1 : 1.0)
                                 Behavior on scale { NumberAnimation { duration: root.batteryMode ? 0 : 150 } }
                                 Text {
