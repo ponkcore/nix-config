@@ -18,12 +18,9 @@
   config,
   lib,
   theme,
-  update-check,
   ...
 }: let
-  quickshellConfig = pkgs.callPackage ../../../../pkgs/quickshell-config {
-    inherit update-check;
-  };
+  quickshellConfig = pkgs.callPackage ../../../../pkgs/quickshell-config {};
 
   # Quickshell wrapper: ensures Hyprland env is available before
   # starting, same pattern as waybar-with-hyprland-env.

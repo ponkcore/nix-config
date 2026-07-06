@@ -91,7 +91,7 @@ flake.nix                Inputs + nixosConfigurations
 flake.lock               Pinned input revisions
 lib/
   mkHost.nix             Helper: builds a nixosSystem from a host spec
-  palette.nix            Gruvbox dark medium color tokens
+  palette.nix            (moved to theme/themes/gruvbox-dark/)
 hosts/
   lecoo/                 Lenovo Lecoo Pro 14 2025
 modules/
@@ -99,8 +99,10 @@ modules/
     desktop/             Wayland desktop stack
   hardware/              Opt-in profiles per CPU/GPU/form-factor/boot
 home/                    Home Manager modules (per-user config)
-theme/                   Wayland theme bundle (palette consumers)
+theme/                   Wayland theme system (palette × layout × bar backend)
+  themes/                gruvbox-dark (waybar), matteogini (quickshell)
 pkgs/                    Local package derivations + overlay
+  quickshell-config/     Quickshell QML (matteogini port)
 secrets/                 agenix-encrypted secrets + authorisation map
 skills/                  Letta Code skill files installed into ~/.letta/skills
 tests/                   nixosTests exposed through flake checks

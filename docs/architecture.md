@@ -129,8 +129,9 @@ modules/nixos/desktop/             home/desktop/
          silent wrapper)                 (niri/, gnome/ when added)
 
 theme/                             ── compositor-agnostic UI
-├── default.nix      palette + scripts via _module.args
-├── waybar.nix       waybar (hyprland workspace plugin guarded by mkIf)
+├── default.nix      theme registry + active theme selector
+├── waybar/          waybar renderer (reads theme.waybar.*)
+├── themes/          theme definitions (gruvbox-dark, matteogini)
 ├── mako.nix · rofi.nix · ghostty.nix · scripts.nix
 ```
 
@@ -222,7 +223,7 @@ greetd → sway (Wayland kiosk) → nwg-hello (GTK3 greeter)
      (laptop hosts only)
 ```
 
-Palette: `lib/palette.nix` — 25 Gruvbox dark medium tokens. Distributed to
+Palette: `theme/themes/gruvbox-dark/palette.nix` — 25 Gruvbox dark medium tokens. Distributed to
 theme modules via `_module.args.p`, to a few HM modules by direct
 import (`fzf.nix`, `wlogout.nix`, `yazi.nix`, `fish.nix`,
 `modules/nixos/desktop/greeter/greetd.nix`).
@@ -273,7 +274,7 @@ Layer 2 (web/banking/notes/2FA) lives in the KeePass vault. Layer 3
 | greetd / nwg-hello styling | `modules/nixos/desktop/greeter/greetd.nix` |
 | Hyprland system enable + UWSM | `modules/nixos/desktop/sessions/hyprland.nix` |
 | Hyprland user config | `home/desktop/sessions/hyprland/` |
-| Gruvbox palette source | `lib/palette.nix` |
+| Gruvbox palette source | `theme/themes/gruvbox-dark/palette.nix` |
 | nix-ld (FHS binary shim) | `modules/nixos/packages.nix` |
 | Agent global instructions | `home/agent-rules.nix` (deploys `home/agent-instructions/AGENTS.md` to opencode/omp/agy paths) |
 | DevShell templates | `home/agent-rules.nix` (deploys to `~/.local/share/nixos-templates/`) |

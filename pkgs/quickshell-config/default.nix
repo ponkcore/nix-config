@@ -25,7 +25,6 @@
 #   ryzenadj / setwatt (CPU TDP — we use our eco-toggle instead)
 {
   pkgs,
-  update-check,
   ultra-economy-toggle ? null,
   ...
 }: let

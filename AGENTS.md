@@ -31,7 +31,7 @@ flake.nix                    Inputs, outputs, host registrations
 flake.lock                   Pinned input revisions (always commit)
 lib/
   mkHost.nix                 Helper: builds a nixosSystem from a host spec
-  palette.nix                Gruvbox dark medium color tokens (used by theme/)
+  palette.nix                (moved to theme/themes/gruvbox-dark/palette.nix)
 hosts/
   lecoo/                     Lenovo Lecoo Pro 14 2025
     default.nix              Composition (which profiles to import)
@@ -75,7 +75,15 @@ home/                        Home Manager modules (per-user config)
     templates/              DevShell flake.nix templates (Python/Node/Rust/Go/Polyglot)
     nixos-constraints/      On-demand skill for opencode error recovery
   agent-rules.nix           HM module: deploys agent-instructions/ to agent paths
-theme/                       Wayland theme bundle (palette via _module.args.p)
+theme/                       Wayland theme system (palette + structural overrides)
+  default.nix                Theme registry + active theme selector
+  themes/                    Theme definitions (palette × layout × bar backend)
+    gruvbox-dark/            Gruvbox dark medium (waybar, original)
+    matteogini/              Quickshell notch bar + control center
+  waybar/default.nix         Waybar renderer (reads theme.waybar.*)
+  scripts.nix                Helper scripts (theme-select, theme-switch, etc.)
+pkgs/                        Local package derivations (overlay)
+  quickshell-config/         Quickshell QML config (matteogini port)
 pkgs/                        Local package derivations (overlay)
 secrets/                     agenix-encrypted secrets + secrets.nix authorisation
 skills/                      Letta Code skills installed into ~/.letta/skills
