@@ -87,12 +87,14 @@ in {
       ExecStartPre = lib.mkForce "${pkgs.bash}/bin/bash -c 'i=0; while ! ${pkgs.hyprland}/bin/hyprctl instances -j 2>/dev/null | ${pkgs.jq}/bin/jq -e \".[0].instance\" >/dev/null 2>&1 && [ $i -lt 50 ]; do sleep 0.1; i=$((i+1)); done'";
     };
     # Auto-start only when the active theme uses waybar as its bar.
-    # When theme.bar == "quickshell", waybar is not WantedBy any target
-    # and won't auto-start. Conflicts= ensures that if waybar is
-    # started manually, quickshell stops (and vice versa).
-    Install = lib.optionalAttrs ((theme.bar or "waybar") == "waybar") {
-      WantedBy = ["graphical-session.target"];
-    };
+    # When theme.bar == "quickshell", waybar's WantedBy is emptied
+    # (mkForce []) so systemd removes the old symlink and waybar
+    # does not auto-start. Conflicts= is a safety net for manual
+    # starts, but WantedBy= is the real gate.
+    Install =
+      if (theme.bar or "waybar") == "waybar"
+      then {WantedBy = ["graphical-session.target"];}
+      else {WantedBy = lib.mkForce [];};
   };
 
   # Restart waybar after HM activation when hyprland.conf changes.

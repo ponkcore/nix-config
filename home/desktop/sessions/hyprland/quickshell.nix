@@ -74,6 +74,18 @@ in {
     };
   };
 
+  # Restart quickshell after HM activation so it picks up new QML
+  # config from the Nix store. Without this, quickshell keeps running
+  # the old config until manually restarted — the user sees a flash
+  # of waybar (which auto-starts via its own WantedBy from the
+  # previous generation) before quickshell catches up.
+  # Same pattern as the waybar activation hook in waybar.nix.
+  home.activation.restart-quickshell-on-config-change = lib.hm.dag.entryAfter ["writeBoundary"] ''
+    if ${pkgs.systemd}/bin/systemctl --user is-active --quiet quickshell.service 2>/dev/null; then
+      ${pkgs.systemd}/bin/systemctl --user restart quickshell.service 2>/dev/null || true
+    fi
+  '';
+
   # Hyprland keybinds for quickshell IPC
   # These call qsIpc.* functions via hyprctl dispatch exec.
   # Note: quickshell IPC uses DBus, not hyprctl. The keybinds should
