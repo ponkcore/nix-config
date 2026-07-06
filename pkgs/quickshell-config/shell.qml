@@ -418,13 +418,13 @@ ShellRoot {
         anchors.horizontalCenter: parent.horizontalCenter
         height: 32
         width: root.isBarMode ? parent.width : notchLayout.implicitWidth + 32
-        color: Qt.rgba(0.02, 0.02, 0.02, 0.95)
+        color: Qt.rgba(root.colBg.r, root.colBg.g, root.colBg.b, 0.95)
         radius: root.isBarMode ? 0 : 16
-        
+
         Behavior on width { NumberAnimation { duration: root.batteryMode ? 0 : 400; easing.type: Easing.OutExpo } }
         Behavior on radius { NumberAnimation { duration: root.batteryMode ? 0 : 400; easing.type: Easing.OutExpo } }
         Behavior on anchors.topMargin { NumberAnimation { duration: root.batteryMode ? 0 : 400; easing.type: Easing.OutExpo } }
-        border.color: Qt.rgba(1, 1, 1, 0.1)
+        border.color: Qt.rgba(root.colFg.r, root.colFg.g, root.colFg.b, 0.1)
         border.width: root.isBarMode ? 0 : 1
         
         RowLayout {
@@ -604,7 +604,7 @@ ShellRoot {
             visible: battIcon.charging
             text: ""
             font.pixelSize: 9
-            color: "#ffffff"
+            color: root.colFg
             anchors.centerIn: outline
         }
     }
@@ -628,7 +628,7 @@ ShellRoot {
         Rectangle {
             anchors.fill: parent
             radius: 12
-            color: mainMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(1, 1, 1, 0.1)
+            color: mainMouse.containsMouse ? Qt.rgba(root.colFg.r, root.colFg.g, root.colFg.b, 0.15) : Qt.rgba(root.colFg.r, root.colFg.g, root.colFg.b, 0.1)
             border.color: "transparent"
             Behavior on color { ColorAnimation { duration: root.batteryMode ? 0 : 150 } }
         }
@@ -652,12 +652,12 @@ ShellRoot {
                 Layout.preferredWidth: 32
                 Layout.preferredHeight: 32
                 radius: 16
-                color: mbtn.isActive ? mbtn.accent : Qt.rgba(1, 1, 1, 0.15)
+                color: mbtn.isActive ? mbtn.accent : Qt.rgba(root.colFg.r, root.colFg.g, root.colFg.b, 0.15)
                 
                 Text {
                     anchors.centerIn: parent
                     text: mbtn.iconText
-                    color: mbtn.isActive ? "#ffffff" : root.colFg
+                    color: mbtn.isActive ? root.colBg : root.colFg
                     font.family: root.fontFamily
                     font.pixelSize: 16
                 }
@@ -724,7 +724,7 @@ ShellRoot {
             anchors.fill: parent
             radius: 12
             color: mbtn.isActive ? Qt.rgba(mbtn.accent.r, mbtn.accent.g, mbtn.accent.b, 0.15) 
-                                 : (mbtn.containsMouse ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(1, 1, 1, 0.1))
+                                 : (mbtn.containsMouse ? Qt.rgba(root.colFg.r, root.colFg.g, root.colFg.b, 0.15) : Qt.rgba(root.colFg.r, root.colFg.g, root.colFg.b, 0.1))
             border.color: mbtn.isActive ? Qt.rgba(mbtn.accent.r, mbtn.accent.g, mbtn.accent.b, 0.3) : "transparent"
             border.width: 1
             Behavior on color { ColorAnimation { duration: root.batteryMode ? 0 : 150 } }
@@ -754,7 +754,7 @@ ShellRoot {
             width: mSlider.availableWidth
             height: implicitHeight
             radius: 4
-            color: Qt.rgba(1, 1, 1, 0.1)
+            color: Qt.rgba(root.colFg.r, root.colFg.g, root.colFg.b, 0.1)
             Rectangle {
                 width: mSlider.visualPosition * parent.width
                 height: parent.height
@@ -769,7 +769,7 @@ ShellRoot {
             implicitWidth: 16
             implicitHeight: 16
             radius: 8
-            color: mSlider.pressed ? Qt.rgba(0.8, 0.8, 0.8, 1) : "#ffffff"
+            color: mSlider.pressed ? Qt.rgba(root.colFg.r, root.colFg.g, root.colFg.b, 0.8) : root.colFg
             scale: mSlider.pressed || mSlider.hovered ? 1.2 : 1.0
             Behavior on scale { NumberAnimation { duration: root.batteryMode ? 0 : 100 } }
             
@@ -852,9 +852,9 @@ ShellRoot {
                 width: controlCenter.show ? 380 : notchLayout.implicitWidth + 32
                 height: controlCenter.show ? (mainLayout.implicitHeight + 32) : 32
                 
-                color: Qt.rgba(0.02, 0.02, 0.02, 0.95)
+                color: Qt.rgba(root.colBg.r, root.colBg.g, root.colBg.b, 0.95)
                 radius: controlCenter.show ? 24 : (root.isBarMode ? 0 : 16)
-                border.color: Qt.rgba(1, 1, 1, 0.1)
+                border.color: Qt.rgba(root.colFg.r, root.colFg.g, root.colFg.b, 0.1)
                 border.width: (controlCenter.show || !root.isBarMode) ? 1 : 0
                 
                 // DYNAMIC ISLAND FLUID ANIMATION
@@ -952,7 +952,7 @@ ShellRoot {
                             Rectangle {
                                 anchors.fill: parent
                                 radius: 12
-                                color: parent.containsMouse ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(1, 1, 1, 0.1)
+                                color: parent.containsMouse ? Qt.rgba(root.colFg.r, root.colFg.g, root.colFg.b, 0.15) : Qt.rgba(root.colFg.r, root.colFg.g, root.colFg.b, 0.1)
                                 Behavior on color { ColorAnimation { duration: root.batteryMode ? 0 : 150 } }
                             }
                             
@@ -1330,9 +1330,9 @@ ShellRoot {
                 
                 anchors.rightMargin: 12
                 
-                color: Qt.rgba(0.08, 0.08, 0.08, 0.95)
+                color: Qt.rgba(root.colBg.r, root.colBg.g, root.colBg.b, 0.95)
                 radius: 16
-                border.color: Qt.rgba(1, 1, 1, 0.1)
+                border.color: Qt.rgba(root.colFg.r, root.colFg.g, root.colFg.b, 0.1)
                 border.width: 1
                 
                 opacity: timerPopup.show ? 1.0 : 0.0
@@ -1357,9 +1357,9 @@ ShellRoot {
                         placeholderText: "e.g. 5"
                         color: root.colFg
                         background: Rectangle {
-                            color: Qt.rgba(1, 1, 1, 0.1)
+                            color: Qt.rgba(root.colFg.r, root.colFg.g, root.colFg.b, 0.1)
                             radius: 8
-                            border.color: timerInput.activeFocus ? Qt.rgba(1, 1, 1, 0.3) : "transparent"
+                            border.color: timerInput.activeFocus ? Qt.rgba(root.colFg.r, root.colFg.g, root.colFg.b, 0.3) : "transparent"
                         }
                         font.family: root.fontFamily
                         font.pixelSize: 14
@@ -1406,9 +1406,9 @@ ShellRoot {
                 
                 anchors.rightMargin: 12
                 
-                color: Qt.rgba(0.08, 0.08, 0.08, 0.95)
+                color: Qt.rgba(root.colBg.r, root.colBg.g, root.colBg.b, 0.95)
                 radius: 16
-                border.color: Qt.rgba(1, 1, 1, 0.1)
+                border.color: Qt.rgba(root.colFg.r, root.colFg.g, root.colFg.b, 0.1)
                 border.width: 1
                 
                 opacity: gpuPopup.show ? 1.0 : 0.0
@@ -1460,9 +1460,9 @@ ShellRoot {
                 
                 anchors.rightMargin: 12
                 
-                color: Qt.rgba(0.08, 0.08, 0.08, 0.95)
+                color: Qt.rgba(root.colBg.r, root.colBg.g, root.colBg.b, 0.95)
                 radius: 16
-                border.color: Qt.rgba(1, 1, 1, 0.1)
+                border.color: Qt.rgba(root.colFg.r, root.colFg.g, root.colFg.b, 0.1)
                 border.width: 1
                 
                 opacity: notesPopup.show ? 1.0 : 0.0
