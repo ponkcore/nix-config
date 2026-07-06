@@ -33,7 +33,7 @@
 
   # Active theme — change this to switch. In future: driven by a
   # mutable state file so a rofi selector can switch without rebuild.
-  activeThemeName = "gruvbox-dark";
+  activeThemeName = "matteogini";
   theme = themes.${activeThemeName};
 
   # Palette — extracted from the active theme for convenience.

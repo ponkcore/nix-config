@@ -42,8 +42,17 @@
   isLecoo = hostname == "lecoo";
 
   # Shorthand for the waybar section of the active theme.
-  wb = theme.waybar;
-  m = wb.margins;
+  # When the theme uses quickshell (no waybar), wb is empty — the
+  # waybar module still generates config (harmless, waybar.service
+  # won't start because WantedBy is gated by theme.bar).
+  wb = theme.waybar or {};
+  m =
+    wb.margins or {
+      top = 0;
+      bottom = 0;
+      left = 0;
+      right = 0;
+    };
 
   # Waybar's native `hyprland/language` renders `...` on the current
   # Hyprland/Waybar pair, despite `hyprctl devices -j` exposing the
@@ -110,7 +119,7 @@
   extendLayout = wb.extendLayout or true;
 
   modulesLeft =
-    wb.modulesLeft
+    (wb.modulesLeft or [])
     ++ lib.optionals (extendLayout && hasHyprland) [
       "custom/language"
       "custom/separator"
@@ -126,7 +135,7 @@
       "custom/separator"
     ];
 
-  modulesCenter = lib.optionals hasHyprland wb.modulesCenter;
+  modulesCenter = lib.optionals hasHyprland (wb.modulesCenter or []);
 
   # Split theme's modulesRight at "custom/power" to inject host modules.
   # When extendLayout is false the theme manages its own full layout,
@@ -147,7 +156,7 @@
         else go (acc ++ [(lib.head remaining)]) (lib.tail remaining);
     in
       go [] list;
-    split = splitAt (mod: mod == "custom/power") wb.modulesRight;
+    split = splitAt (mod: mod == "custom/power") (wb.modulesRight or []);
   in
     if extendLayout
     then
@@ -162,7 +171,7 @@
       ]
       ++ lib.optionals (!isLecoo) ["battery"]
       ++ split.post
-    else wb.modulesRight;
+    else (wb.modulesRight or []);
 in {
   programs.waybar = {
     enable = true;
@@ -226,7 +235,7 @@ in {
           margin: ${toString m.top}px ${toString m.right}px ${toString m.bottom}px ${toString m.left}px;
           padding: 0px;
           border: 2px solid transparent;
-          border-radius: ${toString wb.borderRadius}px;
+          border-radius: ${toString (wb.borderRadius or 0)}px;
           box-shadow: 0px 1px 2px rgba(0, 0, 0, 1);
           font-weight: normal;
           font-size: 16px;
@@ -523,7 +532,7 @@ in {
           color: @border_inact;
         }
 
-        ${wb.extraStyle}
+        ${wb.extraStyle or ""}
       '';
 
       # Full style overrides baseStyle entirely when provided by theme.
@@ -536,10 +545,10 @@ in {
     settings.mainBar = {
       exclusive = true;
       reload_style_on_change = true;
-      position = wb.position;
-      width = wb.width;
+      position = wb.position or "top";
+      width = wb.width or 0;
       height = wb.height or 0;
-      spacing = wb.spacing;
+      spacing = wb.spacing or 0;
       margin-top = m.top;
       margin-bottom = m.bottom;
       margin-left = m.left;

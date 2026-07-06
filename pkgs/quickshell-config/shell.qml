@@ -19,7 +19,7 @@ ShellRoot {
     property string fontFamily: "JetBrainsMono Nerd Font"
     property int fontSize: 10 // Reduced font size to match waybar 9px
     property int windowCount: 0
-    property bool isBarMode: windowCount === 1
+    property bool isBarMode: false // Always notch mode
     property real notchWidth: notchLayout.implicitWidth
     
     property bool isAnyPopupOpen: controlCenter.show || appLauncherPopup.show || clipboardManagerPopup.show || themeSwitcherPopup.show || wifiMenuPopup.show || powerMenuPopup.show || bluetoothMenuPopup.show
@@ -237,17 +237,15 @@ ShellRoot {
 
     // Background Process Loops
     Process {
-        command: ["sh", "-c", "while true; do awk '{line[NR]=$1} END {printf \"%.1f\", (line[1] * line[2]) / 1000000000000}' /sys/class/power_supply/BAT1/current_now /sys/class/power_supply/BAT1/voltage_now 2>/dev/null || echo '0.0'; echo; sleep 3; done"]
+        command: ["sh", "-c", "while true; do awk '{printf \"%.1f\", $1/1000000}' /sys/class/power_supply/BAT0/power_now 2>/dev/null || echo '0.0'; echo; sleep 3; done"]
         running: true; stdout: SplitParser { onRead: data => root.powerDraw = data.trim() }
     }
     Process {
         command: ["sh", "-c", "while true; do temp=$(cat /sys/class/thermal/thermal_zone0/temp 2>/dev/null || echo 0); echo $((temp / 1000)); sleep 3; done"]
         running: true; stdout: SplitParser { onRead: data => root.temperature = data.trim() }
     }
-    Process {
-        command: ["sh", "-c", "while true; do checkupdates 2>/dev/null | wc -l; sleep 3600; done"]
-        running: true; stdout: SplitParser { onRead: data => root.updates = data.trim() }
-    }
+    // Updates checker disabled — NixOS uses nixos-rebuild, not checkupdates.
+    // Property stays at "0" (hidden in UI when parseInt(0) > 0 is false).
     Process {
         command: ["sh", "-c", "while true; do cap=$(cat /sys/class/power_supply/BAT1/capacity 2>/dev/null || echo 0); acad=$(cat /sys/class/power_supply/ACAD/online 2>/dev/null || echo 0); echo \"$cap $acad\"; sleep 5; done"]
         running: true; stdout: SplitParser { 
@@ -1116,72 +1114,8 @@ ShellRoot {
                             
                         }
 
-                        // Keyboard Brightness
-                        RowLayout {
-                            spacing: 8
-                            Text { text: "󰌌"; color: root.colFg; font.family: root.fontFamily; font.pixelSize: 18 }
-                            ModernSlider {
-                                value: parseInt(root.kbdBrightnessLevel) / 3.0
-                                stepSize: 1.0 / 3.0
-                                snapMode: Slider.SnapAlways
-                                onMoved: {
-                                    var levels = ["off", "low", "med", "high"];
-                                    var idx = Math.round(value * 3);
-                                    root.kbdBrightnessLevel = idx.toString();
-                                    pKbdBrightSet.command = ["asusctl", "leds", "set", levels[idx]];
-                                    pKbdBrightSet.running = true;
-                                }
-                            }
-                        }
-
-                        // Wattage
-                        RowLayout {
-                            spacing: 8
-                            Text { text: "󱐋"; color: root.colFg; font.family: root.fontFamily; font.pixelSize: 18 }
-                            ModernSlider {
-                                value: (root.cpuWattage - 3) / 42.0
-                                onMoved: {
-                                    var watts = Math.round(3 + value * 42)
-                                    root.cpuWattage = watts
-                                    pWattSet.command = ["setwatt", watts.toString()]
-                                    pWattSet.running = true
-                                }
-                            }
-                            Text { 
-                                text: root.cpuWattage + "W"
-                                color: root.colFg
-                                font.family: root.fontFamily
-                                font.pixelSize: 12
-                                Layout.minimumWidth: 24
-                                horizontalAlignment: Text.AlignRight
-                            }
-                        }
-
-                        // Battery Limit
-                        RowLayout {
-                            spacing: 8
-                            Text { text: "󰁹"; color: root.colFg; font.family: root.fontFamily; font.pixelSize: 18 }
-                            ModernSlider {
-                                value: (root.batLimit - 20) / 80.0
-                                onMoved: {
-                                    var limit = Math.round(20 + value * 80)
-                                    root.batLimit = limit
-                                    pBatLimitSet.command = ["asusctl", "battery", "limit", limit.toString()]
-                                    pBatLimitSet.running = true
-                                }
-                            }
-                            Text { 
-                                text: root.batLimit + "%"
-                                color: root.colFg
-                                font.family: root.fontFamily
-                                font.pixelSize: 12
-                                Layout.minimumWidth: 24
-                                horizontalAlignment: Text.AlignRight
-                            }
-                        }
-
                     }
-                    
+
                     // Toggles Row 1
                     RowLayout {
                         spacing: 8

@@ -111,10 +111,8 @@ in
         --replace "BAT1" "BAT0" \
         --replace "ACAD" "ADP1"
 
-      # Replace checkupdates with our update-check (simpler: just count
-      # non-empty output, avoid nested quotes that break QML parsing)
-      substituteInPlace $out/shell.qml \
-        --replace "checkupdates 2>/dev/null | wc -l" "${update-check}/bin/update-check 2>/dev/null | grep -c 'upd' || echo 0"
+      # checkupdates Process block removed from QML source directly.
+      # No substitution needed — the block is commented out.
 
       # Fix AppLauncher paths
       substituteInPlace $out/AppLauncher.qml \
