@@ -1,10 +1,9 @@
 # quickshell.nix — Quickshell shell (bar + control center + popups).
 #
-# Replaces waybar with a QtQuick-based shell adapted from
-# matteogini/dotfiles. Provides:
+# QtQuick-based shell adapted into the local configuration. Provides:
 #   - Notch-style top bar (transparent, content-driven width)
 #   - Control center (sliders: volume, brightness, battery limit)
-#   - App launcher, clipboard manager, theme switcher
+#   - App launcher, clipboard manager
 #   - WiFi/Bluetooth menus
 #   - Power menu (lock/logout/suspend/reboot/shutdown)
 #   - OSD overlays (volume/brightness)
@@ -23,14 +22,14 @@
   quickshellConfig = pkgs.callPackage ../../../../pkgs/quickshell-config {};
 
   # Quickshell wrapper: ensures Hyprland env is available before
-  # starting, same pattern as waybar-with-hyprland-env.
+  # starting.
   quickshell-launcher = pkgs.writeShellScript "quickshell-launcher" ''
     set -u
 
     HYPRCTL="${pkgs.hyprland}/bin/hyprctl"
     JQ="${pkgs.jq}/bin/jq"
 
-    # Wait for Hyprland instance to be ready (same logic as waybar).
+    # Wait for Hyprland instance to be ready before launching qs.
     for _ in $(${pkgs.coreutils}/bin/seq 1 150); do
       instance_json="$($HYPRCTL instances -j 2>/dev/null || printf '[]')"
       HYPRLAND_INSTANCE_SIGNATURE="$(printf '%s' "$instance_json" | $JQ -r '.[0].instance // empty')"
@@ -51,32 +50,27 @@ in {
   # Quickshell package
   home.packages = [pkgs.quickshell quickshellConfig];
 
-  # Systemd user service — replaces waybar when active.
-  # Conflicts with waybar.service so only one bar runs at a time.
+  # Systemd user service for the active desktop shell.
   systemd.user.services.quickshell = {
     Unit = {
       Description = "Quickshell desktop shell";
       After = ["graphical-session.target" "wayland-wm@Hyprland.service"];
       PartOf = ["graphical-session.target"];
-      Conflicts = ["waybar.service"];
     };
     Service = {
       ExecStart = "${quickshell-launcher}";
       Restart = "on-failure";
       RestartSec = 3;
     };
-    # Auto-start only when the active theme uses quickshell as its bar.
-    Install = lib.optionalAttrs ((theme.bar or "waybar") == "quickshell") {
+    # Auto-start for the active theme.
+    Install = lib.optionalAttrs ((theme.bar or "quickshell") == "quickshell") {
       WantedBy = ["graphical-session.target"];
     };
   };
 
   # Restart quickshell after HM activation so it picks up new QML
   # config from the Nix store. Without this, quickshell keeps running
-  # the old config until manually restarted — the user sees a flash
-  # of waybar (which auto-starts via its own WantedBy from the
-  # previous generation) before quickshell catches up.
-  # Same pattern as the waybar activation hook in waybar.nix.
+  # the old config until manually restarted.
   home.activation.restart-quickshell-on-config-change = lib.hm.dag.entryAfter ["writeBoundary"] ''
     if ${pkgs.systemd}/bin/systemctl --user is-active --quiet quickshell.service 2>/dev/null; then
       ${pkgs.systemd}/bin/systemctl --user restart quickshell.service 2>/dev/null || true

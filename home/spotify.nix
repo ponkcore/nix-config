@@ -5,7 +5,7 @@
 # XWayland — there is no native Wayland branch upstream.
 #
 # Tray-style hide/show toggle and window rules live next to the
-# Hyprland session. Waybar has no system-tray module on this host so
+# Hyprland session. The desktop shell does not rely on a legacy tray-based
 # we use the same special-workspace pattern as Telegram and Clash;
 # Spotify's own system-tray icon is therefore not needed.
 {pkgs, ...}: {

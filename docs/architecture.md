@@ -56,8 +56,9 @@ slot in without touching existing sessions).
                ┌──────────────────────────┐
                │ theme/                   │
                │ compositor-agnostic UI   │
-               │ (waybar, mako, rofi,     │
-               │  ghostty, palette)       │
+               │ (quickshell-adjacent     │
+               │  palette, mako, rofi,    │
+               │  ghostty)                │
                └──────────────────────────┘
 ```
 
@@ -129,9 +130,8 @@ modules/nixos/desktop/             home/desktop/
          silent wrapper)                 (niri/, gnome/ when added)
 
 theme/                             ── compositor-agnostic UI
-├── default.nix      theme registry + active theme selector
-├── waybar/          waybar renderer (reads theme.waybar.*)
-├── themes/          theme definitions (gruvbox-dark, matteogini)
+├── default.nix      single active theme export
+├── themes/          theme definitions (monochrome active)
 ├── mako.nix · rofi.nix · ghostty.nix · scripts.nix
 ```
 
@@ -173,7 +173,7 @@ flake.nix
 ```
 
 `pkgs/default.nix` returns a list of overlays:
-- local packages (`cloakbrowser`, `orbit`, `oh-my-pi`, `oh-my-openagent`,
+- local packages (`cloakbrowser`, `oh-my-pi`, `oh-my-openagent`,
   `letta-code`, `mcp-bridge`, `context7-mcp`, `fetch-py`)
 - NUR
 
@@ -214,7 +214,7 @@ greetd → sway (Wayland kiosk) → nwg-hello (GTK3 greeter)
    ┌───────────────────────────────────┴───┐
    ▼                                       ▼
  user systemd units                  Hyprland-managed
-   waybar                              hyprpaper
+   quickshell                          hyprpaper
    mako (D-Bus activated)              hyprlock
    cliphist                            hypridle (lock/sleep hooks +
    wlsunset                                     idle-flag signal)
@@ -223,7 +223,7 @@ greetd → sway (Wayland kiosk) → nwg-hello (GTK3 greeter)
      (laptop hosts only)
 ```
 
-Palette: `theme/themes/gruvbox-dark/palette.nix` — 25 Gruvbox dark medium tokens. Distributed to
+Palette: `theme/themes/monochrome/palette.nix` — theme color tokens. Distributed to
 theme modules via `_module.args.p`, to a few HM modules by direct
 import (`fzf.nix`, `wlogout.nix`, `yazi.nix`, `fish.nix`,
 `modules/nixos/desktop/greeter/greetd.nix`).
@@ -274,7 +274,7 @@ Layer 2 (web/banking/notes/2FA) lives in the KeePass vault. Layer 3
 | greetd / nwg-hello styling | `modules/nixos/desktop/greeter/greetd.nix` |
 | Hyprland system enable + UWSM | `modules/nixos/desktop/sessions/hyprland.nix` |
 | Hyprland user config | `home/desktop/sessions/hyprland/` |
-| Gruvbox palette source | `theme/themes/gruvbox-dark/palette.nix` |
+| Theme palette source | `theme/themes/monochrome/palette.nix` |
 | nix-ld (FHS binary shim) | `modules/nixos/packages.nix` |
 | Agent global instructions | `home/agent-rules.nix` (deploys `home/agent-instructions/AGENTS.md` to opencode/omp/agy paths) |
 | DevShell templates | `home/agent-rules.nix` (deploys to `~/.local/share/nixos-templates/`) |

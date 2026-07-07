@@ -42,7 +42,7 @@
   # Host-scoped overlays:
   # 26.05 migration: Hyprland flake overlay and unstable pull overlay
   # removed — 26.05 ships all ecosystem packages natively at the same
-  # versions (hyprland 0.55.4, waybar 0.15.0, hyprpaper 0.8.4, etc.).
+  # versions (hyprland 0.55.4, hyprpaper 0.8.4, quickshell 0.3.0, etc.).
   # Only the lecoo-ctrl custom package overlay remains.
   nixpkgs.overlays = [
     (final: _prev: {
@@ -51,10 +51,8 @@
   ];
 
   # Host-only Home Manager extension. Defines the lecoo-ctrl-driven
-  # scripts (battery-lecoo, lecoo-toggle, lecoo-status) and the waybar
-  # custom/battery fragment that consumes them. Other hosts simply
-  # don't extend HM with this and the universal layout falls back to
-  # the standard built-in `battery` slot.
+  # scripts and host-specific user helpers. Other hosts simply don't
+  # extend HM with this layer.
   home-manager.users.${username}.imports = [./home];
 
   # Lecoo EC daemon — defined as a NixOS module under hosts/lecoo/ec.nix.

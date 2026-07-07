@@ -1,45 +1,28 @@
 # theme/default.nix — compositor-agnostic Wayland theming.
 #
-# Aggregator: selects the active theme, then exports the theme's
-# palette `p`, color helpers `c`, wallpaper path, and the full theme
-# attrset to all submodules via _module.args. Submodules are renderers:
-# they consume `theme` to generate component-specific config (waybar
-# layout, CSS, mako colors, rofi theme, ghostty palette).
+# Single active theme export. The structure stays extensible: future
+# themes still live under theme/themes/<name>/ and can be wired here,
+# but the current system intentionally supports only one active theme
+# and one active bar backend (quickshell).
 #
-# To add a theme: create theme/themes/<name>/ with palette.nix and
-# default.nix (see theme/themes/gruvbox-dark/ for the template). Then
-# add it to `themes` below and set `activeTheme`.
+# Aggregator: exports the theme's palette `p`, color helpers `c`,
+# wallpaper path, and the full theme attrset to all submodules via
+# _module.args. Submodules consume `theme` to generate component-
+# specific config (mako colors, rofi theme, ghostty palette, etc.).
 #
-# To switch themes at runtime without rebuild (future): a rofi
-# selector writes the theme name to a mutable state file; a script
-# copies the theme's CSS into a writable active-theme.css and sends
-# SIGUSR1 to waybar. The declarative structure here is the base.
-#
-# Helper scripts (notification toggle, lecoo charge mode, telegram
-# toggle, etc.) live in theme/scripts.nix. Compositor-specific config
-# (Hyprland keybinds, hyprlock, hypridle, hyprpaper) lives in
+# Helper scripts (notification toggle, lecoo charge mode, etc.) live
+# in theme/scripts.nix. Compositor-specific config (Hyprland keybinds,
+# hyprlock, hypridle, hyprpaper, quickshell service) lives in
 # home/desktop/sessions/<name>/.
 #
 # Imported from home/desktop/default.nix when desktops is non-empty.
 # Headless/server hosts never see this file.
 {pkgs, ...}: let
-  # ── Theme registry ────────────────────────────────────────────────
-  # Each theme is a Nix module that returns { palette, wallpaper,
-  # waybar, mako, rofi, ghostty } attrsets. Add new themes here.
-  themes = {
-    gruvbox-dark = import ./themes/gruvbox-dark/default.nix {inherit pkgs;};
-    matteogini = import ./themes/matteogini/default.nix {};
-  };
-
-  # Active theme — change this to switch. In future: driven by a
-  # mutable state file so a rofi selector can switch without rebuild.
-  activeThemeName = "matteogini";
-  theme = themes.${activeThemeName};
+  theme = import ./themes/monochrome/default.nix {};
 
   # Palette — extracted from the active theme for convenience.
   # Submodules that only need colors (mako, rofi, ghostty) use `p`
-  # directly; modules that need structural data (waybar layout) use
-  # `theme.waybar.*`.
+  # directly.
   p = theme.palette;
 
   # Color helpers — convert palette tokens into the surface formats
@@ -73,7 +56,6 @@ in {
 
   imports = [
     ./scripts.nix
-    ./waybar
     ./ghostty.nix
     ./mako.nix
     ./rofi.nix
@@ -108,7 +90,7 @@ in {
       # gruvbox-gtk-theme ships proper gtk-4.0/ assets; the older
       # gruvbox-dark-gtk only carries gtk-2.0/3.0 and produces a
       # "Failed to import gtk.css" warning on every gtk4 launch
-      # (mako, orbit, keepassxc, …).
+      # (mako, keepassxc, …).
       name = "Gruvbox-Dark";
       package = pkgs.gruvbox-gtk-theme;
     };

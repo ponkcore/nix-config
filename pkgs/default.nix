@@ -56,7 +56,6 @@
   # Local package derivations.
   (final: _prev: {
     cloakbrowser = final.callPackage ./cloakbrowser {};
-    orbit = final.callPackage ./orbit {};
     antigravity-cli = final.callPackage ./antigravity-cli {};
     oh-my-pi = final.callPackage ./oh-my-pi {};
     oh-my-openagent = final.callPackage ./oh-my-openagent {};

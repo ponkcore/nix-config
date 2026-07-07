@@ -61,7 +61,7 @@ hardware profiles to import, run `nixos-install`. That's it.
 |---------|--------|
 | Compositor | Hyprland (UWSM) |
 | Display manager | greetd + nwg-hello inside sway Wayland kiosk |
-| Status bar | Waybar |
+| Status bar | Quickshell |
 | Notifications | mako |
 | Launcher | rofi |
 | Lock screen | hyprlock |
@@ -91,7 +91,7 @@ flake.nix                Inputs + nixosConfigurations
 flake.lock               Pinned input revisions
 lib/
   mkHost.nix             Helper: builds a nixosSystem from a host spec
-  palette.nix            (moved to theme/themes/gruvbox-dark/)
+  palette.nix            (moved to theme/themes/monochrome/)
 hosts/
   lecoo/                 Lenovo Lecoo Pro 14 2025
 modules/
@@ -99,10 +99,10 @@ modules/
     desktop/             Wayland desktop stack
   hardware/              Opt-in profiles per CPU/GPU/form-factor/boot
 home/                    Home Manager modules (per-user config)
-theme/                   Wayland theme system (palette × layout × bar backend)
-  themes/                gruvbox-dark (waybar), matteogini (quickshell)
+theme/                   Wayland theme system (single active theme, extensible structure)
+  themes/                monochrome (active quickshell theme)
 pkgs/                    Local package derivations + overlay
-  quickshell-config/     Quickshell QML (matteogini port)
+  quickshell-config/     Quickshell QML shell config
 secrets/                 agenix-encrypted secrets + authorisation map
 skills/                  Letta Code skill files installed into ~/.letta/skills
 tests/                   nixosTests exposed through flake checks

@@ -9,15 +9,14 @@
 # mechanism for the hide/show pattern.
 {pkgs, ...}: let
   # ── App status probe ───────────────────────────────────────────────
-  # Generic waybar exec — emits {text, class} where class is
+  # Generic app-status probe — emits {text, class} where class is
   # "running" iff a Hyprland client with the given window-class is
-  # present (regular workspace OR special:*). Glyph stays in the
-  # waybar `format` field so this script just toggles the CSS hook.
+  # present (regular workspace OR special:*).
   #
   # The expensive part is `hyprctl clients -j`. Running it every 2 s
-  # per app made Waybar burn CPU while idle. The app-status-daemon below
-  # listens to Hyprland's event socket, writes cached JSON files under
-  # $XDG_RUNTIME_DIR, and wakes Waybar via SIGRTMIN+8. app-status only
+  # per app wasted CPU while idle. The app-status-daemon below
+  # listens to Hyprland's event socket and writes cached JSON files under
+  # $XDG_RUNTIME_DIR. app-status only
   # reads that cache; it falls back to a direct probe if the daemon is
   # not ready yet.
   app-status = pkgs.writeShellScriptBin "app-status" ''
@@ -32,7 +31,7 @@
 
     cls="$1"
     key=$(printf '%s' "$cls" | "$COREUTILS/tr" -c 'A-Za-z0-9_.-' '_')
-    cache="''${XDG_RUNTIME_DIR:-/tmp}/waybar-app-status/$key.json"
+    cache="''${XDG_RUNTIME_DIR:-/tmp}/app-status/$key.json"
 
     if [ -r "$cache" ]; then
       "$COREUTILS/cat" "$cache"
@@ -47,7 +46,7 @@
   '';
 
   # ── App status daemon ──────────────────────────────────────────────
-  # One Hyprland event-socket listener for all Waybar app buttons. This
+  # One Hyprland event-socket listener for all app-status consumers. This
   # replaces four independent 2-second polling loops with event-driven
   # cache updates. Visual behaviour stays the same: same glyphs, same
   # `.running` CSS class, same glow — only the update source changes.
@@ -60,7 +59,7 @@
     COREUTILS="${pkgs.coreutils}/bin"
     PROCPS="${pkgs.procps}/bin"
 
-    runtime="''${XDG_RUNTIME_DIR:-/tmp}/waybar-app-status"
+    runtime="''${XDG_RUNTIME_DIR:-/tmp}/app-status"
     classes='com.ayugram.desktop spotify Throne'
 
     write_status() {
@@ -82,7 +81,6 @@
         fi
       done
 
-      $PROCPS/pkill -RTMIN+8 -f '/bin/waybar' >/dev/null 2>&1 || true
     }
 
     if [ "''${1:-}" = "--oneshot" ]; then
@@ -123,10 +121,10 @@
   '';
 
   # ── Throne VPN status ──────────────────────────────────────────────
-  # Waybar exec for custom/throne. Checks the throne-tun interface
+  # Throne status helper. Checks the throne-tun interface
   # first (sing-box TUN mode), then falls back to the app-status
   # cache for the window-running state. TUN state changes don't
-  # emit Hyprland events, so this is polled via waybar `interval=3`.
+  # emit Hyprland events, so this stays polling-based.
   #
   # Classes:
   #   vpn-active — throne-tun interface exists (tunnel is up)
@@ -161,7 +159,7 @@
     # Fall back to app-status cache for window-running state.
     cls="Throne"
     key=$(printf '%s' "$cls" | "$COREUTILS/tr" -c 'A-Za-z0-9_.-' '_')
-    cache="''${XDG_RUNTIME_DIR:-/tmp}/waybar-app-status/$key.json"
+    cache="''${XDG_RUNTIME_DIR:-/tmp}/app-status/$key.json"
     if [ -r "$cache" ]; then
       "$COREUTILS/cat" "$cache"
     else
@@ -198,7 +196,7 @@
   # ── Throne toggle ───────────────────────────────────────────────────
   # Same hide/show pattern as telegram-toggle but parked on
   # special:throne. Mirrors the "minimize to tray" UX without a tray
-  # applet (Waybar has no tray module on this host). First click
+  # applet. First click
   # launches the GUI through the throne-launch wrapper (sets
   # QT_PLUGIN_PATH so Kvantum/qt6ct plugins from the user profile
   # are visible to Throne 1.0.13's bundled qtbase-6.11); subsequent
@@ -228,7 +226,7 @@
   # ── Spotify toggle ──────────────────────────────────────────────────
   # Same pattern as telegram-toggle / clash-toggle but parked on
   # special:spotify. Spotify has a system-tray icon of its own, but
-  # since Waybar carries no tray module on this host the special-
+  # the special-
   # workspace toggle drives the entire show/hide UX.
   # Spotify 1.2.74+ runs as a native Wayland client; its app_id is
   # the lowercase string "spotify".
@@ -307,29 +305,6 @@
     fi
   '';
 
-  # ── orbit toggle (bluetooth tab) ────────────────────────────────────
-  # Bluetooth tile in Waybar shares the Orbit popup with the Wi-Fi
-  # tile — `--tab bluetooth` jumps straight to the Bluetooth panel.
-  bluetooth-toggle = pkgs.writeShellScriptBin "bluetooth-toggle" ''
-    exec ${pkgs.orbit}/bin/orbit toggle --tab bluetooth
-  '';
-
-  # ── orbit toggle (network + bluetooth) ──────────────────────────────
-  # Orbit is a layer-shell applet — it does not appear as a Hyprland
-  # client and so the special-workspace hide/show pattern other
-  # toggle scripts use does not apply. Orbit's own daemon owns the
-  # window state; `orbit toggle [--tab <name>]` flips visibility
-  # through D-Bus and exits. The HM systemd user service
-  # (home/orbit.nix) keeps the daemon alive across waybar reloads
-  # and session lifetime.
-  #
-  # Orbit covers Wi-Fi, Ethernet, Bluetooth, and VPN under the same
-  # popup, so both the Waybar wifi tile and the bluetooth tile open
-  # the same window with the matching tab pre-selected.
-  network-toggle = pkgs.writeShellScriptBin "network-toggle" ''
-    exec ${pkgs.orbit}/bin/orbit toggle --tab wifi
-  '';
-
   # ── btop toggle ─────────────────────────────────────────────────────
   # Ghostty popup running btop. Same hide/show contract as the other
   # tray-style toggles: special:btop is the hide target. The window
@@ -397,8 +372,6 @@ in {
       spotify-toggle
       keepassxc-toggle
       nautilus-open
-      bluetooth-toggle
-      network-toggle
       pwvucontrol-toggle
       btop-toggle
       ;
@@ -406,7 +379,7 @@ in {
 
   systemd.user.services.app-status-daemon = {
     Unit = {
-      Description = "Cache Hyprland app status for Waybar";
+      Description = "Cache Hyprland app status";
       After = ["graphical-session.target" "wayland-wm@Hyprland.service"];
       PartOf = ["graphical-session.target"];
     };
@@ -427,8 +400,6 @@ in {
     spotify-toggle
     keepassxc-toggle
     nautilus-open
-    bluetooth-toggle
-    network-toggle
     pwvucontrol-toggle
     btop-toggle
   ];

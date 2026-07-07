@@ -53,7 +53,7 @@
 
   # System-wide Wayland tooling. None of these are compositor-specific;
   # they are used identically by Hyprland, niri, GNOME, Sway, etc.
-  # User-level apps (waybar, mako, rofi, wlogout, etc.) live in HM
+  # User-level desktop apps (mako, rofi, wlogout, quickshell-side UI, etc.) live in HM
   # because their configs are managed there.
   environment.systemPackages = with pkgs; [
     wl-clipboard

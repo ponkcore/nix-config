@@ -559,7 +559,7 @@ existing sessions.
    (border colors, gaps, shadows), add
    `theme/sessions/niri.nix` and import it from `theme/default.nix`
    guarded by `lib.mkIf (builtins.elem "niri" desktops)`.
-   Compositor-agnostic UI (waybar, mako, rofi, ghostty) is
+   Compositor-agnostic UI (mako, rofi, ghostty, theme palette) is
    shared — no edits there.
 
 4. **Wire the dispatchers** — uncomment the matching line in
@@ -670,33 +670,18 @@ Config paths:
 - `home/desktop/sessions/hyprland/session.nix` — monitor scale.
 - `theme/ghostty.nix` — terminal font size.
 
-### Waybar runtime note
+### Quickshell runtime note
 
-After a rebuild/test that touches Hyprland or Waybar files, restart Waybar:
+After a rebuild/test that touches Hyprland or Quickshell files, restart
+Quickshell if the automatic HM hook did not already do it:
 
 ```fish
-systemctl --user restart waybar
+systemctl --user restart quickshell
 ```
 
-Reason: `hyprland/workspaces` can keep stale IPC state after Hyprland
-reloads; the symptom is workspace switching works, but the active workspace
-highlight in Waybar does not move. See `lessons/0005-waybar-workspace-stale-after-hyprland-reload.md`.
+### Power menu
 
-### Waybar host widgets
-
-The Lecoo ultra-economy widget is `custom/ultra-economy` and renders the
-`nf-md-opacity` glyph `󰗌`. Off-state uses normal foreground; on-state uses
-`@bright_green` with a small glow. Toggling ultra-economy does not change
-screen brightness; the current user-selected brightness is preserved.
-
-Config paths:
-
-- `hosts/lecoo/home/scripts.nix` — JSON text/class for the widget.
-- `theme/waybar/default.nix` — font size and colours.
-
-### Waybar power menu
-
-The power button in Waybar and the laptop hardware power key open
+The Quickshell power menu and the laptop hardware power key open
 `wlogout --buttons-per-row 2`. The hardware button is handled by Hyprland
 for short presses; long press remains a logind emergency poweroff fallback.
 It shows a four-button grid:
@@ -737,8 +722,8 @@ SUPER+SHIFT+Print  window screenshot
 - `modules/nixos/packages.nix` — add a system CLI
 - `home/<app>.nix` — add or change per-user app
 - `home/desktop/sessions/hyprland/session.nix` — keybinds, window rules
-- `theme/waybar.nix` / `theme/mako.nix` / `theme/rofi.nix` — UI styling
-- `lib/palette.nix` — colour palette source of truth
+- `theme/mako.nix` / `theme/rofi.nix` / `theme/ghostty.nix` — UI styling
+- `theme/themes/monochrome/palette.nix` — colour palette source of truth
 - `secrets/<name>.age` — encrypted secrets
 
 For everything else, search the file tree by filename. The structure

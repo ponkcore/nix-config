@@ -7,7 +7,7 @@
 # Contract:
 #   - ../../theme is imported whenever desktops is non-empty. It
 #     provides the gruvbox palette, wallpaper path, helper scripts,
-#     and compositor-agnostic UI (waybar, mako, rofi, ghostty, etc.)
+#     and compositor-agnostic UI (mako, rofi, ghostty, quickshell-adjacent theme pieces, etc.)
 #     via _module.args.
 #   - sessions/<name>/ is imported when "<name>" appears in desktops.
 #   - Adding a new session = drop a folder under sessions/ and add

@@ -1,4 +1,4 @@
-# quickshell-config/default.nix — matteogini's quickshell shell adapted for NixOS.
+# quickshell-config/default.nix — Quickshell shell adapted for NixOS.
 #
 # Derivation that copies all QML files and scripts into the Nix store,
 # then patches hardcoded paths and binary names to match our system:
@@ -60,7 +60,6 @@ in
       cp BluetoothMenu.qml $out/
       cp ClipboardManager.qml $out/
       cp PowerMenu.qml $out/
-      cp ThemeSwitcher.qml $out/
       cp WifiMenu.qml $out/
 
       # Install scripts
@@ -82,7 +81,6 @@ in
         --replace "/home/matteo/.local/bin/battery_mode.sh" "${batteryModeBin}" \
         --replace "/home/matteo/.config/hypr/modules/look_and_feel.conf" "/etc/nixos/hosts/lecoo/default.nix" \
         --replace "/home/matteo/.config/hypr" "/etc/nixos" \
-        --replace "/home/matteo/.config/waybar/" "/etc/nixos/theme/waybar/" \
         --replace "/home/matteo/.config/ghostty" "$HOME/.config/ghostty" \
         --replace "/home/matteo/.config/fish" "$HOME/.config/fish" \
         --replace "/home/matteo/.config/fastfetch" "$HOME/.config/fastfetch" \
@@ -99,7 +97,6 @@ in
       # Fix zeditor calls with path args (zeditor /path → qs-config-edit /path)
       substituteInPlace $out/shell.qml \
         --replace '"qs-config-edit", "/etc/nixos"' '"qs-config-edit", "/etc/nixos"' \
-        --replace '"qs-config-edit", "/etc/nixos/theme/waybar/"' '"qs-config-edit", "/etc/nixos/theme/waybar/"' \
         --replace '"qs-config-edit", "/etc/nixos/"' '"qs-config-edit", "/etc/nixos/"' \
         --replace '"qs-config-edit", "$HOME/.config/ghostty"' '"qs-config-edit", "$HOME/.config/ghostty"' \
         --replace '"qs-config-edit", "$HOME/.config/fish"' '"qs-config-edit", "$HOME/.config/fish"' \
@@ -122,16 +119,12 @@ in
       substituteInPlace $out/launch_app.sh \
         --replace "/tmp/quickshell_launch.log" "/tmp/quickshell_launch.log"
 
-      # Fix ThemeSwitcher paths
-      substituteInPlace $out/ThemeSwitcher.qml \
-        --replace "/home/matteo/.config/hypr/scripts/switch_theme.sh" "${pkgs.coreutils}/bin/true"
-
       # ASUS-specific Process blocks (supergfxctl, asusctl, ryzenadj,
       # setwatt) removed from QML source directly — no substitution needed.
     '';
 
     meta = with pkgs.lib; {
-      description = "Quickshell config adapted from matteogini/dotfiles";
+      description = "Quickshell config for the local desktop shell";
       license = licenses.mit;
       platforms = platforms.linux;
     };

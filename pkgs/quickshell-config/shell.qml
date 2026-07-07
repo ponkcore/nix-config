@@ -18,13 +18,13 @@ ShellRoot {
     property color colHover: Qt.rgba(0.918, 0.859, 0.698, 0.1)  // fg @ 0.1 alpha
     property color colCrit: "#fb4934"   // bright_red
     property string fontFamily: "JetBrainsMono Nerd Font"
-    property int fontSize: 10 // Reduced font size to match waybar 9px
+    property int fontSize: 10
     property int windowCount: 0
     property bool isBarMode: false // Always notch mode
     property real notchWidth: notchLayout.implicitWidth
     
-    property bool isAnyPopupOpen: controlCenter.show || appLauncherPopup.show || clipboardManagerPopup.show || themeSwitcherPopup.show || wifiMenuPopup.show || powerMenuPopup.show || bluetoothMenuPopup.show
-    property bool isAnyPopupAnimActive: isAnyPopupOpen || controlCenter.animHeight > 36 || appLauncherPopup.animHeight > 36 || clipboardManagerPopup.animHeight > 36 || themeSwitcherPopup.animHeight > 36 || wifiMenuPopup.animHeight > 36 || powerMenuPopup.animHeight > 36 || bluetoothMenuPopup.animHeight > 36
+    property bool isAnyPopupOpen: controlCenter.show || appLauncherPopup.show || clipboardManagerPopup.show || wifiMenuPopup.show || powerMenuPopup.show || bluetoothMenuPopup.show
+    property bool isAnyPopupAnimActive: isAnyPopupOpen || controlCenter.animHeight > 36 || appLauncherPopup.animHeight > 36 || clipboardManagerPopup.animHeight > 36 || wifiMenuPopup.animHeight > 36 || powerMenuPopup.animHeight > 36 || bluetoothMenuPopup.animHeight > 36
 
     Process {
         command: ["/home/matteo/.config/quickshell/count_tiled.sh"]
@@ -217,7 +217,6 @@ ShellRoot {
 
     // Config editor shortcuts — paths patched by derivation substituteInPlace
     Process { id: pNoteHyprland; command: ["zeditor", "/home/matteo/.config/hypr"] }
-    Process { id: pNoteWaybar; command: ["zeditor", "/home/matteo/.config/waybar/"] }
     Process { id: pNoteTofi; command: ["zeditor", "/home/matteo/.config/tofi/"] }
     Process { id: pNoteKitty; command: ["zeditor", "/home/matteo/.config/kitty"] }
     Process { id: pNoteFoot; command: ["zeditor", "/home/matteo/.config/foot"] }
@@ -1569,7 +1568,6 @@ ShellRoot {
                         columnSpacing: 8
                         
                         ModernButton { Layout.preferredHeight: 40; text: "Hyprland"; onClicked: { pNoteHyprland.running = true; notesPopup.show = false; controlCenter.show = false } }
-                        ModernButton { Layout.preferredHeight: 40; text: "Waybar"; onClicked: { pNoteWaybar.running = true; notesPopup.show = false; controlCenter.show = false } }
                         ModernButton { Layout.preferredHeight: 40; text: "Tofi"; onClicked: { pNoteTofi.running = true; notesPopup.show = false; controlCenter.show = false } }
                         ModernButton { Layout.preferredHeight: 40; text: "Kitty"; onClicked: { pNoteKitty.running = true; notesPopup.show = false; controlCenter.show = false } }
                         ModernButton { Layout.preferredHeight: 40; text: "Foot"; onClicked: { pNoteFoot.running = true; notesPopup.show = false; controlCenter.show = false } }
@@ -1596,11 +1594,6 @@ ShellRoot {
 
     ClipboardManager {
         id: clipboardManagerPopup
-        shellRoot: root
-    }
-
-    ThemeSwitcher {
-        id: themeSwitcherPopup
         shellRoot: root
     }
 
@@ -1638,9 +1631,6 @@ ShellRoot {
         }
         function toggleClipboard() {
             clipboardManagerPopup.show = !clipboardManagerPopup.show;
-        }
-        function toggleThemeSwitcher() {
-            themeSwitcherPopup.show = !themeSwitcherPopup.show;
         }
         function toggleWifiMenu() {
             wifiMenuPopup.show = !wifiMenuPopup.show;

@@ -1,6 +1,6 @@
 # wlogout.nix — graphical session-action menu.
 #
-# Opened from the Waybar power button. The four-button grid is adapted
+# Opened from the desktop shell power button. The four-button grid is adapted
 # from the local HyDE-style reference, but actions stay native to this
 # Hyprland session and icon assets are pinned through the Nix store.
 {

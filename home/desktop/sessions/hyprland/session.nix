@@ -20,7 +20,7 @@
   '';
 
   # ── Floating popup sizing policy ────────────────────────────────────
-  # Apps invoked from the waybar tray (chat clients, settings panels,
+  # Apps invoked from shell popups or keybinds (chat clients, settings panels,
   # media players, terminal tools) all share the same UX contract:
   # float, given a fixed share of the workspace, centred. We codify
   # that as five categories so adding a new popup is one line, not a
@@ -47,7 +47,7 @@
     tray = {
       width = "45%";
       height = "75%";
-    }; # orbit (legacy: was also used by clash-verge popup)
+    }; # compact utility popup family
     app = {
       # Roughly 1.5× smaller than the previous 70%×80% — Spotify
       # and Throne both fit the calmer footprint without horizontal
@@ -150,7 +150,7 @@ in {
         ", preferred, auto, 1"
       ];
 
-      # Clipboard, Hyprpaper, Waybar, Mako: managed by HM systemd services — auto-restart on crash
+      # Clipboard, Hyprpaper, Quickshell, Mako: managed by HM systemd services — auto-restart on crash
       exec-once = [
         "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1"
         "dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP"
@@ -160,7 +160,7 @@ in {
         # UWSM_WAIT_VARNAMES in uwsm/env-hyprland (set in
         # home/desktop/sessions/hyprland/default.nix), this guarantees
         # the signature is present before graphical-session.target
-        # units start — eliminating the cold-boot Waybar IPC race.
+        # units start before Hyprland's runtime env is visible.
         # Source: research 2026-06-26-waybar-ipc-freeze-deep-research §4.1
         "uwsm finalize HYPRLAND_INSTANCE_SIGNATURE"
       ];
@@ -190,7 +190,7 @@ in {
         # so these work correctly (unlike kitty which matched by keysym)
         "$mainMod, И, exec, $browser"
         # Application show/hide toggles — same scripts that drive the
-        # waybar buttons. Each script parks the window on its own
+        # shell/keybind toggles. Each script parks the window on its own
         # special:<name> workspace; the toggle either pulls it onto
         # the current workspace (where the existing mkPopup rule keeps
         # it floating + sized + centred, so it sits above tiled
@@ -302,7 +302,7 @@ in {
       ];
 
       # Hardware power button: logind ignores short presses, so Hyprland
-      # owns the UI path and opens the same menu as the Waybar power icon.
+      # owns the UI path and opens the same menu as the shell power button.
       bindl = [
         ", XF86PowerOff, exec, wlogout --buttons-per-row 4 --margin-left 60 --margin-right 60 --column-spacing 6"
       ];
@@ -343,7 +343,7 @@ in {
       # no_warps: when a window is moved (e.g. movewindow, movetoworkspace,
       # special-workspace toggle) Hyprland by default warps the pointer to
       # the new center. Disabling this keeps the cursor where the user
-      # left it — preferred for the waybar-button toggle pattern, where
+      # left it — preferred for popup-toggle interactions, where
       # clicking the bar should not yank the mouse off-screen.
       cursor = {
         no_warps = true;
@@ -407,7 +407,7 @@ in {
       #
       # Smart-gaps rules: no gaps when a single tiled or fullscreen
       # window is visible, but keep the gradient border (matches the
-      # waybar border and multi-window tiling look).
+      # shell border and multi-window tiling look).
       workspace = [
         "w[tv1], gapsout:0, gapsin:0, border:true"
         "f[1], gapsout:0, gapsin:0, border:true"
@@ -485,7 +485,7 @@ in {
 
       # ── Window rules ────────────────────────────────────────────────────
       # On a 14" 1440×900 logical panel, big apps benefit from filling the
-      # workspace; popups (waybar-launched panels, TUI tools, media) follow
+      # workspace; popups (shell-launched panels, TUI tools, media) follow
       # the `popup` category contract defined at the top of this file.
       # Super+F toggles maximize off when you want an explicit split.
       # Hyprland 0.53+: windowrulev2 removed, windowrule now accepts
@@ -524,9 +524,6 @@ in {
           class = "Throne";
           category = popup.app;
         })
-        # orbit (network + bluetooth) is a layer-shell applet, not a
-        # toplevel client — it does not appear in `hyprctl clients`,
-        # so no window-rule is needed for it.
         ++ (mkPopup {
           class = "com.saivert.pwvucontrol";
           category = popup.tray;

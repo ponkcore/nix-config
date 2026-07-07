@@ -70,7 +70,7 @@ in {
       ./ayugram.nix
       ./spotify.nix
       ./vesktop.nix
-      ./orbit.nix
+      ./blueman-applet.nix
       ./throne.nix
       # Desktop dispatcher — pulls in compositor-agnostic theme plus the
       # session modules selected by the host's `desktops` list.
