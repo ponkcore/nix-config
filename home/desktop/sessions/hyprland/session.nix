@@ -14,6 +14,11 @@
   # groupbar, misc.background_color, and so on.
   rgba = c.hyprlandRGBA;
 
+  quickshellToggleControlCenter = pkgs.writeShellScript "quickshell-toggle-control-center" ''
+    id="$(${pkgs.quickshell}/bin/qs list --all | ${pkgs.gawk}/bin/awk '/^Instance/{gsub(/:/, "", $2); print $2; exit}')"
+    exec ${pkgs.quickshell}/bin/qs ipc --id "$id" call qsIpc toggleControlCenter
+  '';
+
   # ── Floating popup sizing policy ────────────────────────────────────
   # Apps invoked from the waybar tray (chat clients, settings panels,
   # media players, terminal tools) all share the same UX contract:
@@ -248,6 +253,8 @@ in {
         "$mainMod SHIFT, 9, movetoworkspace, 9"
         "$mainMod, R, exec, rofi -show drun"
         "$mainMod, К, exec, rofi -show drun"
+        "$mainMod, grave, exec, ${quickshellToggleControlCenter}"
+        "$mainMod, ё, exec, ${quickshellToggleControlCenter}"
         # Clipboard history — SUPER+C opens rofi with cliphist
         "$mainMod, C, exec, cliphist list | rofi -dmenu | cliphist decode | wl-copy"
         "$mainMod, С, exec, cliphist list | rofi -dmenu | cliphist decode | wl-copy"

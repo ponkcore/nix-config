@@ -65,17 +65,8 @@ PanelWindow {
         }
     }
 
-    Process {
-        id: pConnect
-        property string targetMac: ""
-        command: targetMac !== "" ? ["bluetoothctl", "connect", targetMac] : ["echo"]
-    }
-
-    Process {
-        id: pDisconnect
-        property string targetMac: ""
-        command: targetMac !== "" ? ["bluetoothctl", "disconnect", targetMac] : ["echo"]
-    }
+    Process { id: pConnect }
+    Process { id: pDisconnect }
 
     onShowChanged: {
         if (show) {
@@ -107,10 +98,10 @@ PanelWindow {
             if (listView.currentIndex >= 0 && listView.currentIndex < btModel.count) {
                 var item = btModel.get(listView.currentIndex);
                 if (item.connected) {
-                    pDisconnect.targetMac = item.mac;
+                    pDisconnect.command = ["bluetoothctl", "disconnect", item.mac];
                     pDisconnect.running = true;
                 } else {
-                    pConnect.targetMac = item.mac;
+                    pConnect.command = ["bluetoothctl", "connect", item.mac];
                     pConnect.running = true;
                 }
                 show = false;
@@ -126,16 +117,16 @@ PanelWindow {
         Rectangle {
             id: animRect
             anchors.top: parent.top
-            anchors.topMargin: show ? 16 : (shellRoot && shellRoot.isBarMode ? 0 : 4)
+            anchors.topMargin: show ? 1 : (shellRoot && shellRoot.isBarMode ? 0 : 4)
             anchors.horizontalCenter: parent.horizontalCenter
             
             width: show ? 360 : (shellRoot ? shellRoot.notchWidth + 32 : 120)
             height: show ? 280 : 32
             
-            color: Qt.rgba(0.08, 0.08, 0.08, 0.95)
+            color: shellRoot ? Qt.rgba(shellRoot.colBg.r, shellRoot.colBg.g, shellRoot.colBg.b, 0.95) : Qt.rgba(0.08, 0.08, 0.08, 0.95)
             radius: show ? 24 : (shellRoot && shellRoot.isBarMode ? 0 : 16)
-            border.color: Qt.rgba(1, 1, 1, 0.1)
-            border.width: show ? 1 : 0
+            border.color: shellRoot ? shellRoot.colAccent : Qt.rgba(1, 1, 1, 0.1)
+            border.width: show ? 2 : 0
             
             opacity: (!show && height <= 36) ? 0.0 : 1.0
             
@@ -175,8 +166,10 @@ PanelWindow {
                         delegate: Rectangle {
                             width: ListView.view.width
                             height: 48
-                            radius: 12
-                            color: listView.currentIndex === index || ma.containsMouse ? Qt.rgba(1,1,1,0.1) : "transparent"
+                            radius: 4
+                            color: listView.currentIndex === index || ma.containsMouse
+                                ? (shellRoot ? shellRoot.colHover : Qt.rgba(1,1,1,0.1))
+                                : "transparent"
                             
                             RowLayout {
                                 anchors.fill: parent
@@ -184,13 +177,17 @@ PanelWindow {
                                 spacing: 12
                                 Text {
                                     text: ""
-                                    color: model.connected ? "#1DB954" : (shellRoot ? shellRoot.colFg : "white")
+                                    color: model.connected
+                                        ? (shellRoot ? shellRoot.colAccent : "#1DB954")
+                                        : (shellRoot ? shellRoot.colFg : "white")
                                     font.family: shellRoot ? shellRoot.fontFamily : "sans-serif"
                                     font.pixelSize: 12
                                 }
                                 Text {
                                     text: model.name + (model.connected ? " (Connected)" : "")
-                                    color: model.connected ? "#1DB954" : (shellRoot ? shellRoot.colFg : "white")
+                                    color: model.connected
+                                        ? (shellRoot ? shellRoot.colAccent : "#1DB954")
+                                        : (shellRoot ? shellRoot.colFg : "white")
                                     font.family: shellRoot ? shellRoot.fontFamily : "sans-serif"
                                     font.pixelSize: 12
                                     font.bold: model.connected
@@ -206,10 +203,10 @@ PanelWindow {
                                     listView.currentIndex = index;
                                     var mac = model.mac;
                                     if (model.connected) {
-                                        pDisconnect.targetMac = mac;
+                                        pDisconnect.command = ["bluetoothctl", "disconnect", mac];
                                         pDisconnect.running = true;
                                     } else {
-                                        pConnect.targetMac = mac;
+                                        pConnect.command = ["bluetoothctl", "connect", mac];
                                         pConnect.running = true;
                                     }
                                     show = false;

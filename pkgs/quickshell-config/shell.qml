@@ -46,7 +46,9 @@ ShellRoot {
     // State properties
     property string powerDraw: "0.0"
     property string temperature: "0"
-    property string updates: "0"
+    property string cpuUsage: "0%"
+    property string ramUsage: "0%"
+    property string diskUsage: "0G"
     property string batteryCap: "100"
     property string brightnessLevel: "0%"
     property string kbdBrightnessLevel: "0"
@@ -59,10 +61,11 @@ ShellRoot {
     property string volumeMic: "0%"
     property bool micMuted: false
     property string bluetoothStatus: "off"
-    property bool batteryMode: false
+    property string powerMode: "eco"
+    property bool batteryMode: powerMode === "eco+"
     property bool showBatteryModeIndicator: false
     
-    onBatteryModeChanged: {
+    onPowerModeChanged: {
         showBatteryModeIndicator = true;
         batteryModeTimer.restart();
     }
@@ -135,15 +138,12 @@ ShellRoot {
     Process { id: pBtOn; command: ["rfkill", "unblock", "bluetooth"] }
     Process { id: pBtOff; command: ["rfkill", "block", "bluetooth"] }
     Process {
-        id: pCheckBatteryMode
-        command: ["sh", "-c", "grep -q '^#animations' /home/matteo/.config/hypr/modules/look_and_feel.conf && echo 'false' || echo 'true'"]
+        id: pCheckPowerMode
+        command: ["lecoo-power-mode", "get"]
         running: true
-        stdout: SplitParser { onRead: data => { root.batteryMode = (data.trim() === 'true'); } }
+        stdout: SplitParser { onRead: data => { root.powerMode = data.trim(); } }
     }
-    Process {
-        id: pToggleBatteryMode
-        command: ["/home/matteo/.local/bin/battery_mode.sh"]
-    }
+    Process { id: pSetPowerMode }
 
     Process { id: pSpotPrev; command: ["playerctl", "--player=spotify", "previous"] }
 
@@ -237,7 +237,18 @@ ShellRoot {
         command: ["sh", "-c", "while true; do temp=$(cat /sys/class/thermal/thermal_zone0/temp 2>/dev/null || echo 0); echo $((temp / 1000)); sleep 3; done"]
         running: true; stdout: SplitParser { onRead: data => root.temperature = data.trim() }
     }
-    // Updates checker disabled — NixOS uses nixos-rebuild, not checkupdates.
+    Process {
+        command: ["sh", "-c", "prev_total=0; prev_idle=0; while true; do read _ user nice system idle iowait irq softirq steal _ < /proc/stat; total=$((user + nice + system + idle + iowait + irq + softirq + steal)); idle_all=$((idle + iowait)); if [ $prev_total -eq 0 ]; then usage=0; else diff_total=$((total - prev_total)); diff_idle=$((idle_all - prev_idle)); usage=$(( (100 * (diff_total - diff_idle)) / diff_total )); fi; prev_total=$total; prev_idle=$idle_all; printf '%s%%\\n' \"$usage\"; sleep 5; done"]
+        running: true; stdout: SplitParser { onRead: data => root.cpuUsage = data.trim() }
+    }
+    Process {
+        command: ["sh", "-c", "while true; do awk '/MemTotal:/{t=$2} /MemAvailable:/{a=$2} END{printf \"%d%%\\n\", ((t-a)*100)/t}' /proc/meminfo; sleep 5; done"]
+        running: true; stdout: SplitParser { onRead: data => root.ramUsage = data.trim() }
+    }
+    Process {
+        command: ["sh", "-c", "while true; do df -BG / | awk 'NR==2{print $3}'; sleep 30; done"]
+        running: true; stdout: SplitParser { onRead: data => root.diskUsage = data.trim() }
+    }
     // Property stays at "0" (hidden in UI when parseInt(0) > 0 is false).
     Process {
         command: ["sh", "-c", "while true; do cap=$(cat /sys/class/power_supply/BAT1/capacity 2>/dev/null || echo 0); acad=$(cat /sys/class/power_supply/ACAD/online 2>/dev/null || echo 0); echo \"$cap $acad\"; sleep 5; done"]
@@ -950,14 +961,47 @@ ShellRoot {
                         }
                     }
                     
-                    // System Stats (Moved under clock)
-                    RowLayout {
+                    // System Stats
+                    ColumnLayout {
                         Layout.fillWidth: true
-                        spacing: 8
-                        
-                        Text { text: "󱐋 " + root.powerDraw + "W"; color: root.colMuted; font.family: root.fontFamily; font.pixelSize: 12; Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter }
-                        Text { text: " " + root.temperature + "°"; color: parseInt(root.temperature) >= 80 ? root.colCrit : root.colMuted; font.family: root.fontFamily; font.pixelSize: 12; Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter }
-                        Text { text: "󰮯 " + root.updates; color: root.colMuted; font.family: root.fontFamily; font.pixelSize: 12; Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; visible: parseInt(root.updates) > 0 }
+                        spacing: 6
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 8
+
+                            Rectangle {
+                                Layout.fillWidth: true; Layout.preferredHeight: 30; radius: 4
+                                color: root.colHover
+                                Text { anchors.centerIn: parent; text: "󱐋 " + root.powerDraw + "W"; color: root.colMuted; font.family: root.fontFamily; font.pixelSize: 12 }
+                            }
+                            Rectangle {
+                                Layout.fillWidth: true; Layout.preferredHeight: 30; radius: 4
+                                color: root.colHover
+                                Text { anchors.centerIn: parent; text: " " + root.temperature + "°"; color: parseInt(root.temperature) >= 80 ? root.colCrit : root.colMuted; font.family: root.fontFamily; font.pixelSize: 12 }
+                            }
+                        }
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 8
+
+                            Rectangle {
+                                Layout.fillWidth: true; Layout.preferredHeight: 30; radius: 4
+                                color: root.colHover
+                                Text { anchors.centerIn: parent; text: "󰻠 " + root.cpuUsage; color: root.colMuted; font.family: root.fontFamily; font.pixelSize: 12 }
+                            }
+                            Rectangle {
+                                Layout.fillWidth: true; Layout.preferredHeight: 30; radius: 4
+                                color: root.colHover
+                                Text { anchors.centerIn: parent; text: "󰍛 " + root.ramUsage; color: root.colMuted; font.family: root.fontFamily; font.pixelSize: 12 }
+                            }
+                            Rectangle {
+                                Layout.fillWidth: true; Layout.preferredHeight: 30; radius: 4
+                                color: root.colHover
+                                Text { anchors.centerIn: parent; text: "󰋊 " + root.diskUsage; color: root.colMuted; font.family: root.fontFamily; font.pixelSize: 12 }
+                            }
+                        }
                     }
                     
                     Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: Qt.rgba(1,1,1,0.1) }
@@ -1197,32 +1241,39 @@ ShellRoot {
 
                     }
 
-                    // Toggles Row 2 (GPU, Configs, Power Saver)
+                    // Bottom row (battery mode + pomodoro only)
                     RowLayout {
                         spacing: 8
                         Layout.fillWidth: true
-                        
-                        ModernButton {
-                            id: btnGpu
-                            text: root.gpuMode.charAt(0)
-                            iconText: "󰢮"
-                            isActive: root.gpuMode === "Hybrid" || root.gpuMode === "Nvidia"
-                            accent: "#b8bb26"
-                            onClicked: { gpuPopup.show = !gpuPopup.show; notesPopup.show = false; timerPopup.show = false }
-                        }
-                        ModernButton {
-                            id: btnNotes
-                            text: ""
-                            iconText: ""
-                            onClicked: { notesPopup.show = !notesPopup.show; gpuPopup.show = false; timerPopup.show = false }
-                        }
+
+                        Item { Layout.fillWidth: true }
                         ModernButton {
                             id: btnBatteryMode
                             text: ""
-                            iconText: root.batteryMode ? "" : ""
-                            isActive: root.batteryMode
+                            iconText: root.powerMode === "performance" ? "󰓅"
+                                      : (root.powerMode === "balanced" ? "󰾅"
+                                      : "󰾆")
+                            isActive: root.powerMode === "performance"
+                            accent: root.powerMode === "performance" ? "#b8bb26" : root.colFg
+                            onClicked: powerModePopup.show = !powerModePopup.show
+                        }
+                        ModernButton {
+                            id: btnEcoPlus
+                            text: ""
+                            iconText: ""
+                            isActive: root.powerMode === "eco+"
                             accent: root.colAccent
-                            onClicked: pToggleBatteryMode.running = true
+                            onClicked: {
+                                if (root.powerMode === "eco+") {
+                                    pSetPowerMode.command = ["lecoo-power-mode", "set", "eco"];
+                                    pSetPowerMode.running = true;
+                                    root.powerMode = "eco";
+                                } else {
+                                    pSetPowerMode.command = ["lecoo-power-mode", "set", "eco+"];
+                                    pSetPowerMode.running = true;
+                                    root.powerMode = "eco+";
+                                }
+                            }
                         }
                         ModernButton {
                             id: btnPomodoro
@@ -1232,20 +1283,21 @@ ShellRoot {
                             accent: root.pomodoroState === 1 ? "#fb4934" : "#b8bb26"
                             onClicked: {
                                 if (root.pomodoroState === 0) {
-                                    root.pomodoroState = 1; // Start work
+                                    root.pomodoroState = 1;
                                     root.timerTotal = root.pomodoroWorkTotal;
                                     root.timerSeconds = root.timerTotal;
                                     root.timerText = root.formatTime(root.timerTotal);
                                     root.timerRunning = true;
                                 } else {
-                                    root.pomodoroState = 0; // Turn off
+                                    root.pomodoroState = 0;
                                     root.timerRunning = false;
                                     root.timerSeconds = 0;
-                                    root.timerTotal = 300; // Reset to 5m
+                                    root.timerTotal = 300;
                                     root.timerText = root.formatTime(root.timerTotal);
                                 }
                             }
                         }
+                        Item { Layout.fillWidth: true }
                     }
 
                     } // End Item wrapper
@@ -1253,6 +1305,75 @@ ShellRoot {
         }
     }
 }
+
+    PopupWindow {
+        id: powerModePopup
+        grabFocus: show
+        anchor {
+            window: controlCenter
+            rect: Qt.rect(animRect.x, animRect.y + animRect.height - 1, animRect.width, 1)
+            edges: Edges.Bottom
+            gravity: Edges.Bottom
+        }
+
+        property bool show: false
+        property real animHeight: animRectPower.height
+        visible: show || animRectPower.opacity > 0
+
+        implicitWidth: 220
+        implicitHeight: layoutPower.implicitHeight + 32
+        color: "transparent"
+
+        Item {
+            anchors.fill: parent
+
+            Rectangle {
+                id: animRectPower
+                anchors.fill: parent
+                color: Qt.rgba(root.colBg.r, root.colBg.g, root.colBg.b, 0.95)
+                radius: 24
+                border.color: root.colAccent
+                border.width: 2
+                opacity: powerModePopup.show ? 1.0 : 0.0
+                scale: powerModePopup.show ? 1.0 : 0.95
+                y: powerModePopup.show ? 0 : -20
+                Behavior on opacity { NumberAnimation { duration: root.batteryMode ? 0 : 200 } }
+                Behavior on scale { NumberAnimation { duration: root.batteryMode ? 0 : 350; easing.type: Easing.OutBack } }
+                Behavior on y { NumberAnimation { duration: root.batteryMode ? 0 : 350; easing.type: Easing.OutBack } }
+
+                ColumnLayout {
+                    id: layoutPower
+                    anchors.top: parent.top
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.margins: 16
+                    spacing: 8
+
+                    ModernButton {
+                        text: "Performance"
+                        iconText: "󰓅"
+                        isActive: root.powerMode === "performance"
+                        accent: "#b8bb26"
+                        onClicked: { pSetPowerMode.command = ["lecoo-power-mode", "set", "performance"]; pSetPowerMode.running = true; root.powerMode = "performance"; powerModePopup.show = false }
+                    }
+                    ModernButton {
+                        text: "Balanced"
+                        iconText: "󰾅"
+                        isActive: root.powerMode === "balanced"
+                        accent: root.colFg
+                        onClicked: { pSetPowerMode.command = ["lecoo-power-mode", "set", "balanced"]; pSetPowerMode.running = true; root.powerMode = "balanced"; powerModePopup.show = false }
+                    }
+                    ModernButton {
+                        text: "Eco"
+                        iconText: "󰾆"
+                        isActive: root.powerMode === "eco"
+                        accent: root.colAccent
+                        onClicked: { pSetPowerMode.command = ["lecoo-power-mode", "set", "eco"]; pSetPowerMode.running = true; root.powerMode = "eco"; powerModePopup.show = false }
+                    }
+                }
+            }
+        }
+    }
 
     PopupWindow {
         id: timerPopup
@@ -1337,7 +1458,7 @@ ShellRoot {
         }
     }
 
-    PopupWindow {
+    /* PopupWindow {
         id: gpuPopup
         anchor {
             window: controlCenter
@@ -1391,7 +1512,9 @@ ShellRoot {
         }
     }
 
-    PopupWindow {
+    */
+
+    /* PopupWindow {
         id: notesPopup
         anchor {
             window: controlCenter
@@ -1459,6 +1582,7 @@ ShellRoot {
             }
         }
     }
+    */
 
     PowerMenu {
         id: powerMenuPopup
@@ -1528,7 +1652,7 @@ ShellRoot {
             controlCenter.show = !controlCenter.show;
         }
         function refreshBatteryMode() {
-            pCheckBatteryMode.running = true;
+            pCheckPowerMode.running = true;
         }
     }
 

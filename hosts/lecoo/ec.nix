@@ -59,20 +59,34 @@
       [ -n "$uid" ] && [ -r "$state" ] && [ "$(cat "$state" 2>/dev/null || true)" = "on" ]
     }
 
+    mode=$(cat /var/lib/lecoo-power-mode/current 2>/dev/null || true)
     online=$(cat /sys/class/power_supply/ADP1/online 2>/dev/null || echo 0)
-    if ultra_economy_enabled; then
-      ${config.services.lecoo-ctrl.package}/bin/lecoo-ctrl power silent >/dev/null 2>&1 || true
-      ${pkgs.power-profiles-daemon}/bin/powerprofilesctl set power-saver >/dev/null 2>&1 || true
-      set_gpu_performance_level low
-    elif [ "$online" = "1" ]; then
-      ${config.services.lecoo-ctrl.package}/bin/lecoo-ctrl power default >/dev/null 2>&1 || true
-      ${pkgs.power-profiles-daemon}/bin/powerprofilesctl set balanced >/dev/null 2>&1 || true
-      set_gpu_performance_level auto
-    else
-      ${config.services.lecoo-ctrl.package}/bin/lecoo-ctrl power silent >/dev/null 2>&1 || true
-      ${pkgs.power-profiles-daemon}/bin/powerprofilesctl set power-saver >/dev/null 2>&1 || true
-      set_gpu_performance_level low
+    if [ -z "$mode" ]; then
+      if ultra_economy_enabled; then
+        mode="eco+"
+      elif [ "$online" = "1" ]; then
+        mode="balanced"
+      else
+        mode="eco"
+      fi
     fi
+    case "$mode" in
+      performance)
+        ${config.services.lecoo-ctrl.package}/bin/lecoo-ctrl power default >/dev/null 2>&1 || true
+        ${pkgs.power-profiles-daemon}/bin/powerprofilesctl set performance >/dev/null 2>&1 || true
+        set_gpu_performance_level auto
+        ;;
+      balanced)
+        ${config.services.lecoo-ctrl.package}/bin/lecoo-ctrl power default >/dev/null 2>&1 || true
+        ${pkgs.power-profiles-daemon}/bin/powerprofilesctl set balanced >/dev/null 2>&1 || true
+        set_gpu_performance_level auto
+        ;;
+      eco|eco+)
+        ${config.services.lecoo-ctrl.package}/bin/lecoo-ctrl power silent >/dev/null 2>&1 || true
+        ${pkgs.power-profiles-daemon}/bin/powerprofilesctl set power-saver >/dev/null 2>&1 || true
+        set_gpu_performance_level low
+        ;;
+    esac
   '';
 in {
   options.services.lecoo-ctrl = with lib; {

@@ -88,20 +88,7 @@ PanelWindow {
         }
     }
     
-    Process {
-        id: pConnect
-        property string ssid: ""
-        property string pass: ""
-        onRunningChanged: {
-            if (running) {
-                if (pass === "") {
-                    command = ["nmcli", "dev", "wifi", "connect", ssid];
-                } else {
-                    command = ["nmcli", "dev", "wifi", "connect", ssid, "password", pass];
-                }
-            }
-        }
-    }
+    Process { id: pConnect }
     
     Item {
         anchors.fill: parent
@@ -124,16 +111,16 @@ PanelWindow {
         Rectangle {
             id: animRect
             anchors.top: parent.top
-            anchors.topMargin: show ? 16 : (shellRoot && shellRoot.isBarMode ? 0 : 4)
+            anchors.topMargin: show ? 1 : (shellRoot && shellRoot.isBarMode ? 0 : 4)
             anchors.horizontalCenter: parent.horizontalCenter
             
             width: show ? 360 : (shellRoot ? shellRoot.notchWidth + 32 : 120)
             height: show ? 280 : 32
             
-            color: Qt.rgba(0.08, 0.08, 0.08, 0.95)
+            color: shellRoot ? Qt.rgba(shellRoot.colBg.r, shellRoot.colBg.g, shellRoot.colBg.b, 0.95) : Qt.rgba(0.08, 0.08, 0.08, 0.95)
             radius: show ? 24 : (shellRoot && shellRoot.isBarMode ? 0 : 16)
-            border.color: Qt.rgba(1, 1, 1, 0.1)
-            border.width: show ? 1 : 0
+            border.color: shellRoot ? shellRoot.colAccent : Qt.rgba(1, 1, 1, 0.1)
+            border.width: show ? 2 : 0
             
             opacity: (!show && height <= 36) ? 0.0 : 1.0
             
@@ -177,13 +164,16 @@ PanelWindow {
                         font.family: shellRoot ? shellRoot.fontFamily : "sans-serif"
                         font.pixelSize: 14
                         background: Rectangle {
-                            color: Qt.rgba(1,1,1,0.05)
-                            radius: 12
-                            border.color: passInput.activeFocus ? Qt.rgba(1,1,1,0.2) : "transparent"
+                            color: shellRoot ? shellRoot.colHover : Qt.rgba(1,1,1,0.05)
+                            radius: 4
+                            border.color: passInput.activeFocus
+                                ? (shellRoot ? shellRoot.colAccent : Qt.rgba(1,1,1,0.2))
+                                : "transparent"
                         }
                         Keys.onReturnPressed: {
-                            pConnect.ssid = selectedSsid;
-                            pConnect.pass = text;
+                            pConnect.command = passInput.text.length > 0
+                                ? ["nmcli", "dev", "wifi", "connect", selectedSsid, "password", passInput.text]
+                                : ["nmcli", "dev", "wifi", "connect", selectedSsid];
                             pConnect.running = true;
                             rootWindow.show = false;
                         }
@@ -201,9 +191,14 @@ PanelWindow {
                         Rectangle {
                             Layout.fillWidth: true
                             height: 40
-                            radius: 12
-                            color: Qt.rgba(1,1,1,0.1)
-                            Text { anchors.centerIn: parent; text: "Cancel"; color: "white" }
+                            radius: 4
+                            color: shellRoot ? shellRoot.colHover : Qt.rgba(1,1,1,0.1)
+                            Text {
+                                anchors.centerIn: parent
+                                text: "Cancel"
+                                color: shellRoot ? shellRoot.colFg : "white"
+                                font.family: shellRoot ? shellRoot.fontFamily : "sans-serif"
+                            }
                             MouseArea {
                                 anchors.fill: parent
                                 onClicked: {
@@ -217,14 +212,21 @@ PanelWindow {
                         Rectangle {
                             Layout.fillWidth: true
                             height: 40
-                            radius: 12
-                            color: Qt.rgba(0.2,0.6,1.0,0.8)
-                            Text { anchors.centerIn: parent; text: "Connect"; color: "white"; font.bold: true }
+                            radius: 4
+                            color: shellRoot ? shellRoot.colAccent : Qt.rgba(0.2,0.6,1.0,0.8)
+                            Text {
+                                anchors.centerIn: parent
+                                text: "Connect"
+                                color: shellRoot ? shellRoot.colBg : "white"
+                                font.bold: true
+                                font.family: shellRoot ? shellRoot.fontFamily : "sans-serif"
+                            }
                             MouseArea {
                                 anchors.fill: parent
                                 onClicked: {
-                                    pConnect.ssid = selectedSsid;
-                                    pConnect.pass = passInput.text;
+                                    pConnect.command = passInput.text.length > 0
+                                        ? ["nmcli", "dev", "wifi", "connect", selectedSsid, "password", passInput.text]
+                                        : ["nmcli", "dev", "wifi", "connect", selectedSsid];
                                     pConnect.running = true;
                                     rootWindow.show = false;
                                 }
@@ -246,8 +248,10 @@ PanelWindow {
                     delegate: Rectangle {
                         width: ListView.view.width
                         height: 48
-                        radius: 12
-                        color: listView.currentIndex === index || ma.containsMouse ? Qt.rgba(1,1,1,0.1) : "transparent"
+                        radius: 4
+                        color: listView.currentIndex === index || ma.containsMouse
+                            ? (shellRoot ? shellRoot.colHover : Qt.rgba(1,1,1,0.1))
+                            : "transparent"
                         
                         RowLayout {
                             anchors.fill: parent
@@ -261,7 +265,9 @@ PanelWindow {
                             }
                             Text {
                                 text: model.ssid + (model.connected ? " (Connected)" : "")
-                                color: model.connected ? "#00FF00" : (shellRoot ? shellRoot.colFg : "white")
+                                color: model.connected
+                                    ? (shellRoot ? shellRoot.colAccent : "#00FF00")
+                                    : (shellRoot ? shellRoot.colFg : "white")
                                 font.family: shellRoot ? shellRoot.fontFamily : "sans-serif"
                                 font.pixelSize: 12
                                 font.bold: model.connected
@@ -280,8 +286,7 @@ PanelWindow {
                                     passInput.text = "";
                                     focusTimer.start();
                                 } else {
-                                    pConnect.ssid = model.ssid;
-                                    pConnect.pass = "";
+                                    pConnect.command = ["nmcli", "dev", "wifi", "connect", model.ssid];
                                     pConnect.running = true;
                                     rootWindow.show = false;
                                 }

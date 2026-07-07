@@ -82,33 +82,28 @@
     esac
   '';
 
-  # ── Ultra economy toggle ───────────────────────────────────────────
-  # Manual, explicit battery-saving profile. This intentionally does
-  # NOT run on AC plug/unplug: fixed 120↔60 Hz switches are DRM modesets
-  # and blank the eDP panel for ~1 s. As a user-clicked mode that blink is
-  # expected; as an automatic power-edge side effect it is not.
+  # ── Composite power modes ──────────────────────────────────────────
+  # User-facing modes on this host are composed from:
+  #   - powerprofilesctl (performance / balanced / power-saver)
+  #   - lecoo-ctrl power (default / silent)
+  #   - GPU DPM (auto / low)
+  #   - extra aggressive eco+ levers (60 Hz, SMT off, etc.)
   #
-  # Eco mode levers (cumulative ~8-10 W saving from baseline):
-  #   - 60 Hz panel (DRM modeset, ~1s blank)          −1.5-2 W
-  #   - Hyprland animations off                        −0.2-0.3 W
-  #   - Hyprland blur/shadow off                       −0.1-0.2 W
-  #   - SMT disable (16 threads → 8 cores)             −0.5-1.5 W
-  #   - CPU boost off + 2 GHz max freq cap             −0.5-1.5 W
-  #   - EPP=power (0xFF, remove balance_power override) −0.3-0.8 W
-  #   - PPD power-saver + EC silent + GPU DPM low      (already on battery)
-  #   - Stop Docker + libvirtd                         −0.2-1 W
+  # State files:
+  #   /var/lib/lecoo-power-mode/current   -> performance|balanced|eco|eco+
+  #   /var/lib/lecoo-eco/state-on         -> legacy eco+ marker (compat)
   #
-  # Does not touch display brightness, Bluetooth, Wi-Fi, or user
-  # applications. BT and WiFi are managed manually by the user.
-  ultra-economy-toggle = pkgs.writeShellScriptBin "ultra-economy-toggle" ''
+  # AC-edge transition table:
+  #   unplug: balanced->eco, eco->eco, performance->eco, eco+->eco+
+  #   plug:   balanced->balanced, eco->balanced, performance->performance, eco+->balanced
+  lecoo-power-mode = pkgs.writeShellScriptBin "lecoo-power-mode" ''
     set -eu
 
-    # Session-local saved state lives in tmpfs (wiped on reboot).
-    # Persistent eco state file lives in /var/lib (survives reboots)
-    # — checked by cpu-boost-restore.service and AC-plug udev handlers.
     runtime="''${XDG_RUNTIME_DIR:-/tmp}/ultra-economy"
-    state="$runtime/state"
-    persistent_state="/var/lib/lecoo-eco/state-on"
+    ultra_state="$runtime/state"
+    legacy_persistent_state="/var/lib/lecoo-eco/state-on"
+    mode_dir="/var/lib/lecoo-power-mode"
+    mode_file="$mode_dir/current"
     saved_animations="$runtime/animations"
     saved_smt="$runtime/smt"
     saved_boost="$runtime/boost"
@@ -120,29 +115,29 @@
       ${pkgs.procps}/bin/pkill -RTMIN+8 -f '/bin/waybar' >/dev/null 2>&1 || true
     }
 
-    set_gpu_level() {
-      level=$1
-      case "$level" in
-        low|auto) ;;
-        *) return 0 ;;
-      esac
-      printf '%s\n' "$level" | sudo -n ${pkgs.coreutils}/bin/tee /sys/class/drm/card1/device/power_dpm_force_performance_level >/dev/null 2>&1 || true
-    }
-
-    apply_power_baseline() {
-      online=$(cat /sys/class/power_supply/ADP1/online 2>/dev/null || echo 0)
-      if [ "$online" = "1" ]; then
-        ${pkgs.power-profiles-daemon}/bin/powerprofilesctl set balanced >/dev/null 2>&1 || true
-        ${pkgs.lecoo-ctrl}/bin/lecoo-ctrl power default >/dev/null 2>&1 || true
-        set_gpu_level auto
+    get_mode() {
+      if [ -r "$mode_file" ]; then
+        cat "$mode_file"
+      elif [ -f "$legacy_persistent_state" ] || [ "$(cat "$ultra_state" 2>/dev/null || true)" = "on" ]; then
+        printf 'eco+\n'
       else
-        ${pkgs.power-profiles-daemon}/bin/powerprofilesctl set power-saver >/dev/null 2>&1 || true
-        ${pkgs.lecoo-ctrl}/bin/lecoo-ctrl power silent >/dev/null 2>&1 || true
-        set_gpu_level low
+        online=$(cat /sys/class/power_supply/ADP1/online 2>/dev/null || echo 0)
+        if [ "$online" = "1" ]; then printf 'balanced\n'; else printf 'eco\n'; fi
       fi
     }
 
-    # Restore CPU settings saved during eco entry.
+    set_mode_state() {
+      mode=$1
+      sudo -n ${pkgs.coreutils}/bin/mkdir -p "$mode_dir" >/dev/null 2>&1 || true
+      printf '%s\n' "$mode" | sudo -n ${pkgs.coreutils}/bin/tee "$mode_file" >/dev/null 2>&1 || true
+    }
+
+    set_gpu_level() {
+      level=$1
+      case "$level" in low|auto) ;; *) return 0 ;; esac
+      printf '%s\n' "$level" | sudo -n ${pkgs.coreutils}/bin/tee /sys/class/drm/card1/device/power_dpm_force_performance_level >/dev/null 2>&1 || true
+    }
+
     restore_cpu() {
       if [ -r "$saved_smt" ]; then
         sudo -n ${pkgs.coreutils}/bin/tee /sys/devices/system/cpu/smt/control < "$saved_smt" >/dev/null 2>&1 || true
@@ -162,129 +157,128 @@
       fi
     }
 
-    if [ "$(cat "$state" 2>/dev/null || true)" = "on" ]; then
-      # ── Leave ultra economy ──────────────────────────────────
+    leave_eco_plus() {
       ${pkgs.hyprland}/bin/hyprctl keyword monitor "eDP-1, 2880x1800@120, 0x0, 1.8" >/dev/null 2>&1 || true
-
       if [ -r "$saved_animations" ]; then
         animations=$(cat "$saved_animations")
-        case "$animations" in
-          0|1) ${pkgs.hyprland}/bin/hyprctl keyword animations:enabled "$animations" >/dev/null 2>&1 || true ;;
-        esac
+        case "$animations" in 0|1) ${pkgs.hyprland}/bin/hyprctl keyword animations:enabled "$animations" >/dev/null 2>&1 || true ;; esac
         rm -f "$saved_animations"
       else
         ${pkgs.hyprland}/bin/hyprctl keyword animations:enabled 1 >/dev/null 2>&1 || true
       fi
-
-      # Restore Hyprland visual effects.
       ${pkgs.hyprland}/bin/hyprctl keyword decoration:blur:enabled 1 >/dev/null 2>&1 || true
       ${pkgs.hyprland}/bin/hyprctl keyword decoration:shadow:enabled 1 >/dev/null 2>&1 || true
-
-      # Restore CPU settings.
       restore_cpu
-
-      # Restart stopped services.
       sudo -n ${pkgs.systemd}/bin/systemctl start docker.service libvirtd.service 2>/dev/null || true
+      echo off > "$ultra_state"
+      sudo -n ${pkgs.coreutils}/bin/rm -f "$legacy_persistent_state" >/dev/null 2>&1 || true
+    }
 
-      # Restore power baseline (re-enables battery-epp-override on battery).
-      apply_power_baseline
-      # Re-apply EPP override since PPD may have reset it.
-      online=$(cat /sys/class/power_supply/ADP1/online 2>/dev/null || echo 0)
-      if [ "$online" = "0" ]; then
-        sudo -n ${pkgs.systemd}/bin/systemctl start battery-epp-override.service 2>/dev/null || true
+    enter_eco_plus() {
+      ${pkgs.hyprland}/bin/hyprctl getoption animations:enabled 2>/dev/null | ${pkgs.gnugrep}/bin/grep -oP '^int:\s*\K[01]' > "$saved_animations" 2>/dev/null || true
+      cat /sys/devices/system/cpu/smt/control > "$saved_smt" 2>/dev/null || true
+      cat /sys/devices/system/cpu/cpufreq/policy0/boost > "$saved_boost" 2>/dev/null || true
+      cat /sys/devices/system/cpu/cpufreq/policy0/amd_pstate_max_freq > "$saved_maxfreq" 2>/dev/null || true
+      ${pkgs.hyprland}/bin/hyprctl keyword monitor "eDP-1, 2880x1800@60, 0x0, 1.8" >/dev/null 2>&1 || true
+      ${pkgs.hyprland}/bin/hyprctl keyword animations:enabled 0 >/dev/null 2>&1 || true
+      ${pkgs.hyprland}/bin/hyprctl keyword decoration:blur:enabled 0 >/dev/null 2>&1 || true
+      ${pkgs.hyprland}/bin/hyprctl keyword decoration:shadow:enabled 0 >/dev/null 2>&1 || true
+      sudo -n ${pkgs.coreutils}/bin/tee /sys/devices/system/cpu/smt/control <<< "off" >/dev/null 2>&1 || true
+      for p in /sys/devices/system/cpu/cpufreq/policy*/boost; do echo 0 | sudo -n ${pkgs.coreutils}/bin/tee "$p" >/dev/null 2>&1 || true; done
+      for p in /sys/devices/system/cpu/cpufreq/policy*/amd_pstate_max_freq; do echo 2000000 | sudo -n ${pkgs.coreutils}/bin/tee "$p" >/dev/null 2>&1 || true; done
+      ${pkgs.power-profiles-daemon}/bin/powerprofilesctl set power-saver >/dev/null 2>&1 || true
+      ${pkgs.lecoo-ctrl}/bin/lecoo-ctrl power silent >/dev/null 2>&1 || true
+      set_gpu_level low
+      sudo -n ${pkgs.systemd}/bin/systemctl stop battery-epp-override.service 2>/dev/null || true
+      for cpu in /sys/devices/system/cpu/cpu*/cpufreq/energy_performance_preference; do echo power | sudo -n ${pkgs.coreutils}/bin/tee "$cpu" >/dev/null 2>&1 || true; done
+      if sudo -n ${pkgs.systemd}/bin/systemctl is-active docker.service >/dev/null 2>&1; then
+        running=$(${pkgs.docker}/bin/docker ps -q 2>/dev/null || true)
+        if [ -z "$running" ]; then sudo -n ${pkgs.systemd}/bin/systemctl stop docker.service >/dev/null 2>&1 || true; fi
       fi
+      if sudo -n ${pkgs.systemd}/bin/systemctl is-active libvirtd.service >/dev/null 2>&1; then
+        running_vms=$(sudo -n ${pkgs.libvirt}/bin/virsh list --state-running --name 2>/dev/null || true)
+        if [ -z "$running_vms" ]; then sudo -n ${pkgs.systemd}/bin/systemctl stop libvirtd.service >/dev/null 2>&1 || true; fi
+      fi
+      echo on > "$ultra_state"
+      echo on | sudo -n ${pkgs.coreutils}/bin/tee "$legacy_persistent_state" >/dev/null 2>&1 || true
+    }
 
-      echo off > "$state"
-      sudo -n ${pkgs.coreutils}/bin/rm -f "$persistent_state" 2>/dev/null || true
+    apply_mode() {
+      mode=$1
+      case "$mode" in
+        performance)
+          leave_eco_plus
+          ${pkgs.power-profiles-daemon}/bin/powerprofilesctl set performance >/dev/null 2>&1 || true
+          ${pkgs.lecoo-ctrl}/bin/lecoo-ctrl power default >/dev/null 2>&1 || true
+          set_gpu_level auto
+          ;;
+        balanced)
+          leave_eco_plus
+          ${pkgs.power-profiles-daemon}/bin/powerprofilesctl set balanced >/dev/null 2>&1 || true
+          ${pkgs.lecoo-ctrl}/bin/lecoo-ctrl power default >/dev/null 2>&1 || true
+          set_gpu_level auto
+          ;;
+        eco)
+          leave_eco_plus
+          ${pkgs.power-profiles-daemon}/bin/powerprofilesctl set power-saver >/dev/null 2>&1 || true
+          ${pkgs.lecoo-ctrl}/bin/lecoo-ctrl power silent >/dev/null 2>&1 || true
+          set_gpu_level low
+          ;;
+        eco+)
+          enter_eco_plus
+          ;;
+        *)
+          printf 'Unknown mode: %s\n' "$mode" >&2
+          exit 1
+          ;;
+      esac
+      set_mode_state "$mode"
       notify_waybar
-      exit 0
-    fi
+    }
 
-    # ── Enter ultra economy ───────────────────────────────────
-    # Save session-local state so leaving the mode restores what the
-    # user had before the click.
-    ${pkgs.hyprland}/bin/hyprctl getoption animations:enabled 2>/dev/null \
-      | ${pkgs.gnugrep}/bin/grep -oP '^int:\s*\K[01]' > "$saved_animations" 2>/dev/null || true
+    transition_edge() {
+      edge=$1
+      current=$(get_mode)
+      case "$edge:$current" in
+        unplug:balanced) next=eco ;;
+        unplug:eco) next=eco ;;
+        unplug:performance) next=eco ;;
+        unplug:eco+) next=eco+ ;;
+        plug:balanced) next=balanced ;;
+        plug:eco) next=balanced ;;
+        plug:performance) next=performance ;;
+        plug:eco+) next=balanced ;;
+        *) next="$current" ;;
+      esac
+      apply_mode "$next"
+    }
 
-    # Save CPU state.
-    cat /sys/devices/system/cpu/smt/control > "$saved_smt" 2>/dev/null || true
-    cat /sys/devices/system/cpu/cpufreq/policy0/boost > "$saved_boost" 2>/dev/null || true
-    cat /sys/devices/system/cpu/cpufreq/policy0/amd_pstate_max_freq > "$saved_maxfreq" 2>/dev/null || true
+    case "''${1:-}" in
+      get) get_mode ;;
+      set) apply_mode "$2" ;;
+      edge) transition_edge "$2" ;;
+      *) printf 'Usage: lecoo-power-mode {get|set <mode>|edge <plug|unplug>}\n' >&2; exit 1 ;;
+    esac
+  '';
 
-    # Panel: 120 → 60 Hz (DRM modeset, ~1s blank).
-    ${pkgs.hyprland}/bin/hyprctl keyword monitor "eDP-1, 2880x1800@60, 0x0, 1.8" >/dev/null 2>&1 || true
+  lecoo-power-mode-status = pkgs.writeShellScriptBin "lecoo-power-mode-status" ''
+    mode=$(${lecoo-power-mode}/bin/lecoo-power-mode get)
+    case "$mode" in
+      performance) printf '{"text":"P","class":"performance","tooltip":"Power mode: Performance"}\n' ;;
+      balanced)    printf '{"text":"B","class":"balanced","tooltip":"Power mode: Balanced"}\n' ;;
+      eco)         printf '{"text":"E","class":"eco","tooltip":"Power mode: Eco"}\n' ;;
+      eco+)        printf '{"text":"E+","class":"eco-plus","tooltip":"Power mode: Eco+"}\n' ;;
+      *)           printf '{"text":"?","class":"balanced","tooltip":"Power mode: Unknown"}\n' ;;
+    esac
+  '';
 
-    # Hyprland: disable animations + visual effects.
-    ${pkgs.hyprland}/bin/hyprctl keyword animations:enabled 0 >/dev/null 2>&1 || true
-    ${pkgs.hyprland}/bin/hyprctl keyword decoration:blur:enabled 0 >/dev/null 2>&1 || true
-    ${pkgs.hyprland}/bin/hyprctl keyword decoration:shadow:enabled 0 >/dev/null 2>&1 || true
-
-    # CPU: disable SMT (16 threads → 8 cores), disable boost, cap at 2 GHz.
-    sudo -n ${pkgs.coreutils}/bin/tee /sys/devices/system/cpu/smt/control <<< "off" >/dev/null 2>&1 || true
-    for p in /sys/devices/system/cpu/cpufreq/policy*/boost; do
-      echo 0 | sudo -n ${pkgs.coreutils}/bin/tee "$p" >/dev/null 2>&1 || true
-    done
-    for p in /sys/devices/system/cpu/cpufreq/policy*/amd_pstate_max_freq; do
-      echo 2000000 | sudo -n ${pkgs.coreutils}/bin/tee "$p" >/dev/null 2>&1 || true
-    done
-
-    # Power: PPD power-saver + EC silent + GPU DPM low.
-    ${pkgs.power-profiles-daemon}/bin/powerprofilesctl set power-saver >/dev/null 2>&1 || true
-    ${pkgs.lecoo-ctrl}/bin/lecoo-ctrl power silent >/dev/null 2>&1 || true
-    set_gpu_level low
-
-    # EPP: explicitly set power (0xFF) for maximum efficiency in eco
-    # mode. PPD power-saver sets this, but battery-epp-override may
-    # have already overwritten it. Stop the override service first,
-    # then set EPP=power directly on all CPUs.
-    sudo -n ${pkgs.systemd}/bin/systemctl stop battery-epp-override.service 2>/dev/null || true
-    for cpu in /sys/devices/system/cpu/cpu*/cpufreq/energy_performance_preference; do
-      echo power | sudo -n ${pkgs.coreutils}/bin/tee "$cpu" >/dev/null 2>&1 || true
-    done
-
-    # Stop heavyweight services — but only if no containers/VMs
-    # are running. Stopping Docker mid-container can cause data
-    # loss on unclean shutdowns.
-    # Source: audit 2026-06-28-full-session-audit §N
-    if sudo -n ${pkgs.systemd}/bin/systemctl is-active docker.service >/dev/null 2>&1; then
-      running=$(${pkgs.docker}/bin/docker ps -q 2>/dev/null || true)
-      if [ -n "$running" ]; then
-        ${pkgs.libnotify}/bin/notify-send "Eco mode" "Containers running — stop them first" 2>/dev/null || true
-      else
-        sudo -n ${pkgs.systemd}/bin/systemctl stop docker.service 2>/dev/null || true
-      fi
-    fi
-    # Stop libvirtd — but only if no VMs are running.
-    # Source: audit 2026-06-28-system-perfection-audit §E-5
-    if sudo -n ${pkgs.systemd}/bin/systemctl is-active libvirtd.service >/dev/null 2>&1; then
-      running_vms=$(sudo -n ${pkgs.libvirt}/bin/virsh list --state-running --name 2>/dev/null || true)
-      if [ -n "$running_vms" ]; then
-        ${pkgs.libnotify}/bin/notify-send "Eco mode" "VMs running — stop them first" 2>/dev/null || true
-      else
-        sudo -n ${pkgs.systemd}/bin/systemctl stop libvirtd.service 2>/dev/null || true
-      fi
-    fi
-
-    echo on > "$state"
-    # Write persistent state file — survives reboots, checked by
-    # cpu-boost-restore.service (skip boost=1 if eco active) and
-    # AC-plug udev handlers (skip power profile reset if eco active).
-    echo on | sudo -n ${pkgs.coreutils}/bin/tee "$persistent_state" >/dev/null 2>&1 || true
-    notify_waybar
+  # Backward-compat wrapper for existing callers.
+  ultra-economy-toggle = pkgs.writeShellScriptBin "ultra-economy-toggle" ''
+    exec ${lecoo-power-mode}/bin/lecoo-power-mode set eco+
   '';
 
   ultra-economy-status = pkgs.writeShellScriptBin "ultra-economy-status" ''
-    runtime="''${XDG_RUNTIME_DIR:-/tmp}/ultra-economy"
-    state="$runtime/state"
-    persistent_state="/var/lib/lecoo-eco/state-on"
-
-    # Check both session state and persistent state — persistent
-    # survives reboots, session is cleared on logout.
-    if [ "$(cat "$state" 2>/dev/null || true)" = "on" ] || [ -f "$persistent_state" ]; then
-      printf '{"text":"ECO","class":"on"}\n'
-    else
-      printf '{"text":"ECO","class":"off"}\n'
-    fi
+    exec ${lecoo-power-mode-status}/bin/lecoo-power-mode-status
   '';
 
   # ── Real-time power draw (waybar custom/power-draw) ────────────────
@@ -359,6 +353,8 @@ in {
     inherit
       lecoo-toggle
       lecoo-status
+      lecoo-power-mode
+      lecoo-power-mode-status
       ultra-economy-toggle
       ultra-economy-status
       battery-lecoo
@@ -369,6 +365,8 @@ in {
   home.packages = [
     lecoo-toggle
     lecoo-status
+    lecoo-power-mode
+    lecoo-power-mode-status
     ultra-economy-toggle
     ultra-economy-status
     battery-lecoo

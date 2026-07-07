@@ -500,13 +500,25 @@ in {
       serviceConfig = {
         Type = "oneshot";
         ExecStart = pkgs.writeShellScript "lecoo-ac-plug" ''
-          if [ -f /var/lib/lecoo-eco/state-on ]; then
-            # Eco active — keep eco power settings, only restore GPU DPM.
-            ${pkgs.systemd}/bin/systemctl start ac-gpu-dpm-restore.service 2>/dev/null || true
-            exit 0
-          fi
-          ${pkgs.power-profiles-daemon}/bin/powerprofilesctl set balanced 2>/dev/null || true
-          ${pkgs.systemd}/bin/systemctl start ac-gpu-dpm-restore.service 2>/dev/null || true
+          mode_file=/var/lib/lecoo-power-mode/current
+          mode=$(cat "$mode_file" 2>/dev/null || echo eco)
+          case "$mode" in
+            performance)
+              ${pkgs.power-profiles-daemon}/bin/powerprofilesctl set performance 2>/dev/null || true
+              ${pkgs.systemd}/bin/systemctl start ac-gpu-dpm-restore.service 2>/dev/null || true
+              ;;
+            eco+)
+              ${pkgs.power-profiles-daemon}/bin/powerprofilesctl set balanced 2>/dev/null || true
+              ${pkgs.systemd}/bin/systemctl start ac-gpu-dpm-restore.service 2>/dev/null || true
+              echo balanced > "$mode_file"
+              rm -f /var/lib/lecoo-eco/state-on 2>/dev/null || true
+              ;;
+            *)
+              ${pkgs.power-profiles-daemon}/bin/powerprofilesctl set balanced 2>/dev/null || true
+              ${pkgs.systemd}/bin/systemctl start ac-gpu-dpm-restore.service 2>/dev/null || true
+              echo balanced > "$mode_file"
+              ;;
+          esac
         '';
       };
     };
@@ -516,13 +528,21 @@ in {
       serviceConfig = {
         Type = "oneshot";
         ExecStart = pkgs.writeShellScript "lecoo-ac-unplug" ''
-          ${pkgs.power-profiles-daemon}/bin/powerprofilesctl set power-saver 2>/dev/null || true
-          ${pkgs.systemd}/bin/systemctl start battery-gpu-dpm.service 2>/dev/null || true
-          if [ -f /var/lib/lecoo-eco/state-on ]; then
-            # Eco active — skip EPP override, keep EPP=power.
-            exit 0
-          fi
-          ${pkgs.systemd}/bin/systemctl start battery-epp-override.service 2>/dev/null || true
+          mode_file=/var/lib/lecoo-power-mode/current
+          mode=$(cat "$mode_file" 2>/dev/null || echo balanced)
+          case "$mode" in
+            eco+)
+              ${pkgs.power-profiles-daemon}/bin/powerprofilesctl set power-saver 2>/dev/null || true
+              ${pkgs.systemd}/bin/systemctl start battery-gpu-dpm.service 2>/dev/null || true
+              exit 0
+              ;;
+            *)
+              ${pkgs.power-profiles-daemon}/bin/powerprofilesctl set power-saver 2>/dev/null || true
+              ${pkgs.systemd}/bin/systemctl start battery-gpu-dpm.service 2>/dev/null || true
+              ${pkgs.systemd}/bin/systemctl start battery-epp-override.service 2>/dev/null || true
+              echo eco > "$mode_file"
+              ;;
+          esac
         '';
       };
     };
