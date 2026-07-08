@@ -558,8 +558,8 @@ in {
     # GitHub token from gh CLI (already auth'd, no need to store in agenix)
     GH_TOKEN="$(${pkgs.gh}/bin/gh auth token 2>/dev/null || true)"
     if [ -z "$GH_TOKEN" ]; then
-      echo "ERROR: gh auth token returned empty — run 'gh auth login' first." >&2
-      exit 1
+      echo "WARN: gh auth token returned empty — writing opencode env without GitHub MCP token." >&2
+      GH_TOKEN=""
     fi
     mkdir -p "${config.xdg.configHome}/opencode"
     umask 077

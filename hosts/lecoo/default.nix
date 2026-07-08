@@ -42,12 +42,14 @@ in {
   system.stateVersion = "25.11";
 
   # Kernel — latest from main nixpkgs (7.1.2). No kernel patches —
-  # using binary cache. mac80211 TDLS patch removed: it triggered
-  # full kernel source builds on every nixpkgs revision bump.
-  # If WiFi TDLS key failures recur (Syncthing devices on same BSS),
-  # re-add the patch from hosts/lecoo/patches/ and build with
-  # --max-jobs 2 --cores 2 on AC.
-  # Source: research 2026-06-28-rtw89-key-addition-failure.result.md
+  # using binary cache. The mac80211 TDLS patch is NOT applied. The
+  # first non-kernel runtime workaround (dispatcher + `tdls_disabled 1`)
+  # failed on this host because NetworkManager-managed wpa_supplicant
+  # exposed no usable per-interface ctrl socket. The next non-kernel
+  # path is compiling wpa_supplicant without TDLS support; if that also
+  # proves insufficient, re-enable the patch from hosts/lecoo/patches/
+  # after a dry-build check (it triggers a kernel source build).
+  # Source: research 2026-07-08-wifi-tdls-no-kernel-workarounds.result.md
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
   # Host-scoped overlays:
@@ -55,9 +57,20 @@ in {
   # removed — 26.05 ships all ecosystem packages natively at the same
   # versions (hyprland 0.55.4, hyprpaper 0.8.4, quickshell 0.3.0, etc.).
   # Only the lecoo-ctrl custom package overlay remains.
+  #
+  # wpa_supplicant overlay: compiles without TDLS support (CONFIG_TDLS
+  # unset). This is a non-kernel workaround for the mac80211
+  # ieee80211_add_key bug that rejects TDLS peer keys. Without TDLS
+  # code in the binary, wpa_supplicant never issues
+  # NL80211_CMD_NEW_KEY for a TDLS peer, so the buggy kernel path is
+  # never reached. This is a userspace rebuild, not a kernel rebuild.
+  # Source: research 2026-07-08-wifi-tdls-no-kernel-workarounds.result.md
   nixpkgs.overlays = [
     (final: _prev: {
       lecoo-ctrl = final.callPackage ./pkgs/lecoo-ctrl {};
+      wpa_supplicant = _prev.wpa_supplicant.overrideAttrs (_old: {
+        extraConfig = builtins.replaceStrings ["CONFIG_TDLS=y"] ["CONFIG_TDLS="] _prev.wpa_supplicant.extraConfig or "";
+      });
     })
   ];
 

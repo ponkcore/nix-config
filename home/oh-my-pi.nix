@@ -154,8 +154,8 @@
     umask 077
     GH_TOKEN="$(${pkgs.gh}/bin/gh auth token 2>/dev/null || true)"
     if [ -z "$GH_TOKEN" ]; then
-      echo "ERROR: gh auth token returned empty — run 'gh auth login' first." >&2
-      exit 1
+      echo "WARN: gh auth token returned empty — writing OMP env without GitHub MCP token." >&2
+      GH_TOKEN=""
     fi
     cat > "$OUT" <<EOF
     OMNIROUTE_API_KEY=$OMNIROUTE_API_KEY

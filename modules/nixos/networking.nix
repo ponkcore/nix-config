@@ -37,10 +37,14 @@ _: {
   # ModemManager — nothing on these hosts uses cellular modems.
   networking.modemmanager.enable = false;
 
-  # TDLS key installation bug — fixed via kernel patch (boot.kernelPatches
-  # in hosts/lecoo/default.nix). The D-Bus TdlsExternalControl dispatcher
-  # was a workaround that did NOT work (wpa_supplicant still processed
-  # incoming TDLS requests). Removed after kernel patch confirmed working:
-  # 0 key-addition failures with TDLS peer active post-reboot.
-  # Source: research 2026-06-28-rtw89-key-addition-failure.result.md
+  # TDLS key installation bug — the kernel patch (one-line fix in
+  # net/mac80211/cfg.c adding !sta->sta.tdls to the exemption) is
+  # NOT applied because it triggers a kernel source build. The
+  # previous dispatcher-script attempt using `wpa_cli set tdls_disabled 1`
+  # did not work on this system: NetworkManager-managed wpa_supplicant
+  # exposed no usable per-interface ctrl socket at `/run/wpa_supplicant/*`.
+  # Next non-kernel step is a wpa_supplicant overlay with TDLS compiled
+  # out (`CONFIG_TDLS=`), which avoids the runtime control-path issue
+  # entirely while staying out of kernel rebuild territory.
+  # Source: research 2026-07-08-wifi-tdls-no-kernel-workarounds.result.md
 }
