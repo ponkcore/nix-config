@@ -2,7 +2,7 @@
 #
 # Boots a minimal NixOS VM that imports modules/nixos/users.nix and
 # modules/nixos/security.nix, then asserts at runtime:
-#   - the `oonishi` account exists,
+#   - the primary-user account exists,
 #   - login shell is fish,
 #   - sudo lets the user run `sudo -n true` without a password,
 #   - the canonical group memberships are present.
@@ -21,7 +21,7 @@ pkgs.testers.runNixOSTest {
     ];
     # `username` is normally injected by lib/mkHost.nix specialArgs;
     # provide it explicitly here.
-    _module.args.username = "oonishi";
+    _module.args.username = "testuser";
 
     # Headless test environment: switch off services the security
     # module pulls in unconditionally and which would either need a
@@ -37,15 +37,15 @@ pkgs.testers.runNixOSTest {
     machine.wait_for_unit("multi-user.target")
 
     # Account exists.
-    machine.succeed("id oonishi")
+    machine.succeed("id testuser")
 
     # Login shell is fish (resolves to the canonical /run/current-system path).
     machine.succeed(
-        "getent passwd oonishi | awk -F: '{print $7}' | grep -E '/(bin|run/current-system/sw/bin)/fish$'"
+        "getent passwd testuser | awk -F: '{print $7}' | grep -E '/(bin|run/current-system/sw/bin)/fish$'"
     )
 
     # Sudo NOPASSWD: -n flag fails if a password would be needed.
-    machine.succeed("sudo -u oonishi sudo -n true")
+    machine.succeed("sudo -u testuser sudo -n true")
 
     # Universal groups — present whenever modules/nixos/users.nix is
     # imported, regardless of which other modules are loaded. Optional
@@ -54,6 +54,6 @@ pkgs.testers.runNixOSTest {
     # belongs in an integration test that pulls in the full host
     # closure rather than this isolated unit-style test.
     for group in ("wheel", "audio", "video", "render"):
-        machine.succeed(f"id -nG oonishi | tr ' ' '\\n' | grep -qx {group}")
+        machine.succeed(f"id -nG testuser | tr ' ' '\\n' | grep -qx {group}")
   '';
 }

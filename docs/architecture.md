@@ -133,6 +133,10 @@ theme/                             ── compositor-agnostic UI
 ├── default.nix      single active theme export
 ├── themes/          theme definitions (monochrome active)
 ├── mako.nix · rofi.nix · ghostty.nix · scripts.nix
+home/desktop/sessions/hyprland/quickshell/
+├── *.qml / *.sh / *.py  raw shell assets (human-facing source)
+pkgs/quickshell-config/default.nix
+└── packaging/wiring derivation over that asset subtree
 ```
 
 The dispatchers' contract: importing a session module never affects
@@ -274,6 +278,8 @@ Layer 2 (web/banking/notes/2FA) lives in the KeePass vault. Layer 3
 | greetd / nwg-hello styling | `modules/nixos/desktop/greeter/greetd.nix` |
 | Hyprland system enable + UWSM | `modules/nixos/desktop/sessions/hyprland.nix` |
 | Hyprland user config | `home/desktop/sessions/hyprland/` |
+| Raw Quickshell assets | `home/desktop/sessions/hyprland/quickshell/` |
+| Quickshell packaging/wiring | `pkgs/quickshell-config/default.nix` |
 | Theme palette source | `theme/themes/monochrome/palette.nix` |
 | nix-ld (FHS binary shim) | `modules/nixos/packages.nix` |
 | Agent global instructions | `home/agent-rules.nix` (deploys `home/agent-instructions/AGENTS.md` to opencode/omp/agy paths) |

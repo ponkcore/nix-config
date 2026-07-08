@@ -7,8 +7,19 @@
   pkgs,
   p,
   c,
+  hostDisplay ? null,
   ...
 }: let
+  display =
+    if hostDisplay != null
+    then hostDisplay
+    else {
+      internalMonitor = "eDP-1";
+      internalMode = "2880x1800@120";
+      internalModeEco = "2880x1800@60";
+      internalScale = "1.8";
+      wallpaperSize = "2880x1800";
+    };
   # Hyprland color literals — bare 8-digit RRGGBBAA hex with no
   # separator. Consumed by general.col.active_border, group borders,
   # groupbar, misc.background_color, and so on.
@@ -146,7 +157,7 @@ in {
       # specific external panel ever needs a per-output quirk (mode,
       # scale, or `vrr, 0`), add a dedicated line ABOVE the fallback.
       monitor = [
-        "eDP-1, 2880x1800@120, 0x0, 1.8"
+        "${display.internalMonitor}, ${display.internalMode}, 0x0, ${display.internalScale}"
         ", preferred, auto, 1"
       ];
 

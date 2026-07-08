@@ -99,10 +99,11 @@ modules/
     desktop/             Wayland desktop stack
   hardware/              Opt-in profiles per CPU/GPU/form-factor/boot
 home/                    Home Manager modules (per-user config)
+  desktop/sessions/hyprland/quickshell/  Raw Quickshell QML + helper scripts
 theme/                   Wayland theme system (single active theme, extensible structure)
   themes/                monochrome (active quickshell theme)
 pkgs/                    Local package derivations + overlay
-  quickshell-config/     Quickshell QML shell config
+  quickshell-config/     Quickshell packaging/wiring derivation
 secrets/                 agenix-encrypted secrets + authorisation map
 skills/                  Letta Code skill files installed into ~/.letta/skills
 tests/                   nixosTests exposed through flake checks

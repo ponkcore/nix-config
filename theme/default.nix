@@ -17,7 +17,21 @@
 #
 # Imported from home/desktop/default.nix when desktops is non-empty.
 # Headless/server hosts never see this file.
-{pkgs, ...}: let
+{
+  pkgs,
+  hostDisplay ? null,
+  ...
+}: let
+  display =
+    if hostDisplay != null
+    then hostDisplay
+    else {
+      internalMonitor = "eDP-1";
+      internalMode = "2880x1800@120";
+      internalModeEco = "2880x1800@60";
+      internalScale = "1.8";
+      wallpaperSize = "2880x1800";
+    };
   theme = import ./themes/monochrome/default.nix {};
 
   # Palette — extracted from the active theme for convenience.
@@ -34,15 +48,15 @@
   # Wallpaper paths. `wallpaper` remains the original full-resolution
   # asset for lock-screen use; `sessionWallpaper` is a pre-scaled copy
   # for the live Hyprland wallpaper daemon so hyprpaper does not keep a
-  # large image resident just to paint a 2880x1800 panel.
+  # large image resident just to paint the host's internal panel size.
   wallpaper = "${theme.wallpaper}";
   sessionWallpaper = "${sessionWallpaperAsset}";
   sessionWallpaperAsset = pkgs.runCommand "wallpaper-session.png" {nativeBuildInputs = [pkgs.imagemagick];} ''
     magick \
       ${theme.wallpaper} \
-      -resize 2880x1800^ \
+      -resize ${display.wallpaperSize}^ \
       -gravity center \
-      -extent 2880x1800 \
+      -extent ${display.wallpaperSize} \
       "$out"
   '';
 in {

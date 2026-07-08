@@ -1,6 +1,7 @@
-# quickshell-config/default.nix — Quickshell shell adapted for NixOS.
+# quickshell-config/default.nix — Quickshell shell packaging/wiring.
 #
-# Derivation that copies all QML files and scripts into the Nix store,
+# Derivation that copies the raw QML files and scripts from
+# home/desktop/sessions/hyprland/quickshell/ into the Nix store,
 # then patches hardcoded paths and binary names to match our system:
 #
 # Path replacements:
@@ -34,7 +35,7 @@
     exec ${pkgs.ghostty}/bin/ghostty --class=com.mitchellh.ghostty-config -e fish -c "cd '$dir' && nvim"
   '';
 
-  # Battery mode toggle: use our ultra-economy-toggle if available,
+  # Battery mode toggle: use the legacy wrapper if available,
   # otherwise no-op.
   batteryModeBin =
     if ultra-economy-toggle != null
@@ -45,7 +46,7 @@ in
     pname = "quickshell-config";
     version = "0.1.0";
 
-    src = ./.;
+    src = ../../home/desktop/sessions/hyprland/quickshell;
 
     buildInputs = [pkgs.python3];
 

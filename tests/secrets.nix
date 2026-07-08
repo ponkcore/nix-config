@@ -23,6 +23,7 @@
 {
   pkgs,
   inputs,
+  username ? "testuser",
 }: let
   fixtures =
     pkgs.runCommand "talos-test-fixtures" {
@@ -48,7 +49,7 @@ in
         identityPaths = ["${fixtures}/host_key"];
         secrets.test-secret = {
           file = "${fixtures}/secret.age";
-          owner = "oonishi";
+          owner = username;
           mode = "400";
         };
       };
@@ -56,7 +57,7 @@ in
       # Minimal user matching the secret owner. Keep the account
       # lightweight: no shell choice, no extra groups — that is the
       # job of tests/users.nix.
-      users.users.oonishi = {
+      users.users.${username} = {
         isNormalUser = true;
         uid = 1000;
       };
@@ -73,7 +74,7 @@ in
       mode = machine.succeed("stat -c %a /run/agenix/test-secret").strip()
       assert mode == "400", f"expected mode 400, got {mode}"
       owner = machine.succeed("stat -c %U /run/agenix/test-secret").strip()
-      assert owner == "oonishi", f"expected owner oonishi, got {owner}"
+      assert owner == "${username}", f"expected owner ${username}, got {owner}"
 
       # Content round-tripped through age decryption.
       machine.succeed(

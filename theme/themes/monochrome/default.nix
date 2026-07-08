@@ -9,7 +9,7 @@ _: {
   wallpaper = ../../../assets/wallpaper.png;
 
   # This theme uses quickshell as its bar backend, not waybar.
-  # The quickshell config lives in pkgs/quickshell-config/.
+  # The raw quickshell assets live in home/desktop/sessions/hyprland/quickshell/.
   bar = "quickshell";
 
   mako = {};

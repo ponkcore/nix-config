@@ -10,10 +10,19 @@
 {
   lib,
   pkgs,
-  inputs,
   username,
   ...
 }: {
+  _module.args = {
+    hostDisplay = {
+      internalMonitor = "eDP-1";
+      internalMode = "2880x1800@120";
+      internalModeEco = "2880x1800@60";
+      internalScale = "1.8";
+      wallpaperSize = "2880x1800";
+    };
+  };
+
   imports = [
     # Generated mount points + kernel modules required to boot.
     ./hardware-configuration.nix
