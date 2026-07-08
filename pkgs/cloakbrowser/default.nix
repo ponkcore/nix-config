@@ -50,7 +50,18 @@
   pango,
   udev,
   vulkan-loader,
-  xorg,
+  libx11,
+  libxcb,
+  libxcomposite,
+  libxcursor,
+  libxdamage,
+  libxext,
+  libxfixes,
+  libxi,
+  libxrandr,
+  libxrender,
+  libxscrnsaver,
+  libxtst,
 }: let
   version = "146.0.7680.177.5";
   icon = fetchurl {
@@ -103,18 +114,18 @@ in
       stdenv.cc.cc.lib
       udev
       vulkan-loader
-      xorg.libX11
-      xorg.libxcb
-      xorg.libXcomposite
-      xorg.libXcursor
-      xorg.libXdamage
-      xorg.libXext
-      xorg.libXfixes
-      xorg.libXi
-      xorg.libXrandr
-      xorg.libXrender
-      xorg.libXScrnSaver
-      xorg.libXtst
+      libx11
+      libxcb
+      libxcomposite
+      libxcursor
+      libxdamage
+      libxext
+      libxfixes
+      libxi
+      libxrandr
+      libxrender
+      libxscrnsaver
+      libxtst
     ];
 
     runtimeLibs = lib.makeLibraryPath ([

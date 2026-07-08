@@ -58,12 +58,12 @@
       "~/Documents/ssh-private/config"
     ];
 
-    matchBlocks."*" = {
-      forwardAgent = false;
-      addKeysToAgent = "yes";
-      serverAliveInterval = 60;
-      serverAliveCountMax = 3;
-      hashKnownHosts = true;
+    settings."*" = {
+      ForwardAgent = false;
+      AddKeysToAgent = "yes";
+      ServerAliveInterval = 60;
+      ServerAliveCountMax = 3;
+      HashKnownHosts = true;
     };
   };
 }

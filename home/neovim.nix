@@ -24,7 +24,7 @@
       marksman
       # Formatters (conform.nvim)
       alejandra
-      nixfmt-rfc-style
+      nixfmt
       prettierd
       stylua
       shfmt
