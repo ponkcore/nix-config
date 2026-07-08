@@ -790,7 +790,6 @@ ShellRoot {
             Keys.onEscapePressed: {
                 controlCenter.show = false;
                 timerPopup.show = false;
-                gpuPopup.show = false;
                 notesPopup.show = false;
             }
             
