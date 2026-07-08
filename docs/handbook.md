@@ -649,10 +649,17 @@ md              mkdir -p && cd
 
 ### Display scale and terminal size
 
-The built-in panel is pinned in Hyprland as:
+The built-in panel is pinned on the `lecoo` host through the
+`hostDisplay` contract in `hosts/lecoo/default.nix`:
 
 ```nix
-"eDP-1, 2880x1800@120, 0x0, 1.8"
+hostDisplay = {
+  internalMonitor = "eDP-1";
+  internalMode = "2880x1800@120";
+  internalModeEco = "2880x1800@60";
+  internalScale = "1.8";
+  wallpaperSize = "2880x1800";
+};
 ```
 
 That makes the logical workspace `1600×1000`. The previous scale `2`
@@ -667,7 +674,8 @@ font-size = 10.8
 
 Config paths:
 
-- `home/desktop/sessions/hyprland/session.nix` — monitor scale.
+- `hosts/lecoo/default.nix` — hostDisplay monitor geometry / scale contract.
+- `home/desktop/sessions/hyprland/session.nix` — shared Hyprland consumer of that contract.
 - `theme/ghostty.nix` — terminal font size.
 
 ### Quickshell runtime note

@@ -23,16 +23,15 @@
   desktops ? [],
   ...
 }: let
-  defaultHostDisplay = {
-    internalMonitor = "eDP-1";
-    internalMode = "2880x1800@120";
-    internalModeEco = "2880x1800@60";
-    internalScale = "1.8";
-    wallpaperSize = "2880x1800";
-  };
   has = name: builtins.elem name desktops;
 in {
-  _module.args.hostDisplay = lib.mkDefault defaultHostDisplay;
+  _module.args.hostDisplay = lib.mkDefault {
+    internalMonitor = "eDP-1";
+    internalMode = "preferred";
+    internalModeEco = "preferred";
+    internalScale = "1";
+    wallpaperSize = "1920x1080";
+  };
 
   imports =
     lib.optionals (desktops != []) [
