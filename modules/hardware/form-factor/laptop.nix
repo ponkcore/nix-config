@@ -32,8 +32,10 @@
   config,
   lib,
   pkgs,
+  hostDisplay,
   ...
 }: let
+  display = hostDisplay;
   cfg = config.hardware.laptop.lidMonitor;
 
   closeHook = pkgs.writeShellScript "lid-monitor-close-hook" (lib.concatStringsSep "\n" cfg.onClose);
@@ -119,21 +121,21 @@
       if [ "$want_blank" = true ] && [ "$blanked" = false ]; then
         case "$BLANKING" in
           disable)
-            "$HYPRCTL" keyword monitor "eDP-1, disable" || true
+            "$HYPRCTL" keyword monitor "${display.internalMonitor}, disable" || true
             ;;
           backlight)
             "$BRIGHTNESSCTL" -d amdgpu_bl1 -s get > "$STATE_FILE" 2>/dev/null || true
             "$BRIGHTNESSCTL" -d amdgpu_bl1 set 0 2>/dev/null || true
             ;;
           dpms)
-            "$HYPRCTL" dispatch dpms off eDP-1 || true
+            "$HYPRCTL" dispatch dpms off ${display.internalMonitor} || true
             ;;
         esac
         blanked=true
       elif [ "$want_blank" = false ] && [ "$blanked" = true ]; then
         case "$BLANKING" in
           disable)
-            "$HYPRCTL" keyword monitor "eDP-1, 2880x1800@120, 0x0, 1.8" || true
+            "$HYPRCTL" keyword monitor "${display.internalMonitor}, ${display.internalMode}, 0x0, ${display.internalScale}" || true
             ;;
           backlight)
             if [ -r "$STATE_FILE" ]; then
@@ -144,7 +146,7 @@
             fi
             ;;
           dpms)
-            "$HYPRCTL" dispatch dpms on eDP-1 || true
+            "$HYPRCTL" dispatch dpms on ${display.internalMonitor} || true
             # Force cursor plane re-commit after DPMS-on. Hyprland
             # 0.52.1 does not re-commit the hardware cursor plane on
             # DPMS-on — the cursor becomes invisible until moved.

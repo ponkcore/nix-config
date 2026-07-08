@@ -5,7 +5,12 @@
 # Kept as standalone scripts because quickshell and future shell/UI
 # components may need the same power/charge information without being
 # tied to a specific bar implementation.
-{pkgs, ...}: let
+{
+  pkgs,
+  hostDisplay,
+  ...
+}: let
+  display = hostDisplay;
   # ── Helper: detect current FlexiCharger mode from `lecoo-ctrl charge`
   # Output is one of: full / high / balanced / lifespan / desk / unknown.
   # Used by both lecoo-toggle (to decide the next mode) and lecoo-status.
@@ -142,7 +147,7 @@
     }
 
     leave_eco_plus() {
-      ${pkgs.hyprland}/bin/hyprctl keyword monitor "eDP-1, 2880x1800@120, 0x0, 1.8" >/dev/null 2>&1 || true
+      ${pkgs.hyprland}/bin/hyprctl keyword monitor "${display.internalMonitor}, ${display.internalMode}, 0x0, ${display.internalScale}" >/dev/null 2>&1 || true
       if [ -r "$saved_animations" ]; then
         animations=$(cat "$saved_animations")
         case "$animations" in 0|1) ${pkgs.hyprland}/bin/hyprctl keyword animations:enabled "$animations" >/dev/null 2>&1 || true ;; esac
@@ -163,7 +168,7 @@
       cat /sys/devices/system/cpu/smt/control > "$saved_smt" 2>/dev/null || true
       cat /sys/devices/system/cpu/cpufreq/policy0/boost > "$saved_boost" 2>/dev/null || true
       cat /sys/devices/system/cpu/cpufreq/policy0/amd_pstate_max_freq > "$saved_maxfreq" 2>/dev/null || true
-      ${pkgs.hyprland}/bin/hyprctl keyword monitor "eDP-1, 2880x1800@60, 0x0, 1.8" >/dev/null 2>&1 || true
+      ${pkgs.hyprland}/bin/hyprctl keyword monitor "${display.internalMonitor}, ${display.internalModeEco}, 0x0, ${display.internalScale}" >/dev/null 2>&1 || true
       ${pkgs.hyprland}/bin/hyprctl keyword animations:enabled 0 >/dev/null 2>&1 || true
       ${pkgs.hyprland}/bin/hyprctl keyword decoration:blur:enabled 0 >/dev/null 2>&1 || true
       ${pkgs.hyprland}/bin/hyprctl keyword decoration:shadow:enabled 0 >/dev/null 2>&1 || true

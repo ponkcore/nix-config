@@ -7,19 +7,10 @@
   pkgs,
   p,
   c,
-  hostDisplay ? null,
+  hostDisplay,
   ...
 }: let
-  display =
-    if hostDisplay != null
-    then hostDisplay
-    else {
-      internalMonitor = "eDP-1";
-      internalMode = "2880x1800@120";
-      internalModeEco = "2880x1800@60";
-      internalScale = "1.8";
-      wallpaperSize = "2880x1800";
-    };
+  display = hostDisplay;
   # Hyprland color literals — bare 8-digit RRGGBBAA hex with no
   # separator. Consumed by general.col.active_border, group borders,
   # groupbar, misc.background_color, and so on.

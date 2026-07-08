@@ -19,19 +19,10 @@
 # Headless/server hosts never see this file.
 {
   pkgs,
-  hostDisplay ? null,
+  hostDisplay,
   ...
 }: let
-  display =
-    if hostDisplay != null
-    then hostDisplay
-    else {
-      internalMonitor = "eDP-1";
-      internalMode = "2880x1800@120";
-      internalModeEco = "2880x1800@60";
-      internalScale = "1.8";
-      wallpaperSize = "2880x1800";
-    };
+  display = hostDisplay;
   theme = import ./themes/monochrome/default.nix {};
 
   # Palette — extracted from the active theme for convenience.
