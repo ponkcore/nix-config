@@ -12,22 +12,18 @@
   pkgs,
   username,
   ...
-}: {
-  _module.args.hostDisplay = {
+}: let
+  display = {
     internalMonitor = "eDP-1";
     internalMode = "2880x1800@120";
     internalModeEco = "2880x1800@60";
     internalScale = "1.8";
     wallpaperSize = "2880x1800";
   };
+in {
+  _module.args.hostDisplay = display;
 
-  home-manager.extraSpecialArgs.hostDisplay = {
-    internalMonitor = "eDP-1";
-    internalMode = "2880x1800@120";
-    internalModeEco = "2880x1800@60";
-    internalScale = "1.8";
-    wallpaperSize = "2880x1800";
-  };
+  home-manager.extraSpecialArgs.hostDisplay = display;
 
   imports = [
     # Generated mount points + kernel modules required to boot.
