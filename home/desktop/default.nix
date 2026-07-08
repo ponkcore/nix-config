@@ -25,14 +25,6 @@
 }: let
   has = name: builtins.elem name desktops;
 in {
-  _module.args.hostDisplay = lib.mkDefault {
-    internalMonitor = "eDP-1";
-    internalMode = "preferred";
-    internalModeEco = "preferred";
-    internalScale = "1";
-    wallpaperSize = "1920x1080";
-  };
-
   imports =
     lib.optionals (desktops != []) [
       ../../theme

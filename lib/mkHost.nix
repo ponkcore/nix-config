@@ -56,6 +56,13 @@ in
     specialArgs = {
       inherit inputs hostname username desktops system;
       defaultSession = resolvedDefault;
+      hostDisplay = {
+        internalMonitor = "eDP-1";
+        internalMode = "preferred";
+        internalModeEco = "preferred";
+        internalScale = "1";
+        wallpaperSize = "1920x1080";
+      };
     };
     modules =
       [
