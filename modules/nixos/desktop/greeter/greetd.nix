@@ -51,6 +51,7 @@
   config,
   lib,
   pkgs,
+  hostDisplay,
   ...
 }: let
   # Palette — shared via theme/themes/monochrome/palette.nix.
@@ -114,7 +115,7 @@
   # `output * bg` then paints the single active output (eDP-1).
   swayGreeterConfig = pkgs.writeText "sway-greeter-config" ''
     output * disable
-    output eDP-1 enable
+    output ${hostDisplay.internalMonitor} enable
     output * bg /etc/greetd/wallpaper.jpg fill
 
     # Keyboard — match user session.

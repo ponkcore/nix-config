@@ -1,7 +1,7 @@
 # Architecture
 
 > System reference for ponkcore's portable NixOS flake.
-> Last revised: 2026-05-19 (multi-desktop architecture).
+> Last revised: 2026-07-08 (hostDisplay contract, quickshell asset isolation).
 
 ## TL;DR
 
@@ -165,7 +165,9 @@ headless / VM hosts.
 flake.nix
    ├── lib/mkHost.nix builds nixosSystem
    │      • specialArgs = { inputs, hostname, username,
-   │                         desktops, defaultSession }
+   │                         desktops, defaultSession,
+   │                         hostDisplay (generic defaults) }
+   │      • extraSpecialArgs mirrors hostDisplay to HM
    │      • imports modules/nixos (universal)
    │      • imports home-manager NixOS module
    │      • registers pkgs/default.nix overlay list
@@ -175,6 +177,33 @@ flake.nix
    │
    └── plus host modules from hosts/<name>/default.nix
 ```
+
+## hostDisplay contract
+
+Every host defines a display contract — an attrset with five fields:
+
+```nix
+hostDisplay = {
+  internalMonitor = "eDP-1";       # wlr output name
+  internalMode    = "preferred";   # mode string for hyprctl/hyprland
+  internalModeEco = "preferred";   # reduced refresh-rate mode for eco+
+  internalScale   = "1";           # Hyprland scale factor
+  wallpaperSize   = "1920x1080";   # magick resize target for hyprpaper
+};
+```
+
+`mkHost.nix` supplies generic defaults in both `specialArgs` (NixOS
+modules) and `extraSpecialArgs` (HM modules). Hosts override via
+`_module.args.hostDisplay` (NixOS side) and
+`home-manager.extraSpecialArgs.hostDisplay` (HM side) in their
+`hosts/<name>/default.nix`.
+
+Consumers:
+- `modules/hardware/form-factor/laptop.nix` — lid-monitor blanking
+- `modules/nixos/desktop/greeter/greetd.nix` — sway kiosk output
+- `home/desktop/sessions/hyprland/session.nix` — monitor config
+- `theme/default.nix` — wallpaper scaling
+- `hosts/lecoo/home/scripts.nix` — power-mode eco+ refresh switch
 
 `pkgs/default.nix` returns a list of overlays:
 - local packages (`cloakbrowser`, `oh-my-pi`, `oh-my-openagent`,

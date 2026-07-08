@@ -54,6 +54,7 @@
 
     userDirs = {
       enable = true;
+      setSessionVariables = true;
       download = "${config.home.homeDirectory}/Downloads";
       documents = "${config.home.homeDirectory}/Documents";
       music = "${config.home.homeDirectory}/Music";

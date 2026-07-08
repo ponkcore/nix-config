@@ -28,6 +28,7 @@
 in {
   programs.firefox = {
     enable = true;
+    configPath = ".mozilla/firefox";
 
     # Native-messaging hosts. Firefox-wrapped from nixpkgs only scans
     # the wrapper's own lib/mozilla/native-messaging-hosts/ — manifests

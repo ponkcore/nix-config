@@ -140,15 +140,14 @@
     # existence + UP flag in the angle-bracket flags, not "state UP".
     if $IP link show throne-tun 2>/dev/null | $GREP -q '<.*UP.*>'; then
       # Power-state-aware class so CSS can render different visuals:
-      #   eco / battery → static yellow (subtle, power-conscious)
-      #   AC            → animated gradient shimmer (yellow ↔ magenta)
-      eco_on=""
-      if [ -f /var/lib/lecoo-eco/state-on ]; then
-        eco_on="1"
-      fi
-      ac_on=$(cat /sys/class/power_supply/ADP1/online 2>/dev/null || echo 0)
-
-      if [ -n "$eco_on" ] || [ "$ac_on" != "1" ]; then
+      #   battery → static yellow (subtle, power-conscious)
+      #   AC      → animated gradient shimmer (yellow ↔ magenta)
+      # Detect AC state via the on-battery helper (provided by the
+      # laptop hardware profile), falling back to a heuristic that
+      # scans /sys/class/power_supply/*/online. No hardcoded adapter
+      # names — portable across hosts with different AC adapter sysfs
+      # naming (ADP1, ACAD, AC, etc.).
+      if on-battery 2>/dev/null; then
         echo '{"text":"","class":"vpn-active-battery"}'
       else
         echo '{"text":"","class":"vpn-active-ac"}'

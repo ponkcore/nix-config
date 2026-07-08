@@ -5,12 +5,13 @@
 # Kept as standalone scripts because quickshell and future shell/UI
 # components may need the same power/charge information without being
 # tied to a specific bar implementation.
-{
-  pkgs,
-  hostDisplay,
-  ...
-}: let
-  display = hostDisplay;
+{pkgs, ...}: let
+  display = {
+    internalMonitor = "eDP-1";
+    internalMode = "2880x1800@120";
+    internalModeEco = "2880x1800@60";
+    internalScale = "1.8";
+  };
   # ── Helper: detect current FlexiCharger mode from `lecoo-ctrl charge`
   # Output is one of: full / high / balanced / lifespan / desk / unknown.
   # Used by both lecoo-toggle (to decide the next mode) and lecoo-status.

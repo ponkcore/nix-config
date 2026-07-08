@@ -347,8 +347,21 @@ in {
       # the new center. Disabling this keeps the cursor where the user
       # left it — preferred for popup-toggle interactions, where
       # clicking the bar should not yank the mouse off-screen.
+      #
+      # Software cursor — immune to the Hyprland DPMS-on cursor plane
+      # bug (#4522, closed "not planned"). With software cursor the
+      # cursor bitmap is composited into the framebuffer on every frame,
+      # so damageMonitor on DPMS-on redraws the cursor too.
+      # 0.55.x: no_hardware_cursors changed from boolean to integer.
+      # 0 = use HW cursors, 1 = disable (was true), 2 = auto.
+      # no_break_fs_vrr: stops cursor movement from triggering new
+      # frames in fullscreen VRR apps — may reduce compositor wakeups.
+      # Source: research 2026-06-26-system-pain-points-deep-research §1.3
+      # Source: research 2026-06-27-hyprland-upgrade-research §4-5
       cursor = {
         no_warps = true;
+        no_hardware_cursors = 1;
+        no_break_fs_vrr = 1;
       };
 
       # ── Touchpad gestures (Hyprland 0.51+ new gesture system) ──────────
@@ -375,21 +388,6 @@ in {
         "col.active_border" = "${rgba p.bright_yellow "ee"} ${rgba p.bright_magenta "ee"} 45deg";
         "col.inactive_border" = rgba p.border_inact "aa";
         resize_on_border = true;
-      };
-
-      # Software cursor — immune to the Hyprland DPMS-on cursor plane
-      # bug (#4522, closed "not planned"). With software cursor the
-      # cursor bitmap is composited into the framebuffer on every frame,
-      # so damageMonitor on DPMS-on redraws the cursor too.
-      # 0.55.x: no_hardware_cursors changed from boolean to integer.
-      # 0 = use HW cursors, 1 = disable (was true), 2 = auto.
-      # no_break_fs_vrr: stops cursor movement from triggering new
-      # frames in fullscreen VRR apps — may reduce compositor wakeups.
-      # Source: research 2026-06-26-system-pain-points-deep-research §1.3
-      # Source: research 2026-06-27-hyprland-upgrade-research §4-5
-      cursor = {
-        no_hardware_cursors = 1;
-        no_break_fs_vrr = 1;
       };
 
       # ── Workspace policy ───────────────────────────────────────────────

@@ -19,7 +19,9 @@
   theme,
   ...
 }: let
-  quickshellConfig = pkgs.callPackage ../../../../pkgs/quickshell-config {};
+  quickshellConfig = pkgs.callPackage ../../../../pkgs/quickshell-config {
+    homeDirectory = config.home.homeDirectory;
+  };
 
   # Quickshell wrapper: ensures Hyprland env is available before
   # starting.

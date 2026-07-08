@@ -18,6 +18,7 @@
 # Imported from home/desktop/default.nix when desktops is non-empty.
 # Headless/server hosts never see this file.
 {
+  config,
   pkgs,
   hostDisplay,
   ...
@@ -99,6 +100,7 @@ in {
       name = "Gruvbox-Dark";
       package = pkgs.gruvbox-gtk-theme;
     };
+    gtk4.theme = config.gtk.theme;
     cursorTheme = {
       name = "Capitaine Cursors (Gruvbox)";
       package = pkgs.capitaine-cursors-themed;

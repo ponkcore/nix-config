@@ -690,9 +690,9 @@ systemctl --user restart quickshell
 ### Power menu
 
 The Quickshell power menu and the laptop hardware power key open
-`wlogout --buttons-per-row 2`. The hardware button is handled by Hyprland
+`wlogout --buttons-per-row 4`. The hardware button is handled by Hyprland
 for short presses; long press remains a logind emergency poweroff fallback.
-It shows a four-button grid:
+It shows a four-button row:
 
 | Button | Key | Action |
 |--------|-----|--------|
@@ -705,9 +705,9 @@ Config lives in `home/wlogout.nix`; icons live in `assets/wlogout-icons/`.
 ### Hyprland key bindings (defined in `home/desktop/sessions/hyprland/session.nix`)
 
 ```
-SUPER+Return       terminal (Ghostty)
+SUPER+Return       terminal (Ghostty, floating)
 SUPER+B            Firefox
-SUPER+D            rofi launcher
+SUPER+R            rofi launcher
 SUPER+Q            kill active window
 SUPER+V            toggle floating
 SUPER+F            fullscreen
@@ -715,14 +715,20 @@ Power key          wlogout power menu
 SUPER+C            clipboard history (rofi)
 SUPER+G            toggle window group (tabbed)
 SUPER+Tab          next group tab
+SUPER+`            quickshell control center
+SUPER+T            Telegram toggle
+SUPER+S            Spotify toggle
+SUPER+N            Throne toggle
+SUPER+E            Nautilus (new window)
+SUPER+\            KeePassXC toggle
 SUPER+1..9         switch workspace
 SUPER+SHIFT+1..9   move window to workspace
 SUPER+h/j/k/l      focus
 SUPER+SHIFT+h/j/k/l move window
 SUPER+CTRL+h/j/k/l resize
-Print              full-screen screenshot
-SUPER+Print        region screenshot
-SUPER+SHIFT+Print  window screenshot
+SUPER+P            full-screen screenshot
+SUPER+SHIFT+P      region screenshot
+SUPER+CTRL+P       window screenshot
 ```
 
 ### Files you'll touch most

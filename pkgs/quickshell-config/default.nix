@@ -26,6 +26,7 @@
 #   ryzenadj / setwatt (CPU TDP — we use our eco-toggle instead)
 {
   pkgs,
+  homeDirectory ? "/home/oonishi",
   ultra-economy-toggle ? null,
   ...
 }: let
@@ -82,12 +83,12 @@ in
         --replace "/home/matteo/.local/bin/battery_mode.sh" "${batteryModeBin}" \
         --replace "/home/matteo/.config/hypr/modules/look_and_feel.conf" "/etc/nixos/hosts/lecoo/default.nix" \
         --replace "/home/matteo/.config/hypr" "/etc/nixos" \
-        --replace "/home/matteo/.config/ghostty" "$HOME/.config/ghostty" \
-        --replace "/home/matteo/.config/fish" "$HOME/.config/fish" \
-        --replace "/home/matteo/.config/fastfetch" "$HOME/.config/fastfetch" \
+        --replace "/home/matteo/.config/ghostty" "${homeDirectory}/.config/ghostty" \
+        --replace "/home/matteo/.config/fish" "${homeDirectory}/.config/fish" \
+        --replace "/home/matteo/.config/fastfetch" "${homeDirectory}/.config/fastfetch" \
         --replace "/home/matteo/.config/tofi/" "/etc/nixos/" \
-        --replace "/home/matteo/.config/kitty" "$HOME/.config/ghostty" \
-        --replace "/home/matteo/.config/foot" "$HOME/.config/ghostty"
+        --replace "/home/matteo/.config/kitty" "${homeDirectory}/.config/ghostty" \
+        --replace "/home/matteo/.config/foot" "${homeDirectory}/.config/ghostty"
 
       # Replace binaries
       substituteInPlace $out/shell.qml \
@@ -99,9 +100,9 @@ in
       substituteInPlace $out/shell.qml \
         --replace '"qs-config-edit", "/etc/nixos"' '"qs-config-edit", "/etc/nixos"' \
         --replace '"qs-config-edit", "/etc/nixos/"' '"qs-config-edit", "/etc/nixos/"' \
-        --replace '"qs-config-edit", "$HOME/.config/ghostty"' '"qs-config-edit", "$HOME/.config/ghostty"' \
-        --replace '"qs-config-edit", "$HOME/.config/fish"' '"qs-config-edit", "$HOME/.config/fish"' \
-        --replace '"qs-config-edit", "$HOME/.config/fastfetch"' '"qs-config-edit", "$HOME/.config/fastfetch"'
+        --replace '"qs-config-edit", "${homeDirectory}/.config/ghostty"' '"qs-config-edit", "${homeDirectory}/.config/ghostty"' \
+        --replace '"qs-config-edit", "${homeDirectory}/.config/fish"' '"qs-config-edit", "${homeDirectory}/.config/fish"' \
+        --replace '"qs-config-edit", "${homeDirectory}/.config/fastfetch"' '"qs-config-edit", "${homeDirectory}/.config/fastfetch"'
 
       # Fix hardware paths
       substituteInPlace $out/shell.qml \

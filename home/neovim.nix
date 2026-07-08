@@ -9,6 +9,8 @@
   programs.neovim = {
     enable = true;
     vimAlias = true;
+    withRuby = true;
+    withPython3 = true;
 
     # LSP servers and formatters (resolved via PATH at runtime by
     # the corresponding plugin specs below).
