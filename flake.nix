@@ -43,9 +43,10 @@
     # hyprland 0.55.4 + all ecosystem packages natively.
 
     # Caelestia shell + CLI — forked from caelestia-dots.
-    # Phase 3e: Lock + IdleMonitors enabled. hyprlock/hypridle disabled.
+    # Phase 3f-v2: Lecoo power-mode + charge-limit bridge on top of
+    # stable Phase 3e baseline (lock + idle).
     caelestia-shell = {
-      url = "github:ponkcore/shell/phase3e-lock-idle";
+      url = "github:ponkcore/shell/phase3f-power-bridge-v2";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 

@@ -76,6 +76,45 @@
     esac
   '';
 
+  lecoo-charge-mode = pkgs.writeShellScriptBin "lecoo-charge-mode" ''
+    set -eu
+
+    get_mode() {
+      ${charge-current}/bin/lecoo-charge-current
+    }
+
+    set_mode() {
+      mode=$1
+      case "$mode" in
+        full|high|balanced|lifespan|desk) ;;
+        *)
+          printf 'Unknown charge mode: %s\n' "$mode" >&2
+          exit 1
+          ;;
+      esac
+      ${pkgs.lecoo-ctrl}/bin/lecoo-ctrl charge "$mode" >/dev/null 2>&1
+      get_mode
+    }
+
+    status_json() {
+      case "$(get_mode)" in
+        full)     printf '{"mode":"full","percent":100,"label":"100","tooltip":"Charge limit: Full (100%%)"}\n' ;;
+        high)     printf '{"mode":"high","percent":95,"label":"95","tooltip":"Charge limit: High (95%%)"}\n' ;;
+        balanced) printf '{"mode":"balanced","percent":80,"label":"80","tooltip":"Charge limit: Balanced (80%%)"}\n' ;;
+        lifespan) printf '{"mode":"lifespan","percent":60,"label":"60","tooltip":"Charge limit: Lifespan (60%%)"}\n' ;;
+        desk)     printf '{"mode":"desk","percent":40,"label":"40","tooltip":"Charge limit: Desk (40-50%% runtime hysteresis)"}\n' ;;
+        *)        printf '{"mode":"unknown","percent":0,"label":"?","tooltip":"Charge limit: Unknown"}\n' ;;
+      esac
+    }
+
+    case "''${1:-}" in
+      get) get_mode ;;
+      set) set_mode "$2" ;;
+      status) status_json ;;
+      *) printf 'Usage: lecoo-charge-mode {get|set <mode>|status}\n' >&2; exit 1 ;;
+    esac
+  '';
+
   # ── Composite power modes ──────────────────────────────────────────
   # User-facing modes on this host are composed from:
   #   - powerprofilesctl (performance / balanced / power-saver)
@@ -342,6 +381,7 @@ in {
     inherit
       lecoo-toggle
       lecoo-status
+      lecoo-charge-mode
       lecoo-power-mode
       lecoo-power-mode-status
       ultra-economy-toggle
@@ -354,6 +394,7 @@ in {
   home.packages = [
     lecoo-toggle
     lecoo-status
+    lecoo-charge-mode
     lecoo-power-mode
     lecoo-power-mode-status
     ultra-economy-toggle

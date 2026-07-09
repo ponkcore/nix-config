@@ -190,16 +190,16 @@
         "quickshell": "quickshell_2"
       },
       "locked": {
-        "lastModified": 1783590143,
-        "narHash": "sha256-HafONyPDLQP5gecqwuKkR/GKXjeRrV5cnFPUai8CZD4=",
+        "lastModified": 1783625487,
+        "narHash": "sha256-iGc/14h2KqU3z1ms6nlfZ263GHjM3RtQNC8uWtwXHmE=",
         "owner": "ponkcore",
         "repo": "shell",
-        "rev": "5a3fe9893b62529a65a13260e00250a3a88a9c80",
+        "rev": "45dff678cf807e6595d730904fee0e63b7c0fcf6",
         "type": "github"
       },
       "original": {
         "owner": "ponkcore",
-        "ref": "phase3e-lock-idle",
+        "ref": "phase3f-power-bridge-v2",
         "repo": "shell",
         "type": "github"
       }
