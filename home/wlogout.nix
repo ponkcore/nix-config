@@ -15,7 +15,7 @@ in {
   xdg.configFile."wlogout/layout".text = ''
     {
       "label"    : "lock",
-      "action"   : "hyprlock",
+      "action"   : "loginctl lock-session",
       "text"     : "Lock",
       "keybind"  : "l"
     }

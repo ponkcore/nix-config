@@ -1,30 +1,25 @@
 # idle.nix — Hyprland idle manager (hypridle).
 #
-# Architecture: hypridle is reduced to an idle SIGNAL generator + lock/
-# sleep hooks. It does NOT call hyprctl dispatch dpms directly. Instead,
-# the idle listener touches/clears a flag file ($XDG_RUNTIME_DIR/
-# hyprland-idle) that the lid-monitor service polls every 200 ms.
-# lid-monitor is the sole owner of DPMS/backlight state, which
-# eliminates the race where hypridle's on-resume re-enables a closed
-# panel on mouse activity.
+# hypridle is DISABLED. Caelestia IdleMonitors (Phase 3E) owns the
+# idle path. Idle policy is configured in shell.json:
+#   - timeouts: [] (no idle-timeout DPMS/suspend — lid-monitor
+#     handles DPMS via lid polling, same as prior hypridle policy)
+#   - lockBeforeSleep: true (Caelestia Lock engages on suspend)
+#   - inhibitWhenAudio: true (no idle actions during playback)
 #
-# Policy:
-#   - lock on sleep (before_sleep_cmd)
-#   - idle flag set after 30s on battery, cleared on any input
-#   - never idle-suspend: the laptop only sleeps on lid close (handled
-#     by logind/Hyprland bindl, not here).
-#   - after_sleep_cmd removed: lid-monitor handles post-resume display
-#     state via its normal poll cycle (lid open + no idle flag → dpms on).
-#
-# Research: 2026-06-25-lid-blanking-hyprland, Design 3.
+# The old hypridle configuration is retained for reference below. If
+# Caelestia IdleMonitors needs to be reverted, set enable = true and
+# pin caelestia-shell back to phase3a-wallpaper-theme.
 {on-battery, ...}: let
   # Flag file polled by lid-monitor. On battery only — on AC the
   # on-battery helper exits 1 and the flag is never created, so
   # lid-monitor never sees an idle state on AC.
   idleFlag = "\${XDG_RUNTIME_DIR:-/tmp}/hyprland-idle";
 in {
+  # Phase 3e TEST: hypridle disabled — Caelestia IdleMonitors owns the
+  # idle path. Revert to enable = true after test.
   services.hypridle = {
-    enable = true;
+    enable = false;
     settings = {
       general = {
         lock_cmd = "pidof hyprlock || hyprlock";

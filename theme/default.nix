@@ -2,17 +2,16 @@
 #
 # Single active theme export. The structure stays extensible: future
 # themes still live under theme/themes/<name>/ and can be wired here,
-# but the current system intentionally supports only one active theme
-# and one active bar backend (quickshell).
+# but the current system intentionally supports only one active theme.
 #
 # Aggregator: exports the theme's palette `p`, color helpers `c`,
 # wallpaper path, and the full theme attrset to all submodules via
 # _module.args. Submodules consume `theme` to generate component-
-# specific config (mako colors, rofi theme, ghostty palette, etc.).
+# specific config (rofi theme, ghostty palette, etc.).
 #
 # Helper scripts (notification toggle, lecoo charge mode, etc.) live
 # in theme/scripts.nix. Compositor-specific config (Hyprland keybinds,
-# hyprlock, hypridle, hyprpaper, quickshell service) lives in
+# hyprlock, hypridle, Caelestia shell) lives in
 # home/desktop/sessions/<name>/.
 #
 # Imported from home/desktop/default.nix when desktops is non-empty.
@@ -20,14 +19,12 @@
 {
   config,
   pkgs,
-  hostDisplay,
   ...
 }: let
-  display = hostDisplay;
   theme = import ./themes/monochrome/default.nix {};
 
   # Palette — extracted from the active theme for convenience.
-  # Submodules that only need colors (mako, rofi, ghostty) use `p`
+  # Submodules that only need colors (rofi, ghostty) use `p`
   # directly.
   p = theme.palette;
 
@@ -37,27 +34,16 @@
   # converters previously inlined in session.nix, lock.nix and rofi.nix.
   c = import ../lib/color.nix;
 
-  # Wallpaper paths. `wallpaper` remains the original full-resolution
-  # asset for lock-screen use; `sessionWallpaper` is a pre-scaled copy
-  # for the live Hyprland wallpaper daemon so hyprpaper does not keep a
-  # large image resident just to paint the host's internal panel size.
+  # Wallpaper path — original full-resolution asset, used by hyprlock.
+  # Live wallpaper is owned by Caelestia shell (caelestia wallpaper -f).
   wallpaper = "${theme.wallpaper}";
-  sessionWallpaper = "${sessionWallpaperAsset}";
-  sessionWallpaperAsset = pkgs.runCommand "wallpaper-session.png" {nativeBuildInputs = [pkgs.imagemagick];} ''
-    magick \
-      ${theme.wallpaper} \
-      -resize ${display.wallpaperSize}^ \
-      -gravity center \
-      -extent ${display.wallpaperSize} \
-      "$out"
-  '';
 in {
   # _module.args makes p, c, wallpaper, and the full theme attrset
   # available as function arguments to ALL submodules imported below.
   # Submodules can destructure what they need:
   #   { pkgs, p, c, theme, ... }: { ... }
   _module.args = {
-    inherit p c wallpaper sessionWallpaper theme;
+    inherit p c wallpaper theme;
   };
 
   imports = [

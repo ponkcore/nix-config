@@ -180,13 +180,16 @@ in {
       # terminals (`-btop`, `-rebuild`, `-term`) follow the same
       # pattern, each with their own class.
       "$terminal" = "ghostty --class=com.mitchellh.ghostty-floating";
-      "$menu" = "rofi -show drun";
+      "$menu" = "caelestia shell drawers toggle launcher";
       "$browser" = "firefox";
 
       "$mainMod" = "SUPER";
 
       bind = [
         "$mainMod, Return, exec, $terminal"
+        # Phase 3e TEST: SUPER+Escape locks via loginctl (Caelestia
+        # Lock listens for org.freedesktop.login1.Session.Lock signal).
+        "$mainMod, Escape, exec, loginctl lock-session"
         "$mainMod, B, exec, $browser"
         # Russian layout equivalents — Hyprland matches by keycode, not keysym,
         # so these work correctly (unlike kitty which matched by keysym)
@@ -253,8 +256,8 @@ in {
         "$mainMod SHIFT, 7, movetoworkspace, 7"
         "$mainMod SHIFT, 8, movetoworkspace, 8"
         "$mainMod SHIFT, 9, movetoworkspace, 9"
-        "$mainMod, R, exec, rofi -show drun"
-        "$mainMod, К, exec, rofi -show drun"
+        "$mainMod, R, exec, $menu"
+        "$mainMod, К, exec, $menu"
         "$mainMod, grave, exec, ${quickshellToggleControlCenter}"
         "$mainMod, ё, exec, ${quickshellToggleControlCenter}"
         # Clipboard history — SUPER+C opens rofi with cliphist

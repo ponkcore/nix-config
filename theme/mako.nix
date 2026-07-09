@@ -3,18 +3,16 @@
   theme, # reserved for future per-theme structural overrides
   ...
 }: {
-  # mako — Wayland notification daemon.
+  # mako is disabled. Caelestia shell owns org.freedesktop.Notifications
+  # via its built-in notification service (Quickshell.Services.Notifications).
+  # Notification rendering, DND, and history live in the shell.
+  # DND helper scripts use `caelestia shell notifs` IPC (see scripts.nix).
   #
-  # In Home Manager 25.11 the `services.mako` module installs the package
-  # and registers the D-Bus service file, but does NOT create a systemd
-  # user unit. mako is started on demand by dbus-broker the first time
-  # something issues a notification on `org.freedesktop.Notifications`.
-  #
-  # This means `systemctl --user is-active mako` reports `inactive` after
-  # boot until the first notify — that is correct, not a regression.
-  # makoctl reload is wired via xdg.configFile onChange.
+  # The old mako configuration is preserved below for reference.
+  # If Caelestia notification ownership needs to be reverted, re-enable
+  # this block and restart caelestia.service.
   services.mako = {
-    enable = true;
+    enable = false;
     settings = {
       "text-color" = p.fg_dim;
       "border-color" = p.fg_bright;

@@ -1,8 +1,15 @@
 # lock.nix — Wayland lock screen (Hyprland session).
-# Nine widgets: background image, fingerprint hint, four labels (clock,
-# date, hostname, greeting), two decorative shapes, password input.
-# Triggered manually (SUPER+L is bound elsewhere) or via hypridle
-# timeout from ./idle.nix.
+#
+# hyprlock is DISABLED. Caelestia Lock (Phase 3E) owns the lock path.
+# The hyprlock configuration below is retained for reference — if
+# Caelestia Lock needs to be reverted, set enable = true and pin
+# caelestia-shell back to phase3a-wallpaper-theme.
+#
+# Caelestia Lock uses its own PAM configs (assets/pam.d/) and
+# WlSessionLock for Wayland session locking. Triggered via:
+#   - SUPER+Escape bind (session.nix) → loginctl lock-session
+#   - Caelestia IPC: caelestia shell lock lock/unlock
+#   - loginctl lock/unlock-session (D-Bus → SessionManager)
 {
   config,
   p,
@@ -12,8 +19,10 @@
 }: let
   rgba = c.gtkRGBA;
 in {
+  # Phase 3e TEST: hyprlock disabled — Caelestia Lock owns the lock path.
+  # Revert to enable = true after test.
   programs.hyprlock = {
-    enable = true;
+    enable = false;
 
     settings = {
       general = {

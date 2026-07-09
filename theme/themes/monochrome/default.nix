@@ -1,18 +1,13 @@
 # theme/themes/monochrome/default.nix — active single-theme shell.
 #
-# Current Quickshell-based top bar + control center theme. The visual
-# direction will evolve toward monochrome, but the palette remains a
-# dedicated local source so the theme can evolve independently of the
-# removed Waybar-era layout.
+# Palette and wallpaper assets for the current Caelestia shell.
+# Caelestia owns the bar, control center, launcher, and wallpaper
+# runtime. The palette remains a dedicated local source so the theme
+# can evolve independently of the shell fork.
 _: {
   palette = import ./palette.nix;
   wallpaper = ../../../assets/wallpaper.png;
 
-  # This theme uses quickshell as its bar backend, not waybar.
-  # The raw quickshell assets live in home/desktop/sessions/hyprland/quickshell/.
-  bar = "quickshell";
-
-  mako = {};
   rofi = {};
   ghostty = {};
 }

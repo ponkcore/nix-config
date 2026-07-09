@@ -41,6 +41,18 @@
 
     # 26.05 migration: Hyprland flake input removed — 26.05 ships
     # hyprland 0.55.4 + all ecosystem packages natively.
+
+    # Caelestia shell + CLI — forked from caelestia-dots.
+    # Phase 3e: Lock + IdleMonitors enabled. hyprlock/hypridle disabled.
+    caelestia-shell = {
+      url = "github:ponkcore/shell/phase3e-lock-idle";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    caelestia-cli = {
+      url = "github:ponkcore/cli/phase1-fork-baseline";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = {nixpkgs, ...} @ inputs: let

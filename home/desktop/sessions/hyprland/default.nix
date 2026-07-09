@@ -3,9 +3,9 @@
 # Activated when "hyprland" is in the host's `desktops` list. Imports
 # the pieces that make up a Hyprland session for the user:
 #   - session config (keybinds, rules, animations)
-#   - lock screen, idle manager, wallpaper daemon
+#   - lock screen, idle manager, wallpaper ownership
 #   - session-only helper scripts (window/app toggles)
-#   - quickshell service and QML shell integration
+#   - Caelestia shell service (forked from caelestia-dots/shell)
 # Compositor-agnostic theming (mako, rofi, ghostty, palette) lives in
 # ../../../theme.
 {...}: {
@@ -15,7 +15,7 @@
     ./idle.nix
     ./paper.nix
     ./scripts.nix
-    ./quickshell.nix
+    ./caelestia.nix
   ];
 
   # UWSM env — block graphical-session.target until

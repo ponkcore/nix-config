@@ -55,7 +55,7 @@ in {
   # Host-scoped overlays:
   # 26.05 migration: Hyprland flake overlay and unstable pull overlay
   # removed — 26.05 ships all ecosystem packages natively at the same
-  # versions (hyprland 0.55.4, hyprpaper 0.8.4, quickshell 0.3.0, etc.).
+  # versions (hyprland 0.55.4, hyprpaper 0.8.4, etc.).
   # Only the lecoo-ctrl custom package overlay remains.
   #
   # wpa_supplicant overlay: compiles without TDLS support (CONFIG_TDLS

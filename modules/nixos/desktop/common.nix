@@ -26,6 +26,10 @@
   # of compositor. The agent itself is launched per-session.
   security.polkit.enable = true;
 
+  # UPower — power/battery D-Bus service. Required by Caelestia shell
+  # for IdleMonitors (inhibitWhenCharging) and BatteryMonitor.
+  services.upower.enable = true;
+
   # XDG portals — gtk portal is the universal fallback used by GTK and
   # Electron apps. Compositor-specific portals (xdg-desktop-portal-hyprland,
   # xdg-desktop-portal-gnome) extend this list from sessions/<name>.nix.
@@ -53,7 +57,7 @@
 
   # System-wide Wayland tooling. None of these are compositor-specific;
   # they are used identically by Hyprland, niri, GNOME, Sway, etc.
-  # User-level desktop apps (mako, rofi, wlogout, quickshell-side UI, etc.) live in HM
+  # User-level desktop apps (mako, rofi, wlogout, Caelestia shell, etc.) live in HM
   # because their configs are managed there.
   environment.systemPackages = with pkgs; [
     wl-clipboard

@@ -9,21 +9,13 @@
 # so consumer modules can embed the absolute /nix/store path without
 # re-deriving it.
 {pkgs, ...}: let
-  # ── Notification (mako) ─────────────────────────────────────────────
+  # ── Notification DND toggle (Caelestia IPC) ────────────────────────
   notification-toggle = pkgs.writeShellScriptBin "notification-toggle" ''
-    current=$(${pkgs.mako}/bin/makoctl mode 2>/dev/null || echo "default")
-    if [ "$current" = "do-not-disturb" ]; then
-      ${pkgs.mako}/bin/makoctl mode default
-      printf '{"text":"ON","class":"default","tooltip":"Notifications: ON"}\n'
-    else
-      ${pkgs.mako}/bin/makoctl mode -a do-not-disturb
-      printf '{"text":"DND","class":"dnd","tooltip":"Notifications: OFF (DND)"}\n'
-    fi
+    exec caelestia shell notifs toggleDnd
   '';
 
   notification-status = pkgs.writeShellScriptBin "notification-status" ''
-    current=$(${pkgs.mako}/bin/makoctl mode 2>/dev/null || echo "default")
-    if [ "$current" = "do-not-disturb" ]; then
+    if caelestia shell notifs isDndEnabled 2>/dev/null | grep -q true; then
       printf '{"text":"DND","class":"dnd","tooltip":"Notifications: OFF (DND)"}\n'
     else
       printf '{"text":"ON","class":"default","tooltip":"Notifications: ON"}\n'
