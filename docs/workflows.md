@@ -26,13 +26,13 @@ Pre-commit hooks (alejandra/statix/deadnix/nil/gitleaks) run on
 `git commit` and will fail noisily if anything's wrong. After
 alejandra modifies files, re-stage with `git add -A` and retry.
 
-If the change touches Hyprland or Quickshell runtime state — for example
+If the change touches Hyprland or Caelestia runtime state — for example
 `home/desktop/sessions/hyprland/session.nix` or
-`home/desktop/sessions/hyprland/quickshell.nix` — restart Quickshell after
+`home/desktop/sessions/hyprland/caelestia.nix` — restart Caelestia after
 activation if the automatic HM hook did not already do it:
 
 ```sh
-systemctl --user restart quickshell.service
+systemctl --user restart caelestia.service
 ```
 
 Before a full `nixos-rebuild test` or `switch`, turn off Throne/TUN mode.

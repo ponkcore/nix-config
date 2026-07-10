@@ -187,8 +187,8 @@ in {
 
       bind = [
         "$mainMod, Return, exec, $terminal"
-        # Phase 3e TEST: SUPER+Escape locks via loginctl (Caelestia
-        # Lock listens for org.freedesktop.login1.Session.Lock signal).
+        # SUPER+Escape locks via loginctl; Caelestia Lock listens for
+        # org.freedesktop.login1.Session.Lock and takes over the UI path.
         "$mainMod, Escape, exec, loginctl lock-session"
         "$mainMod, B, exec, $browser"
         # Russian layout equivalents — Hyprland matches by keycode, not keysym,

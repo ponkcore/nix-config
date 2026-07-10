@@ -252,7 +252,7 @@ These are hard rules. Violations are bugs, not feature requests.
 - Never set `services.openssh.settings.PasswordAuthentication = false`
   without explicit user approval.
 - Lecoo power-mode contract: any change touching Hyprland monitor
-  names/modes, refresh-rate policy, Quickshell host widgets,
+  names/modes, refresh-rate policy, Caelestia host widgets,
   `power-profiles-daemon`, `lecoo-ctrl`, AMDGPU DPM/sysfs paths, AC
   adapter sysfs naming, or the laptop hardware profile must review
   `hosts/lecoo/home/scripts.nix` (`lecoo-power-mode` / legacy `ultra-economy-toggle`) and

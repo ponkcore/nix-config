@@ -2,7 +2,7 @@
 #
 # Lecoo-specific EC helpers.
 #
-# Kept as standalone scripts because quickshell and future shell/UI
+# Kept as standalone scripts because Caelestia and future shell/UI
 # components may need the same power/charge information without being
 # tied to a specific bar implementation.
 {pkgs, ...}: let

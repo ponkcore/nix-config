@@ -1,9 +1,9 @@
 # lock.nix — Wayland lock screen (Hyprland session).
 #
 # hyprlock is DISABLED. Caelestia Lock (Phase 3E) owns the lock path.
-# The hyprlock configuration below is retained for reference — if
-# Caelestia Lock needs to be reverted, set enable = true and pin
-# caelestia-shell back to phase3a-wallpaper-theme.
+# The hyprlock configuration below is retained for reference. If
+# Caelestia Lock ever needs to be rolled back, re-enable this module
+# deliberately and repin the shell to a known-good revision.
 #
 # Caelestia Lock uses its own PAM configs (assets/pam.d/) and
 # WlSessionLock for Wayland session locking. Triggered via:
@@ -19,8 +19,8 @@
 }: let
   rgba = c.gtkRGBA;
 in {
-  # Phase 3e TEST: hyprlock disabled — Caelestia Lock owns the lock path.
-  # Revert to enable = true after test.
+  # Accepted final state: hyprlock disabled. Caelestia Lock owns the lock
+  # path; the retained config below is reference-only.
   programs.hyprlock = {
     enable = false;
 

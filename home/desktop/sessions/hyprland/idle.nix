@@ -8,16 +8,16 @@
 #   - inhibitWhenAudio: true (no idle actions during playback)
 #
 # The old hypridle configuration is retained for reference below. If
-# Caelestia IdleMonitors needs to be reverted, set enable = true and
-# pin caelestia-shell back to phase3a-wallpaper-theme.
+# Caelestia IdleMonitors ever needs to be rolled back, re-enable this
+# module deliberately and repin the shell to a known-good revision.
 {on-battery, ...}: let
   # Flag file polled by lid-monitor. On battery only — on AC the
   # on-battery helper exits 1 and the flag is never created, so
   # lid-monitor never sees an idle state on AC.
   idleFlag = "\${XDG_RUNTIME_DIR:-/tmp}/hyprland-idle";
 in {
-  # Phase 3e TEST: hypridle disabled — Caelestia IdleMonitors owns the
-  # idle path. Revert to enable = true after test.
+  # Accepted final state: hypridle disabled. Caelestia IdleMonitors owns
+  # the idle path; the retained config below is reference-only.
   services.hypridle = {
     enable = false;
     settings = {
