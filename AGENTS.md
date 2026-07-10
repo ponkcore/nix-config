@@ -68,22 +68,27 @@ modules/
     form-factor/laptop.nix   power-profiles-daemon, lid handling, USB
                              autosuspend, NVMe scheduler, lid-monitor user svc
                              (sole owner of display blanking — polls lid
-                             state + idle flag from hypridle)
+                             state + idle flag from Caelestia IdleMonitors)
 home/                        Home Manager modules (per-user config)
   agent-instructions/       Global NixOS rules for AI coding agents
     AGENTS.md               Shared rules (deployed to opencode/omp/agy)
     templates/              DevShell flake.nix templates (Python/Node/Rust/Go/Polyglot)
     nixos-constraints/      On-demand skill for opencode error recovery
   agent-rules.nix           HM module: deploys agent-instructions/ to agent paths
+  desktop/sessions/hyprland/
+    session.nix             Hyprland config (keybinds, window rules, animations)
+    caelestia.nix           Caelestia shell + CLI (forked HM module, writable shell.json)
+    lock.nix                hyprlock config (DISABLED — Caelestia Lock owns the path)
+    idle.nix                hypridle config (DISABLED — Caelestia IdleMonitors owns the path)
+    paper.nix               hyprpaper config (DISABLED — Caelestia Background owns wallpaper)
+    scripts.nix             Session helper scripts (window/app toggles)
+  blueman-applet.nix        BlueZ pairing agent (org.bluez.Agent1 substrate)
 theme/                       Wayland theme system (single active theme, extensible structure)
   default.nix                Theme export entry point
   themes/                    Theme definitions
-    monochrome/              Active Quickshell theme
+    monochrome/              Active theme (palette + layout)
   scripts.nix                Helper scripts
 pkgs/                        Local package derivations (overlay)
-  quickshell-config/         Quickshell packaging/wiring derivation
-home/desktop/sessions/hyprland/quickshell/
-                             Raw Quickshell QML + helper scripts
 secrets/                     agenix-encrypted secrets + secrets.nix authorisation
 skills/                      Letta Code skills installed into ~/.letta/skills
 tests/                       nixosTests (flake.checks)

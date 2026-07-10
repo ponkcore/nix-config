@@ -1,7 +1,7 @@
 # Architecture
 
 > System reference for ponkcore's portable NixOS flake.
-> Last revised: 2026-07-08 (hostDisplay contract, quickshell asset isolation).
+> Last revised: 2026-07-10 (Caelestia shell migration finalised).
 
 ## TL;DR
 
@@ -56,8 +56,7 @@ slot in without touching existing sessions).
                ┌──────────────────────────┐
                │ theme/                   │
                │ compositor-agnostic UI   │
-               │ (quickshell-adjacent     │
-               │  palette, mako, rofi,    │
+               │ (palette, rofi,          │
                │  ghostty)                │
                └──────────────────────────┘
 ```
@@ -132,11 +131,14 @@ modules/nixos/desktop/             home/desktop/
 theme/                             ── compositor-agnostic UI
 ├── default.nix      single active theme export
 ├── themes/          theme definitions (monochrome active)
-├── mako.nix · rofi.nix · ghostty.nix · scripts.nix
-home/desktop/sessions/hyprland/quickshell/
-├── *.qml / *.sh / *.py  raw shell assets (human-facing source)
-pkgs/quickshell-config/default.nix
-└── packaging/wiring derivation over that asset subtree
+├── rofi.nix · ghostty.nix · scripts.nix
+home/desktop/sessions/hyprland/
+├── session.nix      keybinds, window rules, animations
+├── caelestia.nix    Caelestia shell + CLI (forked HM module)
+├── lock.nix         hyprlock config (DISABLED — Caelestia owns)
+├── idle.nix         hypridle config (DISABLED — Caelestia owns)
+├── paper.nix        hyprpaper config (DISABLED — Caelestia owns)
+├── scripts.nix      session helper scripts
 ```
 
 The dispatchers' contract: importing a session module never affects
@@ -188,7 +190,7 @@ hostDisplay = {
   internalMode    = "preferred";   # mode string for hyprctl/hyprland
   internalModeEco = "preferred";   # reduced refresh-rate mode for eco+
   internalScale   = "1";           # Hyprland scale factor
-  wallpaperSize   = "1920x1080";   # magick resize target for hyprpaper
+  wallpaperSize   = "1920x1080";   # resize target for lock/greeter wallpaper
 };
 ```
 
@@ -246,15 +248,19 @@ greetd → sway (Wayland kiosk) → nwg-hello (GTK3 greeter)
                                        │
    ┌───────────────────────────────────┴───┐
    ▼                                       ▼
- user systemd units                  Hyprland-managed
-   quickshell                          hyprpaper
-   mako (D-Bus activated)              hyprlock
-   cliphist                            hypridle (lock/sleep hooks +
-   wlsunset                                     idle-flag signal)
-   lid-monitor ──── polls flag ────→
-     sole owner of DPMS/backlight
-     (laptop hosts only)
+ user systemd units                  shell-owned UX
+   caelestia (Caelestia shell)         wallpaper
+   blueman-applet (pairing agent)      launcher
+   cliphist                            notifications
+   wlsunset                            lock screen
+   lid-monitor ──── polls lid ────→    idle manager
+     sole owner of DPMS/backlight      session/power drawer
+     (laptop hosts only)               Lecoo power selector
 ```
+
+Shell source: `ponkcore/shell` (forked Caelestia), pinned in
+`flake.lock`. CLI: `ponkcore/cli`. Both wired via
+`home/desktop/sessions/hyprland/caelestia.nix`.
 
 Palette: `theme/themes/monochrome/palette.nix` — theme color tokens. Distributed to
 theme modules via `_module.args.p`, to a few HM modules by direct
@@ -290,7 +296,7 @@ Layer 2 (web/banking/notes/2FA) lives in the KeePass vault. Layer 3
 |----------------|--------|
 | Boot timing & quietness | `modules/nixos/boot.nix` |
 | Power management policy | `modules/hardware/form-factor/laptop.nix` |
-| Display blanking (lid + idle) | `modules/hardware/form-factor/laptop.nix` (lid-monitor) + `home/desktop/sessions/hyprland/idle.nix` (hypridle flag signal) |
+| Display blanking (lid + idle) | `modules/hardware/form-factor/laptop.nix` (lid-monitor) + Caelestia IdleMonitors (idle flag, currently no timeouts) |
 | Custom EC daemon | `hosts/lecoo/ec.nix` (NixOS module providing `services.lecoo-ctrl`) |
 | WiFi (rtw89) quirks | `hosts/lecoo/hardware.nix` |
 | sysctl hardening | `modules/nixos/security.nix` |
@@ -307,8 +313,8 @@ Layer 2 (web/banking/notes/2FA) lives in the KeePass vault. Layer 3
 | greetd / nwg-hello styling | `modules/nixos/desktop/greeter/greetd.nix` |
 | Hyprland system enable + UWSM | `modules/nixos/desktop/sessions/hyprland.nix` |
 | Hyprland user config | `home/desktop/sessions/hyprland/` |
-| Raw Quickshell assets | `home/desktop/sessions/hyprland/quickshell/` |
-| Quickshell packaging/wiring | `pkgs/quickshell-config/default.nix` |
+| Caelestia shell + CLI | `home/desktop/sessions/hyprland/caelestia.nix` (forked HM module) |
+| Bluetooth pairing agent | `home/blueman-applet.nix` (org.bluez.Agent1 substrate) |
 | Theme palette source | `theme/themes/monochrome/palette.nix` |
 | nix-ld (FHS binary shim) | `modules/nixos/packages.nix` |
 | Agent global instructions | `home/agent-rules.nix` (deploys `home/agent-instructions/AGENTS.md` to opencode/omp/agy paths) |

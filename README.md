@@ -46,8 +46,8 @@ hardware profiles to import, run `nixos-install`. That's it.
   nwg-hello inside a sway Wayland kiosk.
 - **Anti-detect browser** — CloakBrowser (stealth Chromium with 58
   C++ source-level fingerprint patches) packaged declaratively with
-  per-profile seeds, screen/deviceMemory/hardware spoofing, and rofi
-  launcher.
+  per-profile seeds, screen/deviceMemory/hardware spoofing, and
+  launcher integration.
 - **Reaper timers** — HM-backup files (weekly purge).
 - **Sysctl hardening pass** — `kexec_load_disabled`, redirect/source-
   route refusal, strict rp_filter, log_martians, tcp_rfc1337, etc.
@@ -61,12 +61,14 @@ hardware profiles to import, run `nixos-install`. That's it.
 |---------|--------|
 | Compositor | Hyprland (UWSM) |
 | Display manager | greetd + nwg-hello inside sway Wayland kiosk |
-| Status bar | Quickshell |
-| Notifications | mako |
-| Launcher | rofi |
-| Lock screen | hyprlock |
-| Idle manager | hypridle |
-| Wallpaper | hyprpaper |
+| Desktop shell | Caelestia (forked, Quickshell-based) |
+| Notifications | Caelestia shell |
+| Launcher | Caelestia shell (rofi for clipboard picker) |
+| Lock screen | Caelestia shell |
+| Idle manager | Caelestia shell |
+| Wallpaper | Caelestia shell |
+| Bluetooth UI | Caelestia shell |
+| Bluetooth pairing agent | blueman-applet |
 | Terminal | Ghostty |
 | Shell | fish + starship |
 | Editor | Neovim 0.12 (nixpkgs-pinned plugins, native LSP) |
@@ -99,11 +101,10 @@ modules/
     desktop/             Wayland desktop stack
   hardware/              Opt-in profiles per CPU/GPU/form-factor/boot
 home/                    Home Manager modules (per-user config)
-  desktop/sessions/hyprland/quickshell/  Raw Quickshell QML + helper scripts
+  desktop/sessions/hyprland/  Hyprland session (keybinds, rules, Caelestia shell)
 theme/                   Wayland theme system (single active theme, extensible structure)
-  themes/                monochrome (active quickshell theme)
+  themes/                monochrome (active theme)
 pkgs/                    Local package derivations + overlay
-  quickshell-config/     Quickshell packaging/wiring derivation
 secrets/                 agenix-encrypted secrets + authorisation map
 skills/                  Letta Code skill files installed into ~/.letta/skills
 tests/                   nixosTests exposed through flake checks

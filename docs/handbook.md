@@ -559,7 +559,7 @@ existing sessions.
    (border colors, gaps, shadows), add
    `theme/sessions/niri.nix` and import it from `theme/default.nix`
    guarded by `lib.mkIf (builtins.elem "niri" desktops)`.
-   Compositor-agnostic UI (mako, rofi, ghostty, theme palette) is
+   Compositor-agnostic UI (rofi, ghostty, theme palette) is
    shared — no edits there.
 
 4. **Wire the dispatchers** — uncomment the matching line in
@@ -678,44 +678,36 @@ Config paths:
 - `home/desktop/sessions/hyprland/session.nix` — shared Hyprland consumer of that contract.
 - `theme/ghostty.nix` — terminal font size.
 
-### Quickshell runtime note
+### Caelestia shell runtime note
 
-After a rebuild/test that touches Hyprland or Quickshell files, restart
-Quickshell if the automatic HM hook did not already do it:
+After a rebuild/test that touches Hyprland or Caelestia shell files, restart
+the shell if the automatic HM hook did not already do it:
 
 ```fish
-systemctl --user restart quickshell
+systemctl --user restart caelestia
 ```
 
-### Power menu
+### Power menu / session drawer
 
-The Quickshell power menu and the laptop hardware power key open
-`wlogout --buttons-per-row 4`. The hardware button is handled by Hyprland
-for short presses; long press remains a logind emergency poweroff fallback.
-It shows a four-button row:
-
-| Button | Key | Action |
-|--------|-----|--------|
-| Lock | `l` | `hyprlock` |
-| Logout | `e` | `hyprctl dispatch exit` |
-| Shutdown | `s` | `systemctl poweroff` |
-| Reboot | `r` | `systemctl reboot` |
-
-Config lives in `home/wlogout.nix`; icons live in `assets/wlogout-icons/`.
+The hardware power key opens the Caelestia shell session drawer
+(logout, shutdown, hibernate, reboot). The hardware button is handled
+by Hyprland for short presses; long press remains a logind emergency
+poweroff fallback. `wlogout` is retained as a secondary fallback admin
+tool (`home/wlogout.nix`) but is no longer the primary power UI.
 ### Hyprland key bindings (defined in `home/desktop/sessions/hyprland/session.nix`)
 
 ```
 SUPER+Return       terminal (Ghostty, floating)
 SUPER+B            Firefox
-SUPER+R            rofi launcher
+SUPER+R            Caelestia launcher
 SUPER+Q            kill active window
 SUPER+V            toggle floating
 SUPER+F            fullscreen
-Power key          wlogout power menu
+Power key          Caelestia session drawer
 SUPER+C            clipboard history (rofi)
 SUPER+G            toggle window group (tabbed)
 SUPER+Tab          next group tab
-SUPER+`            quickshell control center
+SUPER+`            Caelestia control center
 SUPER+T            Telegram toggle
 SUPER+S            Spotify toggle
 SUPER+N            Throne toggle
@@ -736,7 +728,7 @@ SUPER+CTRL+P       window screenshot
 - `modules/nixos/packages.nix` — add a system CLI
 - `home/<app>.nix` — add or change per-user app
 - `home/desktop/sessions/hyprland/session.nix` — keybinds, window rules
-- `theme/mako.nix` / `theme/rofi.nix` / `theme/ghostty.nix` — UI styling
+- `theme/rofi.nix` / `theme/ghostty.nix` — UI styling
 - `theme/themes/monochrome/palette.nix` — colour palette source of truth
 - `secrets/<name>.age` — encrypted secrets
 
