@@ -272,7 +272,7 @@ Hyprland, Ghostty, and GTK is owned by Caelestia CLI at runtime
 (`~/.local/state/caelestia/scheme.json` is the canonical source of truth;
 `~/.config/hypr/scheme/current.conf`, `sequences.txt`, and `gtk.css` are
 generated artifacts). The Nix palette is the first-login fallback and
-the source for rofi/Greeter/starcship/fzf — consumers that are not yet
+the source for rofi/Greeter/starship/fzf — consumers that are not yet
 wired to Caelestia runtime colours.
 
 ## Cross-device password / secrets sync

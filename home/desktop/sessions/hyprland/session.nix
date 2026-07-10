@@ -10,9 +10,11 @@
 }: let
   display = hostDisplay;
 
-  quickshellToggleControlCenter = pkgs.writeShellScript "quickshell-toggle-control-center" ''
-    id="$(${pkgs.quickshell}/bin/qs list --all | ${pkgs.gawk}/bin/awk '/^Instance/{gsub(/:/, "", $2); print $2; exit}')"
-    exec ${pkgs.quickshell}/bin/qs ipc --id "$id" call qsIpc toggleControlCenter
+  # Toggle the Caelestia dashboard drawer (control center) via public
+  # shell IPC. Replaces the former raw `qs ipc` call — the rest of the
+  # shell control surface already goes through `caelestia shell ...`.
+  toggleControlCenter = pkgs.writeShellScriptBin "toggle-control-center" ''
+    exec caelestia shell drawers toggle dashboard
   '';
 
   # ── Floating popup sizing policy ────────────────────────────────────
@@ -269,8 +271,8 @@ in {
         "$mainMod SHIFT, 9, movetoworkspace, 9"
         "$mainMod, R, exec, $menu"
         "$mainMod, К, exec, $menu"
-        "$mainMod, grave, exec, ${quickshellToggleControlCenter}"
-        "$mainMod, ё, exec, ${quickshellToggleControlCenter}"
+        "$mainMod, grave, exec, ${toggleControlCenter}/bin/toggle-control-center"
+        "$mainMod, ё, exec, ${toggleControlCenter}/bin/toggle-control-center"
         # Clipboard history — SUPER+C opens rofi with cliphist
         "$mainMod, C, exec, cliphist list | rofi -dmenu | cliphist decode | wl-copy"
         "$mainMod, С, exec, cliphist list | rofi -dmenu | cliphist decode | wl-copy"

@@ -89,9 +89,8 @@
   # NixOS module also auto-allows resolved DNS overrides for child
   # processes carrying those caps, so DNS works without prompting.
   #
-  # Throne 1.0.13 + matching qt6 plugins are pulled from
-  # nixos-unstable (see pkgs/default.nix) — the 25.11 channel
-  # ships 1.0.8 with a regressed v1 NixOS patch that breaks TUN.
+  # Throne 1.0.13 is shipped natively in nixpkgs 26.05 (with
+  # corrected v2 NixOS patches). No unstable overlay needed.
   programs.throne = {
     enable = true;
     tunMode.enable = true; # setcap-based TUN; no sudo required at runtime

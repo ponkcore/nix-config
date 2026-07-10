@@ -5,7 +5,7 @@
 > services, and secrets.
 
 ```
-NixOS 26.05   ·   Hyprland   ·   Gruvbox dark medium palette   ·   home-manager   ·   agenix
+NixOS 26.05   ·   Hyprland   ·   Caelestia runtime theming   ·   home-manager   ·   agenix
 ```
 
 ## What this is

@@ -8,9 +8,9 @@
 # Adding a new universal package: drop pkgs/<name>/default.nix, add a
 # line to the local-packages overlay below.
 {inputs}: [
-  # Cross-channel pulls — packages whose stable release in nixos-25.11
+  # Cross-channel pulls — packages whose nixpkgs 26.05 version
   # is regressed or behind upstream. Each entry is a single-package
-  # rebind to nixos-unstable; the rest of the system stays on stable.
+  # overlay; the rest of the system stays on the 26.05 channel.
   #
   # thunderbird 150 on Linux drops an empty `~/thunderbird/` directory
   # at every cold start. This is upstream Bug 2007074 (REOPENED at
@@ -31,7 +31,7 @@
   # are not HOME-derived.
   #
   # Drop this overlay once Thunderbird 151 (with mkmelin's patch
-  # landed) reaches nixos-25.11 / nixos-unstable.
+  # landed) reaches nixpkgs 26.05.
   (_final: prev: {
     thunderbird = prev.thunderbird.overrideAttrs (old: {
       buildCommand =
