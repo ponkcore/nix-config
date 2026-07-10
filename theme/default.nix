@@ -11,7 +11,7 @@
 #
 # Helper scripts (notification toggle, lecoo charge mode, etc.) live
 # in theme/scripts.nix. Compositor-specific config (Hyprland keybinds,
-# hyprlock, hypridle, Caelestia shell) lives in
+# Caelestia shell lock/idle) lives in
 # home/desktop/sessions/<name>/.
 #
 # Imported from home/desktop/default.nix when desktops is non-empty.
@@ -34,8 +34,9 @@
   # converters previously inlined in session.nix, lock.nix and rofi.nix.
   c = import ../lib/color.nix;
 
-  # Wallpaper path — original full-resolution asset, used by hyprlock.
-  # Live wallpaper is owned by Caelestia shell (caelestia wallpaper -f).
+  # Wallpaper path — original full-resolution asset, used by the
+  # Caelestia lock screen. Live wallpaper is owned by Caelestia shell
+  # (caelestia wallpaper -f).
   wallpaper = "${theme.wallpaper}";
 in {
   # _module.args makes p, c, wallpaper, and the full theme attrset

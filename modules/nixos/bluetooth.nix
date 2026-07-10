@@ -1,7 +1,11 @@
 # bluetooth.nix — Bluetooth stack.
 #
 # Universal: every host with a BT controller benefits. BlueZ provides
-# the backend; UI and pairing-agent choices live at the user layer.
+# the backend. The ownership split is:
+#   BlueZ backend   — this module (system service + blueman-mechanism)
+#   Bluetooth UI    — Caelestia shell (Quickshell.Bluetooth, user session)
+#   Pairing agent   — blueman-applet (HM, user session)
+# See home/blueman-applet.nix for the agent rationale.
 #
 # powerOnBoot = true: BT mouse is in constant use. The user disables
 # BT manually via desktop UI or `bluetoothctl power off` when they want

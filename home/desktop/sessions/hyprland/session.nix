@@ -307,9 +307,10 @@ in {
       ];
 
       # Hardware power button: logind ignores short presses, so Hyprland
-      # owns the UI path and opens the same menu as the shell power button.
+      # owns the UI path. Opens the Caelestia shell session drawer (logout,
+      # shutdown, hibernate, reboot) instead of wlogout.
       bindl = [
-        ", XF86PowerOff, exec, wlogout --buttons-per-row 4 --margin-left 60 --margin-right 60 --column-spacing 6"
+        ", XF86PowerOff, exec, caelestia shell drawers toggle session"
       ];
 
       # Resize windows with keyboard (vim-style + RU equivalents)

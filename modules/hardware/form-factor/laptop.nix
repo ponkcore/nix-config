@@ -18,15 +18,16 @@
 #     kernel's button driver has no polling path for missing Notify(LID).
 #   - lid-monitor user service: sole owner of display blanking. Polls
 #     /proc/acpi/button/lid/LID0/state five times a second AND checks an
-#     idle-flag file ($XDG_RUNTIME_DIR/hyprland-idle) set by hypridle.
+#     idle-flag file ($XDG_RUNTIME_DIR/hyprland-idle) set by Caelestia
+#     IdleMonitors (currently no idle timeouts configured — timeouts=[]).
 #     Blanks when lid closed OR idle flag exists; restores only when
 #     both are clear. This unified ownership eliminates the race where
-#     hypridle's on-resume re-enables a closed panel on mouse activity.
+#     idle on-resume re-enables a closed panel on mouse activity.
 #     Polling is the only reliable lid channel on firmware that does
 #     not fire ACPI Notify(LID).
 #   - udev rules: USB autosuspend, NVMe scheduler tuning,
 #     XHCI/I2C wakeup disable to prevent spurious wake-from-suspend.
-#   - exposes the `on-battery` helper script to consumers (e.g. hypridle)
+#   - exposes the `on-battery` helper script to consumers
 #     via _module.args so they don't reach for /sys directly.
 {
   config,
@@ -98,9 +99,10 @@
     while sleep 0.2; do
       read -r _ lid < "$LID" || continue
 
-      # Idle flag is set by hypridle after 5 min inactivity on battery,
-      # cleared on any input activity. lid-monitor is the sole owner of
-      # DPMS/backlight state — hypridle never calls hyprctl directly.
+      # Idle flag is set by Caelestia IdleMonitors after idle timeout
+      # on battery, cleared on any input activity. lid-monitor is the
+      # sole owner of DPMS/backlight state — the idle manager never
+      # calls hyprctl directly.
       idle=no
       [ -f "$IDLE_FLAG" ] && idle=yes
 
@@ -171,7 +173,7 @@
   # `on-battery` — exit 0 when running on battery, exit 1 otherwise.
   # Belongs to the laptop hardware profile because the very concept of
   # an AC adapter file under /sys/class/power_supply only exists on
-  # laptop-class hardware. Session-level modules (hypridle and friends)
+  # laptop-class hardware. Session-level modules
   # consume this via _module.args so they never reach for /sys directly
   # and stay portable to compositors and form factors alike.
   on-battery = pkgs.writeShellScriptBin "on-battery" ''

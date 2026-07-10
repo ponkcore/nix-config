@@ -6,8 +6,8 @@
 #   - lock screen, idle manager, wallpaper ownership
 #   - session-only helper scripts (window/app toggles)
 #   - Caelestia shell service (forked from caelestia-dots/shell)
-# Compositor-agnostic theming (mako, rofi, ghostty, palette) lives in
-# ../../../theme.
+# Compositor-agnostic theming (ghostty, rofi, palette) lives in
+# ../../../theme. Notification theming is owned by Caelestia shell.
 {...}: {
   imports = [
     ./session.nix
