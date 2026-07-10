@@ -78,7 +78,11 @@
           "activeTrail": false,
           "occupiedBg": false,
           "perMonitorWorkspaces": true,
-          "showWindowsOnSpecialWorkspaces": true
+          "showWindowsOnSpecialWorkspaces": true,
+          "windowIcons": [
+            {"regex": "steam(_app_(default|[0-9]+))?", "icon": "sports_esports"},
+            {"name": "p:quickshell", "icon": "terminal"}
+          ]
         }
       },
       "dashboard": {

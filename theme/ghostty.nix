@@ -15,6 +15,53 @@
     pkgs.xdg-terminal-exec # Terminal=true support for desktop entries (e.g. nvim)
   ];
 
+  # Ghostty variant class desktop entries — NoDisplay aliases that
+  # map custom --class values back to the canonical Ghostty icon.
+  # Without these, DesktopEntries.heuristicLookup() fails for
+  # variant classes (com.mitchellh.ghostty-floating, -btop, -term,
+  # -nvim) because the upstream desktop entry only declares
+  # StartupWMClass=com.mitchellh.ghostty. The shell's icon
+  # resolution (getAppIcon / getAppCategoryIcon) then falls back to
+  # generic Material Symbols instead of the Ghostty icon.
+  # NoDisplay=true keeps them out of the launcher — they exist
+  # solely for window-class → icon identity resolution.
+  xdg.dataFile."applications/com.mitchellh.ghostty-floating.desktop".text = ''
+    [Desktop Entry]
+    Name=Ghostty (Floating)
+    Type=Application
+    Icon=com.mitchellh.ghostty
+    StartupWMClass=com.mitchellh.ghostty-floating
+    Categories=System;TerminalEmulator;
+    NoDisplay=true
+  '';
+  xdg.dataFile."applications/com.mitchellh.ghostty-btop.desktop".text = ''
+    [Desktop Entry]
+    Name=Ghostty (btop)
+    Type=Application
+    Icon=com.mitchellh.ghostty
+    StartupWMClass=com.mitchellh.ghostty-btop
+    Categories=System;TerminalEmulator;
+    NoDisplay=true
+  '';
+  xdg.dataFile."applications/com.mitchellh.ghostty-term.desktop".text = ''
+    [Desktop Entry]
+    Name=Ghostty (Term)
+    Type=Application
+    Icon=com.mitchellh.ghostty
+    StartupWMClass=com.mitchellh.ghostty-term
+    Categories=System;TerminalEmulator;
+    NoDisplay=true
+  '';
+  xdg.dataFile."applications/com.mitchellh.ghostty-nvim.desktop".text = ''
+    [Desktop Entry]
+    Name=Ghostty (nvim)
+    Type=Application
+    Icon=com.mitchellh.ghostty
+    StartupWMClass=com.mitchellh.ghostty-nvim
+    Categories=System;TerminalEmulator;
+    NoDisplay=true
+  '';
+
   xdg.configFile."ghostty/config".text = ''
     # Font
     font-family = JetBrainsMono Nerd Font
