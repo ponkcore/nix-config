@@ -15,12 +15,10 @@
   inputs,
   ...
 }: {
-  # TEMPORARY WORKAROUND — Throne binary rename + wrapper key.
-  # 26.05 migration: Throne wrapper workarounds removed. The 26.05
+  # Throne 1.0.13 ships with the ThroneCore binary. The 26.05
   # throne module creates security.wrappers."ThroneCore" (CamelCase)
   # pointing at share/throne/ThroneCore — correct key, correct binary.
-  # Throne 1.0.13 ships with the ThroneCore binary, so the wrapper
-  # source exists and TUN mode works out of the box.
+  # TUN mode works out of the box; no wrapper workarounds needed.
 
   # Polkit — required by polkit-gnome-authentication-agent regardless
   # of compositor. The agent itself is launched per-session.
@@ -57,8 +55,10 @@
 
   # System-wide Wayland tooling. None of these are compositor-specific;
   # they are used identically by Hyprland, niri, GNOME, Sway, etc.
-  # User-level desktop apps (mako, rofi, wlogout, Caelestia shell, etc.) live in HM
-  # because their configs are managed there.
+  # User-level desktop apps (Caelestia shell, rofi, wlogout, etc.) live
+  # in HM because their configs are managed there. mako/hyprlock/
+  # hypridle/hyprpaper are also in HM but disabled — Caelestia owns
+  # notifications, lock, idle, and wallpaper.
   environment.systemPackages = with pkgs; [
     wl-clipboard
     brightnessctl

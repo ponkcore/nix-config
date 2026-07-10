@@ -83,10 +83,10 @@ home/                        Home Manager modules (per-user config)
     paper.nix               hyprpaper config (DISABLED — Caelestia Background owns wallpaper)
     scripts.nix             Session helper scripts (window/app toggles)
   blueman-applet.nix        BlueZ pairing agent (org.bluez.Agent1 substrate)
-theme/                       Wayland theme system (single active theme, extensible structure)
-  default.nix                Theme export entry point
+theme/                       Nix-owned theme framework (palette, rofi, cursor, structural defaults)
+  default.nix                Theme export entry point (palette + structural config)
   themes/                    Theme definitions
-    monochrome/              Active theme (palette + layout)
+    monochrome/              Active theme (Nix-side palette + wallpaper asset)
   scripts.nix                Helper scripts
 pkgs/                        Local package derivations (overlay)
 secrets/                     agenix-encrypted secrets + secrets.nix authorisation

@@ -6,9 +6,10 @@
 #
 # Contract:
 #   - ../../theme is imported whenever desktops is non-empty. It
-#     provides the gruvbox palette, wallpaper path, helper scripts,
-#     and compositor-agnostic UI (rofi, ghostty) via
-#     _module.args.
+#     provides the Nix-side palette (rofi rasi theme), wallpaper path,
+#     helper scripts, and structural config (Ghostty font/padding,
+#     cursor theme) via _module.args. Live color state for Hyprland,
+#     Ghostty, and GTK is owned by Caelestia CLI at runtime.
 #   - sessions/<name>/ is imported when "<name>" appears in desktops.
 #   - Adding a new session = drop a folder under sessions/ and add
 #     the corresponding lib.mkIf line below. Existing sessions stay

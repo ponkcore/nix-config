@@ -161,7 +161,9 @@ in {
         ", preferred, auto, 1"
       ];
 
-      # Clipboard, Hyprpaper, Quickshell, Mako: managed by HM systemd services — auto-restart on crash
+      # Session bootstrap — polkit agent, D-Bus env, UWSM finalize.
+      # Caelestia shell, blueman-applet, cliphist, wlsunset, and
+      # lid-monitor are managed by HM systemd user services (auto-restart).
       exec-once = [
         "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1"
         "dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP"

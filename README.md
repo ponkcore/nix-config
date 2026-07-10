@@ -102,8 +102,8 @@ modules/
   hardware/              Opt-in profiles per CPU/GPU/form-factor/boot
 home/                    Home Manager modules (per-user config)
   desktop/sessions/hyprland/  Hyprland session (keybinds, rules, Caelestia shell)
-theme/                   Wayland theme system (single active theme, extensible structure)
-  themes/                monochrome (active theme)
+theme/                   Nix-owned theme framework (palette, rofi, cursor, structural defaults)
+  themes/                monochrome (active theme — Nix-side palette + wallpaper asset)
 pkgs/                    Local package derivations + overlay
 secrets/                 agenix-encrypted secrets + authorisation map
 skills/                  Letta Code skill files installed into ~/.letta/skills

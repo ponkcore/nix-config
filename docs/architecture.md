@@ -55,9 +55,9 @@ slot in without touching existing sessions).
                        ▼
                ┌──────────────────────────┐
                │ theme/                   │
-               │ compositor-agnostic UI   │
-               │ (palette, rofi,          │
-               │  ghostty)                │
+               │ Nix-owned theme framework│
+               │ (palette, rofi, cursor,  │
+               │  structural defaults)    │
                └──────────────────────────┘
 ```
 
@@ -128,8 +128,8 @@ modules/nixos/desktop/             home/desktop/
          UWSM, portal,                   │   └── paper.nix
          silent wrapper)                 (niri/, gnome/ when added)
 
-theme/                             ── compositor-agnostic UI
-├── default.nix      single active theme export
+theme/                             ── Nix-owned theme framework
+├── default.nix      single active theme export (palette + structural defaults)
 ├── themes/          theme definitions (monochrome active)
 ├── rofi.nix · ghostty.nix · scripts.nix
 home/desktop/sessions/hyprland/
@@ -160,6 +160,8 @@ headless / VM hosts.
 | `agenix` | encrypted secrets | follows nixpkgs + home-manager |
 | `llm-agents` | opencode binary | does NOT follow — see decisions/0003 |
 | `letta-code` | memory-first coding agent (talos runtime) | follows |
+| `caelestia-shell` | forked Caelestia shell (Quickshell-based, `ponkcore/shell`) | follows |
+| `caelestia-cli` | forked Caelestia CLI (`ponkcore/cli`) | follows |
 
 ## Build flow
 
@@ -262,10 +264,16 @@ Shell source: `ponkcore/shell` (forked Caelestia), pinned in
 `flake.lock`. CLI: `ponkcore/cli`. Both wired via
 `home/desktop/sessions/hyprland/caelestia.nix`.
 
-Palette: `theme/themes/monochrome/palette.nix` — theme color tokens. Distributed to
-theme modules via `_module.args.p`, to a few HM modules by direct
-import (`fzf.nix`, `wlogout.nix`, `yazi.nix`, `fish.nix`,
-`modules/nixos/desktop/greeter/greetd.nix`).
+Palette: `theme/themes/monochrome/palette.nix` — Nix-side color tokens for
+rofi rasi theme and a few HM modules that import the palette directly
+(`fzf.nix`, `wlogout.nix`, `yazi.nix`, `fish.nix`,
+`modules/nixos/desktop/greeter/greetd.nix`). Live color state for
+Hyprland, Ghostty, and GTK is owned by Caelestia CLI at runtime
+(`~/.local/state/caelestia/scheme.json` is the canonical source of truth;
+`~/.config/hypr/scheme/current.conf`, `sequences.txt`, and `gtk.css` are
+generated artifacts). The Nix palette is the first-login fallback and
+the source for rofi/Greeter/starcship/fzf — consumers that are not yet
+wired to Caelestia runtime colours.
 
 ## Cross-device password / secrets sync
 
@@ -315,7 +323,8 @@ Layer 2 (web/banking/notes/2FA) lives in the KeePass vault. Layer 3
 | Hyprland user config | `home/desktop/sessions/hyprland/` |
 | Caelestia shell + CLI | `home/desktop/sessions/hyprland/caelestia.nix` (forked HM module) |
 | Bluetooth pairing agent | `home/blueman-applet.nix` (org.bluez.Agent1 substrate) |
-| Theme palette source | `theme/themes/monochrome/palette.nix` |
+| Theme palette (Nix-side) | `theme/themes/monochrome/palette.nix` (rofi, greeter, fzf, fish, wlogout, yazi) |
+| Theme runtime colors | Caelestia CLI — `~/.local/state/caelestia/scheme.json` (Hyprland, Ghostty, GTK) |
 | nix-ld (FHS binary shim) | `modules/nixos/packages.nix` |
 | Agent global instructions | `home/agent-rules.nix` (deploys `home/agent-instructions/AGENTS.md` to opencode/omp/agy paths) |
 | DevShell templates | `home/agent-rules.nix` (deploys to `~/.local/share/nixos-templates/`) |

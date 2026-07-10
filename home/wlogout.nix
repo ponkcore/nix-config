@@ -1,8 +1,11 @@
-# wlogout.nix — graphical session-action menu.
+# wlogout.nix — graphical session-action menu (fallback, DISABLED).
 #
-# Opened from the desktop shell power button. The four-button grid is adapted
-# from the local HyDE-style reference, but actions stay native to this
-# Hyprland session and icon assets are pinned through the Nix store.
+# Caelestia shell owns the primary power/session drawer (opened via the
+# hardware power key bind in session.nix). wlogout is retained as a
+# secondary fallback admin tool — its config is maintained but it is not
+# the primary power UI. The four-button grid is adapted from the local
+# HyDE-style reference; actions stay native to this Hyprland session and
+# icon assets are pinned through the Nix store.
 {
   pkgs,
   p,

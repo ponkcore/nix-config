@@ -1,7 +1,8 @@
-# rofi.nix — application launcher / menu (Wayland-aware fork).
+# rofi.nix — clipboard picker and fallback drun launcher (Wayland-aware fork).
 # Palette interpolated from _module.args.p directly into the .rasi
 # theme so colour changes propagate without editing two places.
-# Bound to SUPER+D in home/desktop/sessions/hyprland/session.nix.
+# Primary launcher is Caelestia shell (SUPER+R); rofi is used for
+# clipboard history (SUPER+C → cliphist list | rofi -dmenu).
 {
   p,
   c,

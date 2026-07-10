@@ -36,7 +36,7 @@ Everything is managed through Nix. There is no escape hatch.
 | `modules/nixos/desktop/` | Wayland desktop sub-tree |
 | `modules/hardware/` | opt-in profiles (cpu/, gpu/, form-factor/, boot/) |
 | `home/` | Home Manager modules, one app or concern per file |
-| `theme/` | desktop theme bundle, palette consumers |
+| `theme/` | Nix-owned theme framework (palette, rofi, cursor, structural defaults) |
 | `pkgs/<name>/default.nix` | local package derivations; registered in `pkgs/default.nix` |
 | `secrets/` | agenix-encrypted secrets + `secrets.nix` authorisation map |
 | `docs/` | architecture, handbook, conventions, decisions, changelogs |

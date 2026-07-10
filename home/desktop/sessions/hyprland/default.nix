@@ -3,11 +3,14 @@
 # Activated when "hyprland" is in the host's `desktops` list. Imports
 # the pieces that make up a Hyprland session for the user:
 #   - session config (keybinds, rules, animations)
-#   - lock screen, idle manager, wallpaper ownership
+#   - lock/idle/wallpaper modules (DISABLED — Caelestia owns these;
+#     configs retained as reference/fallback)
 #   - session-only helper scripts (window/app toggles)
 #   - Caelestia shell service (forked from caelestia-dots/shell)
-# Compositor-agnostic theming (ghostty, rofi, palette) lives in
-# ../../../theme. Notification theming is owned by Caelestia shell.
+# Compositor-agnostic theming (rofi rasi, Ghostty structural config,
+# cursor theme) lives in ../../../theme. Live color state for Hyprland,
+# Ghostty, and GTK is owned by Caelestia CLI at runtime.
+# Notification, lock, idle, and wallpaper ownership is Caelestia shell.
 {...}: {
   imports = [
     ./session.nix

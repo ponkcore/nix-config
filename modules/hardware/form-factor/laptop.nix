@@ -44,11 +44,12 @@
 
   # Lid-state + idle-flag polling loop. Reads /proc/acpi/button/lid/
   # LID0/state every 200 ms and checks $XDG_RUNTIME_DIR/hyprland-idle
-  # (set by hypridle after 5 min inactivity on battery, cleared on any
+  # (set by Caelestia IdleMonitors on idle timeout, cleared on any
   # input activity). Blanks when lid closed OR idle flag exists; restores
   # only when both are clear. This makes lid-monitor the single owner of
-  # display blanking state — hypridle never calls hyprctl directly,
-  # eliminating the race where on-resume re-enables a closed panel.
+  # display blanking state — Caelestia IdleMonitors never calls hyprctl
+  # directly, eliminating the race where on-resume re-enables a closed
+  # panel.
   #
   # Hooks (onClose/onOpen) fire on lid-edge transitions only, never on
   # idle-flag changes. Initial lid state read primes `prev_lid` so hooks

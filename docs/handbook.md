@@ -359,7 +359,7 @@ cb validate shop-01              # open fingerprint test sites
 cb delete shop-01                # remove profile + data
 ```
 
-Or use the rofi launcher (Super+D → "CloakBrowser"):
+Or use the Caelestia launcher (Super+R → "CloakBrowser"):
 the picker shows all profiles plus a "➕ Create profile..." option.
 
 Profile definitions (seed, platform, timezone, colorScheme, etc.)
@@ -728,8 +728,8 @@ SUPER+CTRL+P       window screenshot
 - `modules/nixos/packages.nix` — add a system CLI
 - `home/<app>.nix` — add or change per-user app
 - `home/desktop/sessions/hyprland/session.nix` — keybinds, window rules
-- `theme/rofi.nix` / `theme/ghostty.nix` — UI styling
-- `theme/themes/monochrome/palette.nix` — colour palette source of truth
+- `theme/rofi.nix` / `theme/ghostty.nix` — rofi rasi theme / Ghostty structural config
+- `theme/themes/monochrome/palette.nix` — Nix-side palette (rofi, greeter, fzf, fish); live colours owned by Caelestia CLI
 - `secrets/<name>.age` — encrypted secrets
 
 For everything else, search the file tree by filename. The structure
