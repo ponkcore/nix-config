@@ -1,13 +1,14 @@
 # ghostty.nix — terminal emulator (libghostty, native Wayland).
-# Palette via _module.args.p — Gruvbox dark medium 16-color terminal mapping.
+# Terminal colours are owned by Caelestia CLI runtime: the CLI
+# generates OSC sequences (sequences.txt) and broadcasts them to
+# open PTYs on `caelestia scheme set`. A fish shell hook
+# (interactiveShellInit in fish.nix) applies sequences.txt to new
+# interactive sessions, so new Ghostty windows adopt the active
+# scheme at shell startup. Nix owns only structural settings:
+# font, cursor style, window behaviour, scrollback, clipboard.
 # `xdg-terminal-exec` package is added here so Terminal=true desktop
 # entries (nvim.desktop etc.) launch correctly.
-{
-  pkgs,
-  p,
-  theme, # reserved for future per-theme structural overrides
-  ...
-}: {
+{pkgs, ...}: {
   # Ghostty is in nixpkgs but has no HM module yet — use home.packages + xdg.configFile
   home.packages = [
     pkgs.ghostty
@@ -15,32 +16,6 @@
   ];
 
   xdg.configFile."ghostty/config".text = ''
-    # Color palette (index-per-line format required by Ghostty)
-    # Standard 16-color mapping: 0-7 base, 8-15 bright
-    palette = 0=${p.bg}
-    palette = 1=${p.red}
-    palette = 2=${p.green}
-    palette = 3=${p.yellow}
-    palette = 4=${p.blue}
-    palette = 5=${p.magenta}
-    palette = 6=${p.cyan}
-    palette = 7=${p.fg}
-    palette = 8=${p.gray}
-    palette = 9=${p.bright_red}
-    palette = 10=${p.bright_green}
-    palette = 11=${p.bright_yellow}
-    palette = 12=${p.bright_blue}
-    palette = 13=${p.bright_magenta}
-    palette = 14=${p.bright_cyan}
-    palette = 15=${p.fg_bright}
-
-    background = ${p.bg}
-    foreground = ${p.fg}
-    cursor-color = ${p.fg_bright}
-    cursor-text = ${p.bg}
-    selection-background = ${p.accent_warm}
-    selection-foreground = ${p.bg}
-
     # Font
     font-family = JetBrainsMono Nerd Font
     font-size = 10.8

@@ -104,6 +104,65 @@
         fi
   '';
 
+  # Seed cli.json with explicit theme policy if absent.
+  # Without this file, all enable* flags default to True and the CLI
+  # silently attempts to theme Discord, Spicetify, Pandora, Warp,
+  # Chromium, Zed, Cava, Fuzzel, Btop, Nvtop, Htop — none installed.
+  # iconTheme defaults to Papirus-{mode}, which IS installed via
+  # modules/nixos/desktop/common.nix. adw-gtk3 provides the GTK3 base
+  # theme that Caelestia overlays with @define-color CSS variables.
+  # postHook triggers hyprctl reload after scheme changes so the
+  # sourced scheme/current.conf is re-evaluated.
+  home.activation.writeCaelestiaCliConfig = lib.hm.dag.entryAfter ["writeBoundary"] ''
+    if [ ! -f "$HOME/.config/caelestia/cli.json" ]; then
+      $DRY_RUN_CMD mkdir -p "$HOME/.config/caelestia"
+      $DRY_RUN_CMD cat > "$HOME/.config/caelestia/cli.json" <<'CAELESTIA_CLI'
+    {
+      "theme": {
+        "enableTerm": true,
+        "enableHypr": true,
+        "enableGtk": true,
+        "enableQt": false,
+        "enableFuzzel": false,
+        "enableBtop": false,
+        "enableNvtop": false,
+        "enableHtop": false,
+        "enableDiscord": false,
+        "enableSpicetify": false,
+        "enablePandora": false,
+        "enableWarp": false,
+        "enableChromium": false,
+        "enableZed": false,
+        "enableCava": false,
+        "iconTheme": "Papirus-Dark",
+        "iconThemeDark": "Papirus-Dark",
+        "iconThemeLight": "Papirus-Light",
+        "postHook": "hyprctl reload 2>/dev/null || true"
+      }
+    }
+    CAELESTIA_CLI
+    fi
+  '';
+
+  # First-login scheme seeding — if scheme.json is absent, run
+  # `caelestia scheme set catppuccin mocha dark` to generate the
+  # complete theme state (scheme.json, current.conf, sequences.txt,
+  # gtk.css). Without this, a fresh install has no current.conf and
+  # Hyprland's sourced color variables are undefined (transparent
+  # borders until the user manually runs `caelestia scheme set`).
+  # The CLI's postHook (hyprctl reload) will fail outside a Wayland
+  # session — the `2>/dev/null || true` in the postHook handles this.
+  # dconf writes may also fail (no D-Bus) — silently ignored by the
+  # CLI's @log_exception decorator. The critical files are generated
+  # regardless. Never overwrites existing user-chosen scheme state.
+  home.activation.seedCaelestiaScheme = lib.hm.dag.entryAfter ["writeCaelestiaCliConfig"] ''
+    if [ ! -f "$HOME/.local/state/caelestia/scheme.json" ]; then
+      if command -v caelestia >/dev/null 2>&1; then
+        $DRY_RUN_CMD caelestia scheme set catppuccin mocha dark 2>/dev/null || true
+      fi
+    fi
+  '';
+
   # Profile avatar for Caelestia lock screen (ProfilePic.qml reads
   # ~/.face). Create symlink to the existing profile image via
   # activation script — cannot use home.file.source with an absolute

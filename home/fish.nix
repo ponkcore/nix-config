@@ -38,6 +38,19 @@ _: {
       # Disable fish greeting
       set -g fish_greeting
 
+      # Apply Caelestia terminal colour scheme to new sessions.
+      # Caelestia CLI writes OSC sequences to sequences.txt on
+      # `caelestia scheme set` and broadcasts to open PTYs, but
+      # new terminal windows don't receive the broadcast. This
+      # hook applies the saved sequences at interactive shell
+      # startup so new Ghostty windows adopt the active scheme.
+      # Sequences are idempotent (re-applying the same colours
+      # is harmless). Skipped on dumb terminals and when the
+      # file doesn't exist (first boot before Caelestia runs).
+      if test "$TERM" != dumb -a -f "$HOME/.local/state/caelestia/sequences.txt"
+        cat "$HOME/.local/state/caelestia/sequences.txt"
+      end
+
       # Ctrl+E — edit current command in $EDITOR
       bind \ce edit_command_buffer
 

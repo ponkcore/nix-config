@@ -5,16 +5,10 @@
 # modules/nixos/desktop/sessions/hyprland.nix.
 {
   pkgs,
-  p,
-  c,
   hostDisplay,
   ...
 }: let
   display = hostDisplay;
-  # Hyprland color literals — bare 8-digit RRGGBBAA hex with no
-  # separator. Consumed by general.col.active_border, group borders,
-  # groupbar, misc.background_color, and so on.
-  rgba = c.hyprlandRGBA;
 
   quickshellToggleControlCenter = pkgs.writeShellScript "quickshell-toggle-control-center" ''
     id="$(${pkgs.quickshell}/bin/qs list --all | ${pkgs.gawk}/bin/awk '/^Instance/{gsub(/:/, "", $2); print $2; exit}')"
@@ -136,6 +130,21 @@ in {
     # Source: audit 2026-06-28-system-perfection-audit §H-7
     configType = "hyprlang";
     settings = {
+      # Runtime color scheme — sourced from Caelestia CLI output.
+      # The file ~/.config/hypr/scheme/current.conf defines all scheme
+      # colours as Hyprland variables ($primary, $secondary, $surface,
+      # etc.). Caelestia CLI generates this file on `caelestia scheme
+      # set` and the postHook in cli.json triggers `hyprctl reload`
+      # to re-evaluate the config after each change.
+      # Hyprland expands variables before parsing rgba()/rgb(), so
+      # rgba($primary) works but rgba($primary ee) does NOT (space
+      # breaks the parser). Use rgb($var) for full-opacity or
+      # rgba($var8digit) with pre-concatenated alpha.
+      # If the file is absent (first boot before CLI runs), Hyprland
+      # warns but continues — variables resolve to empty strings,
+      # resulting in transparent borders until the first scheme set.
+      source = ["~/.config/hypr/scheme/current.conf"];
+
       # Pin native panel mode + scale explicitly. The panel
       # (China Star SNE007ZA2-1, 14" 2.8K) advertises 120 Hz preferred
       # via EDID, but firmware can downshift to 60 Hz on certain BIOS
@@ -385,12 +394,18 @@ in {
       };
 
       # ── General (borders, gaps) ─────────────────────────────────────────
+      # Border colours use scheme variables from current.conf.
+      # rgb() = full opacity (alpha ff). The previous Nix palette
+      # used rgba(...ee) (~93%) for active and rgba(...aa) (~67%)
+      # for inactive — the alpha difference is visually negligible
+      # on a 2px border. To restore alpha, the CLI scheme file would
+      # need to define 8-digit hex variables (e.g. $primary_ee).
       general = {
         gaps_in = 2;
         gaps_out = 3;
         border_size = 2;
-        "col.active_border" = "${rgba p.bright_yellow "ee"} ${rgba p.bright_magenta "ee"} 45deg";
-        "col.inactive_border" = rgba p.border_inact "aa";
+        "col.active_border" = "rgb($primary) rgb($secondary) 45deg";
+        "col.inactive_border" = "rgb($outlineVariant)";
         resize_on_border = true;
       };
 
@@ -419,15 +434,15 @@ in {
 
       # ── Window groups (tabbed containers) ─────────────────────────────
       group = {
-        "col.border_active" = "${rgba p.bright_yellow "ee"} ${rgba p.bright_magenta "ee"} 45deg";
-        "col.border_inactive" = rgba p.border_inact "aa";
+        "col.border_active" = "rgb($primary) rgb($secondary) 45deg";
+        "col.border_inactive" = "rgb($outlineVariant)";
         groupbar = {
           enabled = true;
           font_size = 10;
           height = 18;
-          "col.active" = rgba p.border_act "ee";
-          "col.inactive" = rgba p.bg_mid "cc";
-          text_color = rgba p.fg "ff";
+          "col.active" = "rgb($primary)";
+          "col.inactive" = "rgb($surfaceContainer)";
+          text_color = "rgb($onSurface)";
           gradients = false;
         };
       };
@@ -643,9 +658,9 @@ in {
 
       # ── Misc (disable default wallpaper/splash, enable VRR) ─────────────
       # Without these, Hyprland briefly shows its default blue wallpaper + logo
-      # between greeter (sway+nwg-hello) exit and hyprpaper startup.
-      # background_color matches our palette bg so the transition is seamless
-      # (black → bg → wallpaper).
+      # between greeter (sway+nwg-hello) exit and Caelestia shell startup.
+      # background_color uses the scheme variable $background so the
+      # transition gap matches the active scheme's base colour.
       # vrr = 2: enable Adaptive-Sync on fullscreen content only.
       # This is the critical PSR enabling setting: amdgpu_dm.c gates PSR
       # entry with `if (!vrr_active && ...)` — VRR=1 (always on) blocks
@@ -667,7 +682,7 @@ in {
       misc = {
         disable_hyprland_logo = true;
         disable_splash_rendering = true;
-        background_color = rgba p.bg "ff";
+        background_color = "rgb($background)";
         vrr = 2;
         render_unfocused_fps = 1;
       };
