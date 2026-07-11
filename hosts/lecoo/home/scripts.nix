@@ -20,7 +20,8 @@
   # CLI help advertises desk = 40 %, but the EC actually reports
   # `Stop charging at: 50%` for that mode. The 40-50 hysteresis means
   # the cap is 50; CLI help text is misleading. Trust the runtime read,
-  # not the help string.
+  # not the help string. All user-visible labels show 50 (the actual
+  # cap), not 40 (the CLI help text value).
   charge-current = pkgs.writeShellScriptBin "lecoo-charge-current" ''
     output=$(${pkgs.lecoo-ctrl}/bin/lecoo-ctrl charge 2>/dev/null)
     if echo "$output" | ${pkgs.gnugrep}/bin/grep -q "Full Capacity"; then
@@ -44,7 +45,7 @@
   #   high      — 95 %
   #   balanced  — 80 %   (70-80 hysteresis)
   #   lifespan  — 60 %   (55-60 hysteresis)
-  #   desk      — 40 %   (40-50 hysteresis, plugged-in scenario)
+  #   desk      — 50 %   (40-50 hysteresis, plugged-in scenario)
   # Order chosen for descending battery ceiling so a sequence of right
   # clicks moves the user toward more conservative limits — the common
   # direction. Wraps from desk back to full.
@@ -71,7 +72,7 @@
       high)     printf '{"text":"95","class":"high","tooltip":"Charge: High (90-95%%)"}\n' ;;
       balanced) printf '{"text":"","class":"balanced","tooltip":"Charge: Balanced (70-80%%)"}\n' ;;
       lifespan) printf '{"text":"60","class":"lifespan","tooltip":"Charge: Lifespan (55-60%%)"}\n' ;;
-      desk)     printf '{"text":"40","class":"desk","tooltip":"Charge: Desk (40-50%%)"}\n' ;;
+      desk)     printf '{"text":"50","class":"desk","tooltip":"Charge: Desk (50%% cap, 40-50%% hysteresis)"}\n' ;;
       *)        printf '{"text":"?","class":"balanced","tooltip":"Charge: Unknown"}\n' ;;
     esac
   '';
@@ -102,7 +103,7 @@
         high)     printf '{"mode":"high","percent":95,"label":"95","tooltip":"Charge limit: High (95%%)"}\n' ;;
         balanced) printf '{"mode":"balanced","percent":80,"label":"80","tooltip":"Charge limit: Balanced (80%%)"}\n' ;;
         lifespan) printf '{"mode":"lifespan","percent":60,"label":"60","tooltip":"Charge limit: Lifespan (60%%)"}\n' ;;
-        desk)     printf '{"mode":"desk","percent":40,"label":"40","tooltip":"Charge limit: Desk (40-50%% runtime hysteresis)"}\n' ;;
+        desk)     printf '{"mode":"desk","percent":50,"label":"50","tooltip":"Charge limit: Desk (50%% cap, 40-50%% hysteresis)"}\n' ;;
         *)        printf '{"mode":"unknown","percent":0,"label":"?","tooltip":"Charge limit: Unknown"}\n' ;;
       esac
     }
