@@ -453,7 +453,7 @@ in {
 
       # ── Decoration (rounding, shadow, blur) ────────────────────────────
       decoration = {
-        rounding = 4;
+        rounding = 15;
         rounding_power = 3;
         shadow = {
           enabled = true;
