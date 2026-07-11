@@ -124,7 +124,7 @@
       },
       "original": {
         "owner": "ponkcore",
-        "ref": "phase1-fork-baseline",
+        "ref": "main",
         "repo": "cli",
         "type": "github"
       }
@@ -199,7 +199,7 @@
       },
       "original": {
         "owner": "ponkcore",
-        "ref": "phase3f-power-bridge-v2",
+        "ref": "main",
         "repo": "shell",
         "type": "github"
       }

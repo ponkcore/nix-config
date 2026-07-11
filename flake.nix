@@ -43,15 +43,16 @@
     # hyprland 0.55.4 + all ecosystem packages natively.
 
     # Caelestia shell + CLI — forked from caelestia-dots.
-    # Phase 3f-v2: Lecoo power-mode + charge-limit bridge on top of
-    # stable Phase 3e baseline (lock + idle).
+    # All accepted phases (fork baseline, gating, wallpaper, launcher,
+    # notifications, lock/idle, Lecoo power-mode + charge-limit bridge)
+    # have landed on main.
     caelestia-shell = {
-      url = "github:ponkcore/shell/phase3f-power-bridge-v2";
+      url = "github:ponkcore/shell/main";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     caelestia-cli = {
-      url = "github:ponkcore/cli/phase1-fork-baseline";
+      url = "github:ponkcore/cli/main";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
