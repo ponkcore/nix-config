@@ -100,6 +100,9 @@
       },
       "services": {
         "smartScheme": true
+      },
+      "sidebar": {
+        "showOnHover": true
       }
     }
     CAELESTIA_CONFIG
