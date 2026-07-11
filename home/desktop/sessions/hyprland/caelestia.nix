@@ -14,7 +14,6 @@
 #                0 wl_display errors. Prior crashes were caused by
 #                Phase 3F (power bridge), not Phase 3E.
 {
-  config,
   inputs,
   pkgs,
   lib,
@@ -29,7 +28,7 @@
     enable = true;
     # with-cli package bundles the CLI into the shell binary,
     # enabling full functionality (wallpaper, scheme, IPC).
-    package = inputs.caelestia-shell.packages.${pkgs.system}.with-cli;
+    package = inputs.caelestia-shell.packages.${pkgs.stdenv.hostPlatform.system}.with-cli;
     systemd = {
       enable = true;
       # Start after the UWSM Hyprland session target is ready.
@@ -39,7 +38,7 @@
     };
     cli = {
       enable = true;
-      package = inputs.caelestia-cli.packages.${pkgs.system}.default;
+      package = inputs.caelestia-cli.packages.${pkgs.stdenv.hostPlatform.system}.default;
     };
     # Shell runtime config — DO NOT use HM `settings` attrset here.
     # HM `settings` writes shell.json as a read-only Nix store symlink
