@@ -17,7 +17,7 @@
     internalMonitor = "eDP-1";
     internalMode = "2880x1800@120";
     internalModeEco = "2880x1800@60";
-    internalScale = "1.8";
+    internalScale = "1.67";
     wallpaperSize = "2880x1800";
   };
 in {
