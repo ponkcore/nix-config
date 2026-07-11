@@ -1,4 +1,4 @@
-# cli.nix — modern CLI replacements with Gruvbox theming.
+# cli.nix — modern CLI replacements (bat, eza, zoxide, gh, Node.js LTS).
 # Provides bat (cat), eza (ls), zoxide (cd), gh (GitHub CLI), Node.js LTS.
 # The git pager (`delta`) lives in home/git.nix because that is where it is
 # wired into the git config. MANPAGER is set in env.nix; fish aliases
