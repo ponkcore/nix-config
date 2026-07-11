@@ -453,7 +453,7 @@ in {
 
       # ── Decoration (rounding, shadow, blur) ────────────────────────────
       decoration = {
-        rounding = 15;
+        rounding = 25;
         rounding_power = 3;
         shadow = {
           enabled = true;
@@ -517,6 +517,8 @@ in {
       # boolean values. See mkPopupRaw comment for details.
       windowrule =
         [
+          # ── Fullscreen: no rounding (shell removes border on FS) ──────
+          "rounding 0, match:fullscreen true"
           # ── Large apps: auto-maximize (fill workspace) ──────────────────
           "maximize on, match:class firefox"
           "maximize on, match:class chromium-browser"
