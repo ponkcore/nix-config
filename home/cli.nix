@@ -3,14 +3,21 @@
 # The git pager (`delta`) lives in home/git.nix because that is where it is
 # wired into the git config. MANPAGER is set in env.nix; fish aliases
 # live in fish.nix.
+#
+# bat is installed via home.packages (not programs.bat) to avoid the
+# HM batCache activation hook (~400ms in the blocking boot path).
+# The config is written via xdg.configFile — same result, no cache
+# rebuild on every activation. bat builds its cache lazily on first
+# invocation if needed.
 {pkgs, ...}: {
-  programs.bat = {
-    enable = true;
-    config = {
-      theme = "gruvbox-dark";
-      style = "plain";
-    };
-  };
+  # bat — cat replacement. Installed via home.packages (not programs.bat)
+  # to avoid the HM batCache activation hook (~400ms in the blocking boot
+  # path). Config is written via xdg.configFile — same result, no cache
+  # rebuild on every activation.
+  xdg.configFile."bat/config".text = ''
+    --theme=gruvbox-dark
+    --style=plain
+  '';
 
   # eza — ls replacement (aliases set in fish.nix)
   programs.eza = {
@@ -42,5 +49,5 @@
   # Python 3 — base runtime for scripting, MCP servers (mcp-bridge,
   # mcp-nixos, context7, fetch-py), and quick automation. Do NOT use
   # `pip install --user` — use `python3 -m venv` or `nix shell` instead.
-  home.packages = [pkgs.nodejs_22 pkgs.python3];
+  home.packages = [pkgs.bat pkgs.nodejs_22 pkgs.python3];
 }

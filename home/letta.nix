@@ -48,42 +48,6 @@ in {
     };
   };
 
-  # Regenerate ~/Documents/talos-brain/MAP.md after every nixos-rebuild
-  # switch, so the brain's flat index reflects the freshly switched
-  # /etc/nixos tree without the user having to run anything by hand.
-  #
-  # Non-fatal: if the brain workdir is missing or the script errors,
-  # we log to stderr and continue. A failed MAP regen must never block
-  # a system rebuild.
-  # Regenerate ~/Documents/talos-brain/MAP.md after every nixos-rebuild
-  # switch.
-  #
-  # Why we hard-code the bash + awk paths instead of relying on the
-  # script's `#!/usr/bin/env bash` shebang: home-manager activation
-  # runs with a minimal PATH containing only coreutils, findutils,
-  # gnugrep, gnused, systemd. Neither bash nor gawk are on it, so
-  # `env bash` fails with "No such file or directory" and the script
-  # never even starts. Using ${pkgs.bash}/bin/bash and exporting an
-  # extended PATH that includes ${pkgs.gawk} makes the call work
-  # under the activation environment without depending on the user
-  # shell's PATH being available (which it is not at activation).
-  #
-  # Non-fatal by design: if the brain workdir is missing, the script
-  # errors out, or any tool blows up, we WARN to stderr and continue.
-  # A failed MAP regeneration must never block a system rebuild.
-  home.activation.talos-mapgen = lib.hm.dag.entryAfter ["writeBoundary"] ''
-    BRAIN="${brainDir}"
-    SCRIPT="$BRAIN/scripts/regen-map.sh"
-    if [ -r "$SCRIPT" ]; then
-      export PATH="${pkgs.bash}/bin:${pkgs.gawk}/bin:$PATH"
-      if ! ${pkgs.bash}/bin/bash "$SCRIPT" >/dev/null 2>&1; then
-        echo "WARN: talos-mapgen: $SCRIPT failed; continuing rebuild." >&2
-      fi
-    else
-      echo "INFO: talos-mapgen: $SCRIPT not found or unreadable; skipping." >&2
-    fi
-  '';
-
   programs.fish.functions.talos = ''
     set -l brain "${brainDir}"
 
@@ -105,6 +69,16 @@ in {
     if not test -d "$brain"
       echo "talos: brain directory $brain not found." >&2
       return 1
+    end
+
+    # Regenerate MAP.md at runtime (moved from home.activation to
+    # avoid blocking the boot path — talos-mapgen consumed ~4s inside
+    # home-manager-oonishi.service). Non-fatal: if the script is
+    # missing or fails, warn and continue.
+    set -l mapgen "$brain/scripts/regen-map.sh"
+    if test -r "$mapgen"
+      bash "$mapgen" >/dev/null 2>&1
+      or echo "talos: MAP regen failed; continuing." >&2
     end
 
     # Source agenix secrets (OMNIROUTE_API_KEY, FIREWORKS_API_KEY,

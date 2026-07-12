@@ -120,12 +120,23 @@ _: {
           ./pkgs/oh-my-pi/update.sh $argv[2..]
           return $status
         end
+        # GitHub token: injected at runtime (moved from HM activation
+        # to avoid gh auth token in the boot path). omp expands
+        # ''${GITHUB_TOKEN} in mcp.json from the process environment.
+        set -l gh_token (gh auth token 2>/dev/null)
+        if test -n "$gh_token"
+          set -lx GITHUB_TOKEN "$gh_token"
+        else
+          echo "omp: gh auth token returned empty — GitHub MCP will fail." >&2
+        end
         command omp $argv
       '';
       # omo — launch opencode with the Nix-store oh-my-openagent plugin.
       # `omo upd [VERSION]` updates the local package pin; regular `omo ...`
       # injects the generated file:// plugin spec into OPENCODE_CONFIG_CONTENT.
-      # Vanilla `opencode` stays plugin-free for fast simple tasks.
+      # Also injects the GitHub token (from `gh auth token`) at runtime —
+      # the on-disk opencode.json has a placeholder that is substituted here.
+      # Vanilla `opencode` has its own wrapper for token injection.
       omo = ''
         if test (count $argv) -gt 0; and test "$argv[1]" = upd
           cd /etc/nixos
@@ -145,8 +156,31 @@ _: {
         end
 
         set -l plugin (string trim < "$plugin_file")
-        set -l updated (jq --arg plugin "$plugin" '.plugin = ((.plugin // []) | map(select((type == "string" and (test("^oh-my-open(agent|code)(@.*)?$") or test("oh-my-openagent"))) | not)) + [$plugin])' "$cfg")
-        OMO_DISABLE_POSTHOG=1 OPENCODE_CONFIG_CONTENT="$updated" opencode $argv
+        set -l gh_token (gh auth token 2>/dev/null)
+        if test -z "$gh_token"
+          echo "omo: gh auth token returned empty — GitHub MCP will fail." >&2
+        end
+        set -l updated (jq --arg plugin "$plugin" --arg ghtoken "$gh_token" '.plugin = ((.plugin // []) | map(select((type == "string" and (test("^oh-my-open(agent|code)(@.*)?$") or test("oh-my-openagent"))) | not)) + [$plugin]) | .mcp.github.environment.GITHUB_PERSONAL_ACCESS_TOKEN = $ghtoken' "$cfg")
+        OMO_DISABLE_POSTHOG=1 OPENCODE_CONFIG_CONTENT="$updated" command opencode $argv
+      '';
+      # opencode — vanilla launch with runtime GitHub token injection.
+      # The on-disk opencode.json contains a placeholder token (written
+      # by HM activation without calling gh); this wrapper substitutes
+      # the real token from `gh auth token` at launch time via
+      # OPENCODE_CONFIG_CONTENT, so the token never touches /nix/store.
+      # Use `command opencode` to bypass this wrapper if needed.
+      opencode = ''
+        set -l cfg "$HOME/.config/opencode/opencode.json"
+        if not test -f "$cfg"
+          command opencode $argv
+          return $status
+        end
+        set -l gh_token (gh auth token 2>/dev/null)
+        if test -z "$gh_token"
+          echo "opencode: gh auth token returned empty — GitHub MCP will fail." >&2
+        end
+        set -l updated (jq --arg ghtoken "$gh_token" '.mcp.github.environment.GITHUB_PERSONAL_ACCESS_TOKEN = $ghtoken' "$cfg")
+        OPENCODE_CONFIG_CONTENT="$updated" command opencode $argv
       '';
       # ── Tailscale helpers ───────────────────────────────────────────
       # Tailscaled and throne TUN cannot run together (DNS hijacking +

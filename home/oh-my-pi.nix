@@ -127,6 +127,8 @@
   #   OMNIROUTE_API_KEY  — provider apiKey (models.yml)
   #   OMP_PROXY_KEY      — VPS MCP proxy auth (mcp.json X-Proxy-Key)
   #   CONTEXT7_API_KEY   — context7 MCP (mcp.json X-Context7-API-Key)
+  # GITHUB_TOKEN is NOT written here — it is injected at runtime by
+  # the `omp` fish wrapper from `gh auth token` (env var expansion).
   home.activation.omp-env = lib.hm.dag.entryAfter ["writeBoundary"] ''
     set -eu
     SECRETS="/run/agenix/tokens"
@@ -152,16 +154,10 @@
     fi
     mkdir -p "$HOME/.omp/agent"
     umask 077
-    GH_TOKEN="$(${pkgs.gh}/bin/gh auth token 2>/dev/null || true)"
-    if [ -z "$GH_TOKEN" ]; then
-      echo "WARN: gh auth token returned empty — writing OMP env without GitHub MCP token." >&2
-      GH_TOKEN=""
-    fi
     cat > "$OUT" <<EOF
     OMNIROUTE_API_KEY=$OMNIROUTE_API_KEY
     OMP_PROXY_KEY=$OMP_PROXY_KEY
     CONTEXT7_API_KEY=$CONTEXT7_API_KEY
-    GITHUB_TOKEN=$GH_TOKEN
     EOF
   '';
 }

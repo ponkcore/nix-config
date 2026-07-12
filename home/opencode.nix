@@ -525,8 +525,10 @@ in {
   #   CONTEXT7_API_KEY   — X-Context7-API-Key header for context7 MCP
   #   OMP_PROXY_KEY      — X-Proxy-Key header for VPS MCP proxy
   #
-  # GITHUB_PERSONAL_ACCESS_TOKEN is NOT in tokens.age — it is sourced
-  # from `gh auth token` at activation time (gh CLI is already auth'd).
+  # GITHUB_PERSONAL_ACCESS_TOKEN is NOT in tokens.age — it is injected
+  # at runtime by the `omo`/`opencode` fish wrappers from `gh auth token`.
+  # The on-disk opencode.json keeps a placeholder; the wrappers substitute
+  # the real token via jq + OPENCODE_CONFIG_CONTENT at launch time.
   #
   # If /run/agenix/tokens is missing or unreadable, activation fails
   # loudly with the message below. To recover: re-encrypt the file
@@ -555,23 +557,15 @@ in {
       echo "ERROR: OMP_PROXY_KEY missing in $SECRETS" >&2
       exit 1
     fi
-    # GitHub token from gh CLI (already auth'd, no need to store in agenix)
-    GH_TOKEN="$(${pkgs.gh}/bin/gh auth token 2>/dev/null || true)"
-    if [ -z "$GH_TOKEN" ]; then
-      echo "WARN: gh auth token returned empty — writing opencode env without GitHub MCP token." >&2
-      GH_TOKEN=""
-    fi
     mkdir -p "${config.xdg.configHome}/opencode"
     umask 077
     ${pkgs.jq}/bin/jq \
       --arg key "$OMNIROUTE_API_KEY" \
       --arg c7  "$CONTEXT7_API_KEY" \
       --arg proxy "$OMP_PROXY_KEY" \
-      --arg ghtoken "$GH_TOKEN" \
       '.provider.omniroute.options.apiKey = $key
        | .mcp.context7.headers["X-Context7-API-Key"] = $c7
-       | .mcp.omniroute.headers["X-Proxy-Key"] = $proxy
-       | .mcp.github.environment.GITHUB_PERSONAL_ACCESS_TOKEN = $ghtoken' \
+       | .mcp.omniroute.headers["X-Proxy-Key"] = $proxy' \
       ${opencodeJsonTemplate} \
       > "$OUT.tmp"
     chmod 600 "$OUT.tmp"

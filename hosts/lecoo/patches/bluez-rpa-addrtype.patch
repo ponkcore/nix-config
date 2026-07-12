@@ -1,0 +1,15 @@
+--- a/src/device.c
++++ b/src/device.c
+@@ -5208,6 +5208,12 @@
+ 					bdaddr_type == device->bdaddr_type)
+ 		return;
+
++	/* If the device has an IRK, it uses RPA. Keep bdaddr_type as
++	 * BDADDR_LE_RANDOM so AddressType is stored as "static" (random),
++	 * not "public", regardless of the identity address type. */
++	if (irk && bdaddr_type == BDADDR_LE_PUBLIC)
++		bdaddr_type = BDADDR_LE_RANDOM;
++
+ 	/* Since this function is only used for LE SMP Identity
+ 	 * Resolving purposes we can now assume LE is supported.
+ 	 */

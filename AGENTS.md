@@ -49,7 +49,11 @@ modules/
     nix.nix                  Daemon + GC + auto-optimise + journald
     users.nix                Primary user (parameterised by username)
     packages.nix             System-wide CLI tools
-    services.nix             PipeWire, Bluetooth, Docker, smartd, fwupd
+    services.nix             dconf, GNOME keyring, ModemManager opt-out
+    audio.nix                PipeWire + WirePlumber
+    bluetooth.nix            BlueZ (scoped patched via hardware.bluetooth.package)
+    containers.nix           Docker (on-demand, eco-aware)
+    firmware.nix             fwupd, smartd
     secrets.nix              agenix wiring + secret declarations
     storage.nix              udisks2 + gvfs + NTFS via ntfs-3g
     sync.nix                 Syncthing for cross-device file sync
