@@ -219,10 +219,9 @@ in {
         "$mainMod, Е, exec, telegram-toggle"
         "$mainMod, S, exec, spotify-toggle"
         "$mainMod, Ы, exec, spotify-toggle"
-        # Throne (VPN/Xray GUI) — N for Network. Single keystroke,
-        # conflict-free with the existing Super+B browser binding.
-        "$mainMod, N, exec, throne-toggle"
-        "$mainMod, Т, exec, throne-toggle"
+        # Throne (VPN/Xray GUI) — O for Open (EN) / Щ (RU).
+        "$mainMod, O, exec, throne-toggle"
+        "$mainMod, Щ, exec, throne-toggle"
         # Nautilus — E for Explorer (Windows / GNOME / KDE convention
         # for "open file manager"). Single keystroke, conflict-free.
         # Spawns a fresh window each press; file-manager UX is "give
