@@ -111,11 +111,11 @@ _: {
         echo "echo '$pub' >> ~/.ssh/authorized_keys"
         echo "chmod 600 ~/.ssh/authorized_keys"
       '';
-      # omp — run oh-my-pi, with `omp upd [VERSION]` reserved for the
-      # Nix-managed package updater. Upstream's imperative `omp update` stays
-      # accessible only if typed explicitly; routine updates must go through Nix.
+      # omp — run oh-my-pi. `omp update [VERSION]` updates the declarative
+      # Nix package pin instead of letting the upstream self-updater write into
+      # the read-only Nix store.
       omp = ''
-        if test (count $argv) -gt 0; and test "$argv[1]" = upd
+        if test (count $argv) -gt 0; and test "$argv[1]" = update
           cd /etc/nixos
           ./pkgs/oh-my-pi/update.sh $argv[2..]
           return $status
@@ -132,13 +132,13 @@ _: {
         command omp $argv
       '';
       # omo — launch opencode with the Nix-store oh-my-openagent plugin.
-      # `omo upd [VERSION]` updates the local package pin; regular `omo ...`
+      # `omo update [VERSION]` updates the local package pin; regular `omo ...`
       # injects the generated file:// plugin spec into OPENCODE_CONFIG_CONTENT.
       # Also injects the GitHub token (from `gh auth token`) at runtime —
       # the on-disk opencode.json has a placeholder that is substituted here.
       # Vanilla `opencode` has its own wrapper for token injection.
       omo = ''
-        if test (count $argv) -gt 0; and test "$argv[1]" = upd
+        if test (count $argv) -gt 0; and test "$argv[1]" = update
           cd /etc/nixos
           ./pkgs/oh-my-openagent/update.sh $argv[2..]
           return $status

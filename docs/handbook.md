@@ -633,8 +633,8 @@ gc              nix-collect-garbage --delete-older-than 14d (system + user)
 oc              cd /etc/nixos
 tokens-edit     edit /etc/nixos/secrets/tokens.age via agenix
 keys            abbreviation for tokens-edit
-omo             opencode + Nix-store oh-my-openagent plugin (`omo upd` updates package)
-omp             oh-my-pi standalone coding agent (`omp upd` updates package)
+omo             opencode + Nix-store oh-my-openagent plugin (`omo update` updates package)
+omp             oh-my-pi standalone coding agent (`omp update` updates package)
 flu             nix flake update
 fls             nix flake show
 flc             nix flake check
