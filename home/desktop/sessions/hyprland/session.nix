@@ -275,13 +275,15 @@ in {
         # Clipboard history — SUPER+C opens rofi with cliphist
         "$mainMod, C, exec, cliphist list | rofi -dmenu | cliphist decode | wl-copy"
         "$mainMod, С, exec, cliphist list | rofi -dmenu | cliphist decode | wl-copy"
-        # Volume
+        # Volume — pamixer changes PipeWire directly; Caelestia OSD
+        # picks up the change via Audio.onVolumeChanged → show().
         ", XF86AudioLowerVolume, exec, pamixer -d 5"
         ", XF86AudioRaiseVolume, exec, pamixer -u -i 5"
         ", XF86AudioMute, exec, pamixer -t"
-        # Brightness
-        ", XF86MonBrightnessDown, exec, brightnessctl set 5%-"
-        ", XF86MonBrightnessUp, exec, brightnessctl set +5%"
+        # Brightness — routed through Caelestia IPC so the OSD
+        # (sliders panel) opens on every keypress.
+        ", XF86MonBrightnessDown, exec, caelestia-shell ipc call brightness set 5%-"
+        ", XF86MonBrightnessUp, exec, caelestia-shell ipc call brightness set +5%"
 
         # Screenshots (hyprshot).
         # Bound to Super+P chords instead of Print/PrtSc because the
