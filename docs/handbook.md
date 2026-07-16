@@ -692,8 +692,7 @@ systemctl --user restart caelestia
 The hardware power key opens the Caelestia shell session drawer
 (logout, shutdown, hibernate, reboot). The hardware button is handled
 by Hyprland for short presses; long press remains a logind emergency
-poweroff fallback. `wlogout` is retained as a secondary fallback admin
-tool (`home/wlogout.nix`) but is no longer the primary power UI.
+poweroff fallback.
 ### Hyprland key bindings (defined in `home/desktop/sessions/hyprland/session.nix`)
 
 ```

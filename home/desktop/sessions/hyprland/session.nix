@@ -319,8 +319,8 @@ in {
       ];
 
       # Hardware power button: logind ignores short presses, so Hyprland
-      # owns the UI path. Opens the Caelestia shell session drawer (logout,
-      # shutdown, hibernate, reboot) instead of wlogout.
+      # owns the UI path and opens the Caelestia shell session drawer
+      # (logout, shutdown, hibernate, reboot).
       bindl = [
         ", XF86PowerOff, exec, caelestia shell drawers toggle session"
       ];
@@ -495,16 +495,6 @@ in {
         ];
       };
 
-      # ── Layer rules ───────────────────────────────────────────────────
-      # wlogout creates a layer-shell surface with namespace
-      # "logout_dialog". Blur everything behind it + pop-in animation
-      # for a polished session-action menu. Source: hyprstellar.
-      # Hyprland 0.55.x syntax: "rule value, match:namespace <name>"
-      layerrule = [
-        "blur true, match:namespace logout_dialog"
-        "animation popin 95%, match:namespace logout_dialog"
-      ];
-
       # ── Window rules ────────────────────────────────────────────────────
       # On a 14" 1440×900 logical panel, big apps benefit from filling the
       # workspace; popups (shell-launched panels, TUI tools, media) follow
@@ -623,7 +613,6 @@ in {
           "float on, match:class qt5ct"
           "float on, match:class qt6ct"
           "float on, match:class nm-connection-editor"
-          "float on, match:class pavucontrol"
           "float on, match:class xdg-desktop-portal-gtk"
           "float on, match:class org.gnome.Calculator"
 

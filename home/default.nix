@@ -7,7 +7,7 @@
 #
 # Three layers, mirroring the system-side dispatcher:
 #   1. Always-on modules — pure shell, editor, git, fonts, …
-#   2. Wayland-only modules — clipboard daemon, wlsunset, wlogout, mpv,
+#   2. Wayland-only modules — clipboard daemon, wlsunset, mpv,
 #      and the desktop dispatcher itself. Only imported when the host
 #      has at least one entry in `desktops`. Headless hosts skip eval
 #      entirely.
@@ -64,7 +64,6 @@ in {
     ++ lib.optionals hasDesktop [
       ./clipboard.nix
       ./wlsunset.nix
-      ./wlogout.nix
       ./mpv.nix
       ./media.nix
       ./ayugram.nix

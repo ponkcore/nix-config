@@ -51,7 +51,6 @@
     lm_sensors
     smartmontools
     nix-output-monitor
-    nh
 
     # ── Power diagnostics ──
     # turbostat must match the running kernel version — use

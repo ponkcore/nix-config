@@ -9,12 +9,7 @@
 # Adding a new session must NOT require edits here. If a candidate
 # package or option only makes sense for one compositor, it belongs
 # in that compositor's session file, not here.
-{
-  lib,
-  pkgs,
-  inputs,
-  ...
-}: {
+{pkgs, ...}: {
   # Throne 1.0.13 ships with the ThroneCore binary. The 26.05
   # throne module creates security.wrappers."ThroneCore" (CamelCase)
   # pointing at share/throne/ThroneCore — correct key, correct binary.
@@ -55,7 +50,7 @@
 
   # System-wide Wayland tooling. None of these are compositor-specific;
   # they are used identically by Hyprland, niri, GNOME, Sway, etc.
-  # User-level desktop apps (Caelestia shell, rofi, wlogout, etc.) live
+  # User-level desktop apps (Caelestia shell, rofi, etc.) live
   # in HM because their configs are managed there. mako/hyprlock/
   # hypridle/hyprpaper are also in HM but disabled — Caelestia owns
   # notifications, lock, idle, and wallpaper.
