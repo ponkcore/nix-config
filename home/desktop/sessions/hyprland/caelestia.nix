@@ -119,8 +119,9 @@
     # iconTheme defaults to Papirus-{mode}, which IS installed via
     # modules/nixos/desktop/common.nix. adw-gtk3 provides the GTK3 base
     # theme that Caelestia overlays with @define-color CSS variables.
-    # postHook triggers hyprctl reload after scheme changes so the
-    # sourced scheme/current.conf is re-evaluated.
+    # postHook triggers hyprctl reload + rofi palette sync after scheme
+    # changes so the sourced scheme/current.conf is re-evaluated and
+    # rofi picks up the new colour palette.
     writeCaelestiaCliConfig = lib.hm.dag.entryAfter ["writeBoundary"] ''
       if [ ! -f "$HOME/.config/caelestia/cli.json" ]; then
         $DRY_RUN_CMD mkdir -p "$HOME/.config/caelestia"
@@ -145,7 +146,7 @@
           "iconTheme": "Papirus-Dark",
           "iconThemeDark": "Papirus-Dark",
           "iconThemeLight": "Papirus-Light",
-          "postHook": "hyprctl reload 2>/dev/null || true"
+          "postHook": "hyprctl reload 2>/dev/null || true; caelestia-rofi-sync 2>/dev/null || true"
         }
       }
       CAELESTIA_CLI
@@ -169,6 +170,13 @@
           $DRY_RUN_CMD caelestia scheme set catppuccin mocha dark 2>/dev/null || true
         fi
       fi
+    '';
+
+    # Generate rofi palette.rasi from Caelestia scheme.json at login.
+    # Runs after scheme seeding so scheme.json exists. Also runs on
+    # every rebuild — the script is idempotent (overwrites palette.rasi).
+    syncRofiPalette = lib.hm.dag.entryAfter ["seedCaelestiaScheme"] ''
+      $DRY_RUN_CMD caelestia-rofi-sync 2>/dev/null || true
     '';
 
     # Profile avatar for Caelestia lock screen (ProfilePic.qml reads

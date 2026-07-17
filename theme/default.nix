@@ -61,6 +61,8 @@ in {
     ./mako.nix
     ./rofi.nix
   ];
+  # rofi.nix no longer takes `p` and `c` arguments — palette is
+  # generated at runtime by caelestia-rofi-sync from scheme.json.
 
   # ── Cursor (Wayland-wide, session-level) ──────────────────────────────
   # home.pointerCursor sets XCURSOR_THEME/SIZE for the entire Wayland session,
