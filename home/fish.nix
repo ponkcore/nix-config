@@ -197,9 +197,17 @@ _: {
         # (mihomo) creates the `Mihomo` (system stack) or `Meta`
         # (gVisor stack) TUN; Throne creates `throne-tun`. Both
         # conflict with tailscaled on DNS hijack + default-route
-        # ownership. Detect by interface presence — if any of these
-        # tun-style interfaces is up, abort.
-        if ip -br link show 2>/dev/null | grep -qE '^(throne|tun|utun|wg|Mihomo|Meta)[0-9]*\s+UP'
+        # ownership. TUN devices report state UNKNOWN in `ip -br`
+        # (no link layer), so we check for interface existence via
+        # `ip link show` instead of matching the state column.
+        set tun_found 0
+        for iface in Mihomo Meta throne-tun
+          if ip link show $iface >/dev/null 2>&1
+            set tun_found 1
+            break
+          end
+        end
+        if test $tun_found -eq 1
           echo "ERROR: a proxy TUN (Clash Verge / Throne) appears to be up. Disable it first." >&2
           echo "       Hint: clash-verge-toggle (GUI) or throne-toggle, then re-run ts-on." >&2
           return 1
