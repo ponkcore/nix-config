@@ -37,6 +37,7 @@ in {
     # Host-only.
     ./hardware.nix
     ./ec.nix
+    ../../modules/nixos/clash-verge.nix
   ];
 
   system.stateVersion = "25.11";
