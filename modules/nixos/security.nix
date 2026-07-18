@@ -2,7 +2,7 @@
 #
 # Highlights:
 #   - SSH password auth ENABLED by user choice.
-#   - Firewall: only TCP 22 inbound, ICMP blocked, mihomo TUN trusted.
+#   - Firewall: only TCP 22 inbound, ICMP blocked, both proxy TUNs trusted.
 #   - sudo NOPASSWD for the primary user.
 #   - PAM nullok forced off everywhere.
 #   - Sysctl hardening pass — kexec lockout, redirects refused,
@@ -66,18 +66,19 @@
     allowedUDPPorts = [];
     rejectPackets = true;
     allowPing = false;
-    # Trust Throne's TUN interface — sing-box creates throne-tun for
-    # transparent proxying. Without this, nixos-fw-log-refuse rejects
-    # return traffic from TUN, breaking all connectivity when TUN mode
-    # is active.
-    # Trust Throne's TUN interface — sing-box creates throne-tun for
-    # transparent proxying. Without this, nixos-fw-log-refuse rejects
-    # return traffic from TUN, breaking all connectivity when TUN mode
-    # is active.
+    # Trust both proxy TUN interfaces so return traffic is not rejected
+    # by nixos-fw-log-refuse, breaking connectivity when TUN is active.
+    #   Mihomo / Meta / utun — Clash Verge Rev (mihomo) TUN names.
+    #     mihomo names its TUN "Mihomo" (system stack), "Meta" (gVisor
+    #     stack), or "utun" (generic) depending on the configured TUN
+    #     stack. Only `system` ("Mihomo") is used in practice, but all
+    #     three are trusted so a stack switch does not break traffic.
+    #   throne-tun — Throne (sing-box) fallback TUN, kept trusted so
+    #     manual fallback still works without a rebuild.
     # Trust libvirt's NAT bridge — VMs on virbr0 (192.168.122.0/24)
     # need unfiltered access to the host for NAT/ DHCP/ guest-to-host
     # communication. Without this, VM networking is broken.
-    trustedInterfaces = ["throne-tun" "virbr0"];
+    trustedInterfaces = ["Mihomo" "Meta" "utun" "throne-tun" "virbr0"];
     # Log packets that would be refused but rate-limit to keep journal sane.
     # Useful for forensic review after a public-network session; the
     # 5/min rate cap prevents log-flood DoS.
@@ -138,8 +139,8 @@
   # Kernel sysctl
   boot.kernel.sysctl = {
     # Enable IP forwarding — required for TUN-based transparent proxy.
-    # Without this, packets entering Meta interface cannot be forwarded
-    # to the real interface (wlp12s0) and vice versa.
+    # Without this, packets entering a proxy TUN (Mihomo / throne-tun)
+    # cannot be forwarded to the real interface (wlp12s0) and vice versa.
     "net.ipv4.ip_forward" = 1;
 
     # ── Hardening: kernel info leaks ─────────────────────────────────────

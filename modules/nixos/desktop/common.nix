@@ -70,19 +70,27 @@
     nftables
   ];
 
-  # Throne (ex-Nekoray) — Qt6 sing-box GUI for the Xray protocol
-  # matrix (VLESS/Reality/VMess/Trojan/Hysteria/AnyTLS). Replaced
-  # clash-verge as the system proxy manager — Throne speaks more
-  # protocols out of the box and does not need a separate hardened
-  # systemd helper (its sing-box core runs as a child of the GUI
-  # under a security.wrappers binary).
+  # Proxy stack — Clash Verge Rev (mihomo) is the PRIMARY proxy on
+  # lecoo (enabled host-scoped in hosts/lecoo/default.nix via
+  # modules/nixos/clash-verge.nix). Throne (ex-Nekoray) remains
+  # installed here as a manual fallback. Both TUN modes are enabled;
+  # only one TUN/DNS owner may be active at a time.
   #
-  # The TUN mode of Throne shells out to a `Core` binary that needs
-  # CAP_NET_ADMIN and CAP_NET_RAW; the setcap branch of
-  # `programs.throne` wraps it via security.wrappers (no SUID),
-  # matching the safer default. The polkit rule shipped by the
-  # NixOS module also auto-allows resolved DNS overrides for child
-  # processes carrying those caps, so DNS works without prompting.
+  # Clash Verge Rev: service mode supervises the IPC layer; the GUI
+  # starts `verge-mihomo` (the core). Restarting the service requires
+  # the GUI to re-activate the core — an accepted trade-off for better
+  # GUI UX. The TUN stack must be `system` for CloakBrowser transparent
+  # routing to work. See modules/nixos/clash-verge.nix for details.
+  #
+  # Throne: Qt6 sing-box GUI for the Xray protocol matrix
+  # (VLESS/Reality/VMess/Trojan/Hysteria/AnyTLS). Its sing-box core
+  # runs as a child of the GUI under a security.wrappers binary. The
+  # TUN mode shells out to a `Core` binary that needs CAP_NET_ADMIN
+  # and CAP_NET_RAW; the setcap branch of `programs.throne` wraps it
+  # via security.wrappers (no SUID), matching the safer default. The
+  # polkit rule shipped by the NixOS module also auto-allows resolved
+  # DNS overrides for child processes carrying those caps, so DNS
+  # works without prompting.
   #
   # Throne 1.0.13 is shipped natively in nixpkgs 26.05 (with
   # corrected v2 NixOS patches). No unstable overlay needed.

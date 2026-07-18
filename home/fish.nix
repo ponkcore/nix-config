@@ -183,24 +183,25 @@ _: {
         OPENCODE_CONFIG_CONTENT="$updated" command opencode $argv
       '';
       # ── Tailscale helpers ───────────────────────────────────────────
-      # Tailscaled and throne TUN cannot run together (DNS hijacking +
+      # Tailscaled and a proxy TUN cannot run together (DNS hijacking +
       # default-route conflict — see modules/nixos/tailscale.nix). The
       # helpers below make manual juggling painless.
       #
-      # ts-on  : ensure throne is down, start tailscaled, run `up`.
-      # ts-off : run `down` and stop tailscaled (throne stays as-is).
+      # ts-on  : ensure no proxy TUN is up, start tailscaled, run `up`.
+      # ts-off : run `down` and stop tailscaled (proxy stays as-is).
       # ts     : passthrough to `tailscale` so `ts status`, `ts ping`,
       #          `ts ip`, etc. work without typing the full name. With
       #          no arguments — `tailscale status`.
       ts-on = ''
-        # Refuse to start while throne TUN is active. Throne runs as a
-        # systemd-wrapped user binary; the TUN is owned by throne-core
-        # via security.wrappers. Detect by interface presence — if a
-        # tun-style interface other than tailscale0 is up with a default
-        # route, abort.
-        if ip -br link show 2>/dev/null | grep -qE '^(throne|tun|utun|wg)[0-9]*\s+UP'
-          echo "ERROR: throne (or another TUN VPN) appears to be up. Disable it first." >&2
-          echo "       Hint: throne-toggle, then re-run ts-on." >&2
+        # Refuse to start while a proxy TUN is active. Clash Verge
+        # (mihomo) creates the `Mihomo` (system stack) or `Meta`
+        # (gVisor stack) TUN; Throne creates `throne-tun`. Both
+        # conflict with tailscaled on DNS hijack + default-route
+        # ownership. Detect by interface presence — if any of these
+        # tun-style interfaces is up, abort.
+        if ip -br link show 2>/dev/null | grep -qE '^(throne|tun|utun|wg|Mihomo|Meta)[0-9]*\s+UP'
+          echo "ERROR: a proxy TUN (Clash Verge / Throne) appears to be up. Disable it first." >&2
+          echo "       Hint: clash-verge-toggle (GUI) or throne-toggle, then re-run ts-on." >&2
           return 1
         end
         sudo systemctl start tailscaled

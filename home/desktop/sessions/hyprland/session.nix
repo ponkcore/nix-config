@@ -219,9 +219,11 @@ in {
         "$mainMod, Е, exec, telegram-toggle"
         "$mainMod, S, exec, spotify-toggle"
         "$mainMod, Ы, exec, spotify-toggle"
-        # Throne (VPN/Xray GUI) — O for Open (EN) / Щ (RU).
-        "$mainMod, O, exec, throne-toggle"
-        "$mainMod, Щ, exec, throne-toggle"
+        # Clash Verge Rev (mihomo GUI) — primary proxy. O for Open
+        # (EN) / Щ (RU). Throne remains available as `throne-toggle`
+        # command for manual fallback.
+        "$mainMod, O, exec, clash-verge-toggle"
+        "$mainMod, Щ, exec, clash-verge-toggle"
         # Nautilus — E for Explorer (Windows / GNOME / KDE convention
         # for "open file manager"). Single keystroke, conflict-free.
         # Spawns a fresh window each press; file-manager UX is "give
@@ -538,6 +540,16 @@ in {
         # parks the window on special:throne when hidden.
         ++ (mkPopup {
           class = "Throne";
+          category = popup.app;
+        })
+        # Clash Verge Rev (mihomo GUI) — primary proxy popup. Same
+        # `app` size category as Throne/Spotify (50%×55%). The class
+        # is the lowercase string `clash-verge`, verified at runtime
+        # via `hyprctl clients -j | jq -r '.[].class'`. The toggle
+        # script (clash-verge-toggle) parks the window on
+        # special:clash when hidden.
+        ++ (mkPopup {
+          class = "clash-verge";
           category = popup.app;
         })
         ++ (mkPopup {

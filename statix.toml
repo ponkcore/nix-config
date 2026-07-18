@@ -12,4 +12,11 @@
 # (e.g. `modules-left = modulesLeft;` where the attr is `modules-left`
 # and the binding is `modulesLeft`). The `inherit` syntax cannot rename
 # on assignment, making the suggestion incorrect for these cases.
-disabled = ["repeated_keys", "manual_inherit_from"]
+#
+# W10 "empty_pattern" is disabled: NixOS modules that don't reference
+# any module argument idiomatically use `{...}:` to accept and ignore
+# all args (config, pkgs, lib, ...). statix flags this as "empty
+# pattern, use _ instead", but `{_}:` only accepts ONE arg and fails
+# at evaluation (NixOS passes >1 module arg). `{...}:` is the only
+# correct form for arg-ignoring modules.
+disabled = ["repeated_keys", "manual_inherit_from", "empty_pattern"]

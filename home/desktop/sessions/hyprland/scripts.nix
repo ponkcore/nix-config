@@ -60,7 +60,7 @@
     PROCPS="${pkgs.procps}/bin"
 
     runtime="''${XDG_RUNTIME_DIR:-/tmp}/app-status"
-    classes='com.ayugram.desktop spotify Throne'
+    classes='com.ayugram.desktop spotify Throne clash-verge'
 
     write_status() {
       cls="$1"
@@ -166,6 +166,46 @@
     fi
   '';
 
+  # ── Clash Verge VPN status ─────────────────────────────────────────
+  # Clash Verge Rev (mihomo) is the PRIMARY proxy on lecoo. This is
+  # the Waybar/status default: it checks the `Mihomo` TUN interface
+  # first (mihomo system-stack TUN), then falls back to the app-status
+  # cache for the window-running state. throne-status remains available
+  # as a manual command for fallback.
+  #
+  # Classes:
+  #   vpn-active — Mihomo TUN interface exists (tunnel is up)
+  #   running    — Clash Verge window is open but TUN is down
+  #   ""         — neither
+  clash-verge-status = pkgs.writeShellScriptBin "clash-verge-status" ''
+    IP="${pkgs.iproute2}/bin/ip"
+    GREP="${pkgs.gnugrep}/bin/grep"
+    COREUTILS="${pkgs.coreutils}/bin"
+
+    # Check the mihomo system-stack TUN interface first. TUN devices
+    # report state UNKNOWN (no link layer), so we check for the
+    # interface's existence + UP flag in the angle-bracket flags,
+    # not "state UP".
+    if $IP link show Mihomo 2>/dev/null | $GREP -q '<.*UP.*>'; then
+      if on-battery 2>/dev/null; then
+        echo '{"text":"","class":"vpn-active-battery"}'
+      else
+        echo '{"text":"","class":"vpn-active-ac"}'
+      fi
+      exit 0
+    fi
+
+    # Fall back to app-status cache for window-running state.
+    cls="clash-verge"
+    key=$(printf '%s' "$cls" | "$COREUTILS/tr" -c 'A-Za-z0-9_.-' '_')
+    cache="''${XDG_RUNTIME_DIR:-/tmp}/app-status/$key.json"
+    if [ -r "$cache" ]; then
+      "$COREUTILS/cat" "$cache"
+    else
+      echo '{"text":"","class":""}'
+    fi
+  '';
+
   # ── Telegram/Ayugram toggle ─────────────────────────────────────────
   # Uses Hyprland special:telegram workspace as hide/show target.
   # No "minimize" in Hyprland — movetoworkspacesilent is the pattern.
@@ -219,6 +259,34 @@
       $HYPRCTL dispatch movetoworkspace "+0,address:$addr"
     else
       $HYPRCTL dispatch movetoworkspacesilent "special:throne,address:$addr"
+    fi
+  '';
+
+  # ── Clash Verge toggle ──────────────────────────────────────────────
+  # PRIMARY proxy toggle on lecoo. Same hide/show pattern as
+  # throne-toggle but parked on special:clash. First click launches the
+  # GUI; subsequent clicks toggle visibility. The window class is the
+  # lowercase string `clash-verge` (verified at runtime via
+  # `hyprctl clients -j | jq -r '.[].class'`). `throne-toggle` remains
+  # available as a manual command for fallback.
+  clash-verge-toggle = pkgs.writeShellScriptBin "clash-verge-toggle" ''
+    HYPRCTL="${pkgs.hyprland}/bin/hyprctl"
+    JQ="${pkgs.jq}/bin/jq"
+
+    win=$($HYPRCTL clients -j 2>/dev/null | $JQ -r '.[] | select(.class == "clash-verge") | "\(.address) \(.workspace.name)"' 2>/dev/null | head -1)
+
+    if [ -z "$win" ]; then
+      clash-verge &
+      exit 0
+    fi
+
+    addr=$(echo "$win" | cut -d' ' -f1)
+    ws=$(echo "$win" | cut -d' ' -f2-)
+
+    if [ "$ws" = "special:clash" ]; then
+      $HYPRCTL dispatch movetoworkspace "+0,address:$addr"
+    else
+      $HYPRCTL dispatch movetoworkspacesilent "special:clash,address:$addr"
     fi
   '';
 
@@ -368,6 +436,8 @@ in {
       telegram-toggle
       throne-toggle
       throne-status
+      clash-verge-toggle
+      clash-verge-status
       spotify-toggle
       keepassxc-toggle
       nautilus-open
@@ -396,6 +466,8 @@ in {
     telegram-toggle
     throne-toggle
     throne-status
+    clash-verge-toggle
+    clash-verge-status
     spotify-toggle
     keepassxc-toggle
     nautilus-open

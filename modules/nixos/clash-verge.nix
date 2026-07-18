@@ -15,7 +15,7 @@
 # mihomo itself. Validate it after each profile or TUN-stack change.
 # Profiles, Merge YAML, and subscriptions are mutable user state and
 # are never committed or modified from Nix.
-{_}: {
+{...}: {
   programs.clash-verge = {
     enable = true;
     autoStart = false;
