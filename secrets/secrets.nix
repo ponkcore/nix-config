@@ -36,9 +36,9 @@ in {
   #
   # Current contents:
   #   OMNIROUTE_API_KEY     — opencode omniroute provider, letta provider env
-  #   FIREWORKS_API_KEY     — letta fireworks provider env, opencode login flow
   #   LAZYWEB_MCP_TOKEN     — opencode lazyweb MCP server (Bearer header)
   #   CONTEXT7_API_KEY      — context7 MCP server (X-Context7-API-Key header)
   #   OMNIROUTE_MCP_API_KEY — OmniRoute MCP server (X-API-Key header)
+  # (FIREWORKS_API_KEY removed 2026-07-22 — fireworks unused across all agents.)
   "tokens.age".publicKeys = all;
 }

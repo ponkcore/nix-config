@@ -4,8 +4,7 @@
 # - Plugin config (safe in nix store) via xdg.configFile
 # - Provider config + lazyweb MCP Bearer rendered at activation time,
 #   secrets sourced from /run/agenix/tokens (decrypted by agenix from
-#   secrets/tokens.age — bundles OMNIROUTE_API_KEY, FIREWORKS_API_KEY,
-#   LAZYWEB_MCP_TOKEN).
+#   secrets/tokens.age — bundles OMNIROUTE_API_KEY, LAZYWEB_MCP_TOKEN).
 # - The nix-store template contains only placeholders; the real keys
 #   appear ONLY in ~/.config/opencode/opencode.json (chmod 600, owner-only)
 {
@@ -307,7 +306,6 @@ in {
   #
   # The .age file bundles:
   #   OMNIROUTE_API_KEY  — opencode omniroute provider apiKey
-  #   FIREWORKS_API_KEY  — `opencode providers login` flow
   #   CONTEXT7_API_KEY   — X-Context7-API-Key header for context7 MCP
   #   OMP_PROXY_KEY      — X-Proxy-Key header for VPS MCP proxy
   #

@@ -98,10 +98,13 @@ in {
       or echo "talos: MAP regen failed; continuing." >&2
     end
 
-    # Source agenix secrets (OMNIROUTE_API_KEY, FIREWORKS_API_KEY,
-    # CONTEXT7_API_KEY, LAZYWEB_MCP_TOKEN, OMNIROUTE_MCP_API_KEY) into
-    # the letta process environment. The keys live in /run/agenix/tokens (decrypted at
+    # Source agenix secrets (OMNIROUTE_API_KEY, CONTEXT7_API_KEY,
+    # LAZYWEB_MCP_TOKEN, OMNIROUTE_MCP_API_KEY) into the letta process
+    # environment. The keys live in /run/agenix/tokens (decrypted at
     # boot, mode 400, owner=oonishi) and are never written to /nix/store.
+    # NOTE: FIREWORKS_API_KEY was removed from tokens.age entirely (fireworks
+    # is unused across all agents). Without the env key, letta's built-in
+    # BYOK fireworks provider stays inactive and out of the model picker.
     set -l tokens "/run/agenix/tokens"
     if not test -r "$tokens"
       echo "talos: $tokens missing or unreadable." >&2
