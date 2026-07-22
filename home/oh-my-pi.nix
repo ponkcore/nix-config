@@ -17,49 +17,13 @@
   ];
 
   # --- Provider + model catalogue ---------------------------------------
-  # omp reads env-var names first for apiKey, then literal tokens.
+  # models.yml is NOT a Home Manager symlink. It is generated fresh at every
+  # `omp` launch by the fish wrapper (see home/fish.nix) from the shared
+  # catalogue /etc/nixos/home/agent-models.json. Editing the catalogue needs
+  # NO rebuild — the next `omp` launch re-renders models.yml. To add/remove a
+  # model, edit home/agent-models.json.
   # The actual key values are injected via ~/.omp/agent/.env (see activation
   # script below) sourced from /run/agenix/tokens.
-  home.file.".omp/agent/models.yml".text = ''
-    providers:
-      omniroute:
-        baseUrl: https://omniroute.infinitycore.space:8443/v1
-        apiKey: OMNIROUTE_API_KEY
-        api: openai-completions
-        auth: apiKey
-        authHeader: true
-        models:
-          - id: SSS-tier
-            name: SSS — Premium Flagship
-            reasoning: true
-            input: [text, image]
-            contextWindow: 1000000
-            maxTokens: 64000
-          - id: SS-tier
-            name: SS — GPT Reasoning
-            reasoning: true
-            input: [text, image]
-            contextWindow: 200000
-            maxTokens: 32000
-          - id: S-tier
-            name: S — Mid Flagship
-            reasoning: true
-            input: [text]
-            contextWindow: 200000
-            maxTokens: 32000
-          - id: A-tier
-            name: A — Mixed (Opus + GPT + Kimi)
-            reasoning: true
-            input: [text, image]
-            contextWindow: 200000
-            maxTokens: 32000
-          - id: B-tier
-            name: B — Nano Fallback
-            reasoning: false
-            input: [text]
-            contextWindow: 200000
-            maxTokens: 32000
-  '';
 
   # --- Model roles + settings -------------------------------------------
   home.file.".omp/agent/config.yml".text = ''

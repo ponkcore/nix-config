@@ -7,7 +7,6 @@
 {
   config,
   inputs,
-  lib,
   pkgs,
   ...
 }: let
@@ -31,6 +30,14 @@ in {
   ];
 
   home.file = {
+    # Letta provider mod — registers custom providers/models from the shared
+    # catalogue home/agent-models.json. Managed declaratively: the source of
+    # truth lives in the repo at home/letta-mods/talos-providers.mjs and is
+    # deployed to ~/.letta/mods/. Edit the CATALOGUE (agent-models.json) to
+    # change models (no rebuild); edit this mod source only to change logic.
+    ".letta/mods/talos-providers.mjs" = {
+      source = ./letta-mods/talos-providers.mjs;
+    };
     ".letta/skills/nixos-options/SKILL.md" = {
       source = ../skills/nixos-options/SKILL.md;
     };

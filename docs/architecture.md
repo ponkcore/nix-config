@@ -237,6 +237,32 @@ Authorisation list is `secrets/secrets.nix`. Both the host SSH host key
 (for activation-time decryption) and user editor SSH keys (for
 `agenix -e`) are listed there. Edit-flow: `cd secrets && agenix -e <f>`.
 
+## Shared agent model catalogue
+
+Custom LLM providers and models for all local agents live in ONE file:
+`home/agent-models.json`. It is the single source of truth — edit it and
+the next agent launch picks the change up with NO `nixos-rebuild`.
+
+```
+home/agent-models.json          ← providers + models (NO secrets; apiKeyEnv names an env var)
+        │
+        ├─ opencode/omo  fish wrappers (home/fish.nix) merge providers+models
+        │                into the config at launch via OPENCODE_CONFIG_CONTENT
+        ├─ omp           fish wrapper renders ~/.omp/agent/models.yml from the
+        │                catalogue at every launch (regular file, not a symlink)
+        └─ letta (talos) mod home/letta-mods/talos-providers.mjs reads the
+                         catalogue via fs.readFileSync at process start
+```
+
+Rules:
+- Secrets never enter the catalogue — each provider has `apiKeyEnv` naming an
+  env var resolved at launch (from `/run/agenix/tokens` or `gh auth token`).
+- To add/remove/retune a model: edit `home/agent-models.json`, relaunch the
+  agent. No rebuild. Commit the file to keep the repo clean.
+- Currently only the OmniRoute combo tiers (`SSS/SS/S/A/B`) are catalogued.
+- Agent routing (which agent uses which tier) stays per-agent:
+  `oh-my-openagent.json` agents/categories, omp `config.yml` modelRoles.
+
 ## Desktop stack (Hyprland session, current)
 
 ```

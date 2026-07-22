@@ -129,14 +129,113 @@ _: {
         else
           echo "omp: gh auth token returned empty — GitHub MCP will fail." >&2
         end
+        # Render ~/.omp/agent/models.yml from the shared catalogue
+        # (home/agent-models.json). omp reads models.yml from disk (it has no
+        # runtime-config-override mechanism), so we regenerate it at every
+        # launch — editing the catalogue needs NO rebuild.
+        set -l catalog /etc/nixos/home/agent-models.json
+        set -l out "$HOME/.omp/agent/models.yml"
+        if not test -f "$catalog"
+          echo "omp: catalogue $catalog not found." >&2
+          return 1
+        end
+        mkdir -p "$HOME/.omp/agent"
+        jq -r '
+          def inp: "[" + (.input | join(", ")) + "]";
+          "providers:",
+          (.providers | to_entries[] |
+            "  \(.key):",
+            "    baseUrl: \(.value.baseUrl)/v1",
+            "    apiKey: \(.value.apiKeyEnv)",
+            "    api: \(.value.api)",
+            "    auth: apiKey",
+            "    authHeader: \(.value.authHeader)",
+            "    models:"),
+          (.models | to_entries[] |
+            "      - id: \(.value.remoteId)",
+            "        name: \(.value.name)",
+            "        reasoning: \(.value.reasoning)",
+            "        input: \(.value | inp)",
+            "        contextWindow: \(.value.contextWindow)",
+            "        maxTokens: \(.value.maxTokens)")
+        ' "$catalog" > "$out.tmp"
+        or begin
+          echo "omp: failed to render models.yml — check JSON syntax in $catalog." >&2
+          return 1
+        end
+        mv -f "$out.tmp" "$out"
         command omp $argv
+      '';
+      # __opencode_build_config — shared launcher helper for `opencode`/`omo`.
+      # Merges custom providers+models from the shared catalogue
+      # (home/agent-models.json) into the on-disk opencode.json, substituting
+      # provider apiKeys from the process environment. Prints the merged
+      # config to stdout (captured into OPENCODE_CONFIG_CONTENT by callers).
+      # Editing agent-models.json needs NO rebuild — the next launch picks
+      # it up. Returns non-zero (with a clear message) on any failure.
+      __opencode_build_config = ''
+        set -l cfg "$HOME/.config/opencode/opencode.json"
+        set -l catalog /etc/nixos/home/agent-models.json
+        set -l ghtoken $argv[1]
+        if not test -f "$cfg"
+          echo "opencode: $cfg not found (run a rebuild to seed it)." >&2
+          return 1
+        end
+        if not test -f "$catalog"
+          echo "opencode: catalogue $catalog not found." >&2
+          return 1
+        end
+        # Source the agenix token bundle so provider apiKeyEnv names resolve.
+        if test -r /run/agenix/tokens
+          while read -l line
+            set -l kv (string split -m 1 '=' -- $line)
+            if test (count $kv) -eq 2
+              set -gx $kv[1] $kv[2]
+            end
+          end < /run/agenix/tokens
+        end
+        jq --arg ghtoken "$ghtoken" '
+          def modelmap:
+            {
+              id: .remoteId,
+              name: .name,
+              limit: { context: .contextWindow, output: .maxTokens },
+              attachment: (.input | index("image") != null)
+            }
+            + (if .reasoning then {reasoning: true} else {} end)
+            + (if .toolCall   then {tool_call: true} else {} end)
+            + (if .temperature then {temperature: true} else {} end);
+          . as $cfg
+          | (input) as $cat
+          | $cfg
+          | .mcp.github.environment.GITHUB_PERSONAL_ACCESS_TOKEN = $ghtoken
+          | .provider = (
+              ($cat.providers | with_entries(
+                .key as $p | .value as $pv |
+                .value = ({
+                  npm: "@ai-sdk/openai-compatible",
+                  options: ({ baseURL: ($pv.baseUrl + "/v1"), apiKey: (env[$pv.apiKeyEnv] // "") }
+                            + (if $pv.api then {api: $pv.api} else {} end)),
+                  models: ($cat.models | to_entries
+                           | map(select(.value.provider == $p))
+                           | from_entries
+                           | with_entries(.value |= modelmap))
+                })
+              ))
+              | with_entries(select(.value.models | length > 0))
+            )
+        ' "$cfg" "$catalog"
+        or begin
+          echo "opencode: failed to merge catalogue — check JSON syntax in $catalog." >&2
+          return 1
+        end
       '';
       # omo — launch opencode with the Nix-store oh-my-openagent plugin.
       # `omo update [VERSION]` updates the local package pin; regular `omo ...`
       # injects the generated file:// plugin spec into OPENCODE_CONFIG_CONTENT.
-      # Also injects the GitHub token (from `gh auth token`) at runtime —
-      # the on-disk opencode.json has a placeholder that is substituted here.
-      # Vanilla `opencode` has its own wrapper for token injection.
+      # Providers+models come from home/agent-models.json (merged by
+      # __opencode_build_config). Also injects the GitHub token (from
+      # `gh auth token`) at runtime.
       omo = ''
         if test (count $argv) -gt 0; and test "$argv[1]" = update
           cd /etc/nixos
@@ -144,12 +243,7 @@ _: {
           return $status
         end
 
-        set -l cfg "$HOME/.config/opencode/opencode.json"
         set -l plugin_file "$HOME/.config/opencode/oh-my-openagent.plugin"
-        if not test -f "$cfg"
-          echo "ERROR: $cfg not found" >&2
-          return 1
-        end
         if not test -f "$plugin_file"
           echo "ERROR: $plugin_file not found" >&2
           return 1
@@ -160,26 +254,22 @@ _: {
         if test -z "$gh_token"
           echo "omo: gh auth token returned empty — GitHub MCP will fail." >&2
         end
-        set -l updated (jq --arg plugin "$plugin" --arg ghtoken "$gh_token" '.plugin = ((.plugin // []) | map(select((type == "string" and (test("^oh-my-open(agent|code)(@.*)?$") or test("oh-my-openagent"))) | not)) + [$plugin]) | .mcp.github.environment.GITHUB_PERSONAL_ACCESS_TOKEN = $ghtoken' "$cfg")
+        set -l updated (__opencode_build_config "$gh_token")
+        or return 1
+        set -l updated (echo "$updated" | jq --arg plugin "$plugin" '.plugin = ((.plugin // []) | map(select((type == "string" and (test("^oh-my-open(agent|code)(@.*)?$") or test("oh-my-openagent"))) | not)) + [$plugin])')
         OMO_DISABLE_POSTHOG=1 OPENCODE_CONFIG_CONTENT="$updated" command opencode $argv
       '';
-      # opencode — vanilla launch with runtime GitHub token injection.
-      # The on-disk opencode.json contains a placeholder token (written
-      # by HM activation without calling gh); this wrapper substitutes
-      # the real token from `gh auth token` at launch time via
-      # OPENCODE_CONFIG_CONTENT, so the token never touches /nix/store.
+      # opencode — vanilla launch. Providers+models are merged from
+      # home/agent-models.json at launch time; the GitHub token is injected
+      # from `gh auth token`. Nothing secret touches /nix/store.
       # Use `command opencode` to bypass this wrapper if needed.
       opencode = ''
-        set -l cfg "$HOME/.config/opencode/opencode.json"
-        if not test -f "$cfg"
-          command opencode $argv
-          return $status
-        end
         set -l gh_token (gh auth token 2>/dev/null)
         if test -z "$gh_token"
           echo "opencode: gh auth token returned empty — GitHub MCP will fail." >&2
         end
-        set -l updated (jq --arg ghtoken "$gh_token" '.mcp.github.environment.GITHUB_PERSONAL_ACCESS_TOKEN = $ghtoken' "$cfg")
+        set -l updated (__opencode_build_config "$gh_token")
+        or return 1
         OPENCODE_CONFIG_CONTENT="$updated" command opencode $argv
       '';
       # ── Tailscale helpers ───────────────────────────────────────────

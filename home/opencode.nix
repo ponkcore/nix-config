@@ -35,224 +35,15 @@
       "$HOME/.omo/codegraph/lib/dist/bin/codegraph.js" "$@"
   '';
 
-  # Shared Fireworks model catalogue.
-  # IDs use direct Fireworks format: accounts/fireworks/models/<name>.
-  # omniroute proxy prepends "fireworks/" routing prefix via fireworksModels.
-  fireworksBase = {
-    glm-5p1 = {
-      id = "accounts/fireworks/models/glm-5p1";
-      name = "GLM 5.1";
-      limit = {
-        context = 202752;
-        output = 8192;
-      };
-    };
-    kimi-k2p6 = {
-      id = "accounts/fireworks/models/kimi-k2p6";
-      name = "Kimi K2.6";
-      limit = {
-        context = 262144;
-        output = 16384;
-      };
-    };
-    minimax-m2p7 = {
-      id = "accounts/fireworks/models/minimax-m2p7";
-      name = "MiniMax M2.7";
-      limit = {
-        context = 196608;
-        output = 8192;
-      };
-    };
-    deepseek-v4-pro = {
-      id = "accounts/fireworks/models/deepseek-v4-pro";
-      name = "DeepSeek V4 Pro";
-      limit = {
-        context = 1048576;
-        output = 163840;
-      };
-    };
-    qwen-3p6-plus = {
-      id = "accounts/fireworks/models/qwen3p6-plus";
-      name = "Qwen 3.6 Plus";
-      limit = {
-        context = 262144;
-        output = 8192;
-      };
-    };
-  };
-
-  # Fireworks models: omniroute requires "fireworks/" routing prefix.
-  fireworksModels = builtins.mapAttrs (_: m: m // {id = "fireworks/${m.id}";}) fireworksBase;
-
-  # Claude (Anthropic via Kiro proxy) models. IDs already include the "kr/"
-  # routing prefix and are passed through unchanged. Only `kr/*` variants
-  # are listed: the API also exposes `kiro/*` IDs, but they are aliases
-  # (parent: kr/*) and would just create duplicates in the model picker.
+  # Models and providers are NOT declared here. They live in the shared
+  # catalogue /etc/nixos/home/agent-models.json and are merged into the
+  # opencode config at launch time by the `opencode`/`omo` fish wrappers
+  # (see home/fish.nix) via OPENCODE_CONFIG_CONTENT. Editing the catalogue
+  # needs NO rebuild — the next agent launch picks it up.
   #
-  # Capability flags (verified live against
-  # GET https://omniroute.infinitycore.space:8443/v1/models on 2026-05-19;
-  # context/output figures from kiro.dev official table, 2026-05-24):
-  #
-  #   model       | vision | tool | reason | thinking | context | output |
-  #   ----------- ------- ------ -------- ---------- --------- -------
-  #   opus-4.7    |   ✓    |  ✓   |   ✓    |    ✓     |    1M   |  128K  |
-  #   opus-4.6    |   ✓    |  ✓   |   ✓    |    —     |    1M   |  128K  |
-  #   sonnet-4.6  |   ✓    |  ✓   |   ✓    |    —     |    1M   |   64K  |
-  #   sonnet-4.5  |   ✓    |  ✓   |   ✓    |    —     |   200K  |   64K  |
-  #   haiku-4.5   |   ✓    |  ✓   |   ✓    |    —     |   200K  |   64K  |
-  #
-  # Why these values: OmniRoute's providerRegistry exposes a
-  # defaultContextLength of 200000 which @omniroute/opencode-provider
-  # propagates verbatim into opencode's per-model `limit.context` —
-  # but Kiro (the upstream proxy) accepts 1M for Opus and Sonnet 4.6/4.7
-  # via per-model overrides. Without raising the value here, opencode
-  # triggers compaction at ~87K (about 87% of 100K, opencode's prune
-  # threshold) instead of the expected 870K, and the user loses the
-  # entire benefit of the wider window.
-  #
-  # Output limits matter for compaction-induced regenerations: setting
-  # 8192 here forced the proxy to stream long replies in chunks even
-  # when Kiro itself supports 64K-128K. Aligning to the table above
-  # eliminates one source of fragmentation.
-  #
-  # opencode's per-model boolean flags map to: attachment (vision),
-  # tool_call, reasoning, temperature. Extended thinking is a runtime
-  # knob (reasoningEffort = "high"/"max" at the agent level) and only
-  # actually fires on opus-4.7; setting it on the others is harmless
-  # (the Kiro proxy ignores it).
-  claudeDefaults = {
-    attachment = true; # vision/image input
-    tool_call = true; # native function calling
-    reasoning = true; # extended-reasoning capable
-    temperature = true; # honours `temperature` parameter
-  };
-  claudeModels = {
-    "claude-opus-4.7" =
-      claudeDefaults
-      // {
-        id = "kr/claude-opus-4.7";
-        name = "Claude Opus 4.7";
-        limit = {
-          context = 1000000;
-          output = 128000;
-        };
-      };
-    "claude-opus-4.6" =
-      claudeDefaults
-      // {
-        id = "kr/claude-opus-4.6";
-        name = "Claude Opus 4.6";
-        limit = {
-          context = 1000000;
-          output = 128000;
-        };
-      };
-    "claude-sonnet-4.6" =
-      claudeDefaults
-      // {
-        id = "kr/claude-sonnet-4.6";
-        name = "Claude Sonnet 4.6";
-        limit = {
-          context = 1000000;
-          output = 64000;
-        };
-      };
-    "claude-sonnet-4.5" =
-      claudeDefaults
-      // {
-        id = "kr/claude-sonnet-4.5";
-        name = "Claude Sonnet 4.5";
-        limit = {
-          context = 200000;
-          output = 64000;
-        };
-      };
-    "claude-haiku-4.5" =
-      claudeDefaults
-      // {
-        id = "kr/claude-haiku-4.5";
-        name = "Claude Haiku 4.5";
-        limit = {
-          context = 200000;
-          output = 64000;
-        };
-      };
-  };
-
-  # Combo router models — omniroute picks the underlying model per
-  # request (owned_by = "combo" in /v1/models). Per-tier capability
-  # flags + window come from the operator-supplied tier table; no
-  # shared defaults because each tier has its own quirks (SS lacks
-  # temperature, B drops reasoning + attachment).
-  comboModels = {
-    "SSS-tier" = {
-      id = "SSS-tier";
-      name = "SSS — Premium Flagship";
-      limit = {
-        context = 1000000;
-        output = 64000;
-      };
-      reasoning = true;
-      attachment = true;
-      temperature = true;
-      tool_call = true;
-    };
-    "SS-tier" = {
-      id = "SS-tier";
-      name = "SS — GPT Reasoning";
-      limit = {
-        context = 200000;
-        output = 32000;
-      };
-      reasoning = true;
-      attachment = true;
-      temperature = false;
-      tool_call = true;
-    };
-    "S-tier" = {
-      id = "S-tier";
-      name = "S — Mid Flagship";
-      limit = {
-        context = 200000;
-        output = 32000;
-      };
-      reasoning = true;
-      attachment = false;
-      temperature = true;
-      tool_call = true;
-    };
-    "A-tier" = {
-      id = "A-tier";
-      name = "A — Mixed (Opus + GPT + Kimi)";
-      limit = {
-        context = 200000;
-        output = 32000;
-      };
-      reasoning = true;
-      attachment = true;
-      temperature = true;
-      tool_call = true;
-    };
-    "B-tier" = {
-      id = "B-tier";
-      name = "B — Nano Fallback";
-      limit = {
-        context = 200000;
-        output = 32000;
-      };
-      reasoning = false;
-      attachment = false;
-      temperature = true;
-      tool_call = true;
-    };
-  };
-
-  # Final omniroute model catalogue — Fireworks + Claude + combo merged.
-  # NOTE: this file is regenerated at every Home Manager activation.
-  # Any models added manually to ~/.config/opencode/opencode.json will be
-  # overwritten on the next rebuild. To add a model permanently, edit
-  # this file and rebuild.
-  omnirouteModels = fireworksModels // claudeModels // comboModels;
+  # This on-disk opencode.json keeps only MCP servers, compaction tuning,
+  # and the secret apiKey placeholders (substituted by the activation
+  # script below). To add/remove a model, edit home/agent-models.json.
 
   # JSON template stored in /nix/store. Contains placeholders, NOT real keys.
   # The activation script below substitutes apiKeys at runtime using jq.
@@ -284,14 +75,8 @@
       omniroute_web_fetch = true;
       omniroute_web_search = true;
     };
-    provider.omniroute = {
-      npm = "@ai-sdk/openai-compatible";
-      options = {
-        baseURL = "https://omniroute.infinitycore.space:8443/v1";
-        apiKey = "REPLACE_OMNIROUTE_KEY";
-      };
-      models = omnirouteModels;
-    };
+    # NOTE: no `provider` block here. Providers + models are merged in at
+    # launch time by the fish wrappers from home/agent-models.json.
     # MCP servers — opencode-native remote transport. Tokens are
     # placeholders in the nix-store template; the activation script
     # below substitutes them from /run/agenix/tokens.
@@ -437,9 +222,10 @@ in {
       "opencode/oh-my-openagent.json".source = builtins.toFile "oh-my-openagent-config" (builtins.toJSON {
         "$schema" = "https://raw.githubusercontent.com/code-yeongyu/oh-my-openagent/dev/assets/oh-my-opencode.schema.json";
         # Per-agent and per-category routing onto omniroute combo tiers.
-        # Tier table (operator-supplied) lives in comboModels above. The
-        # combo router picks the underlying model per request, so no
-        # per-agent variant/reasoningEffort knobs.
+        # The tier table (context/output/flags) lives in the shared catalogue
+        # home/agent-models.json — edit it there. The combo router picks the
+        # underlying model per request, so no per-agent variant/reasoningEffort
+        # knobs.
         agents = {
           # Top tier — flagship reasoning + vision (when underlying allows).
           sisyphus.model = "omniroute/SSS-tier";
@@ -545,10 +331,6 @@ in {
     fi
     # shellcheck disable=SC1090
     . "$SECRETS"
-    if [ -z "''${OMNIROUTE_API_KEY:-}" ]; then
-      echo "ERROR: OMNIROUTE_API_KEY missing in $SECRETS" >&2
-      exit 1
-    fi
     if [ -z "''${CONTEXT7_API_KEY:-}" ]; then
       echo "ERROR: CONTEXT7_API_KEY missing in $SECRETS" >&2
       exit 1
@@ -559,12 +341,13 @@ in {
     fi
     mkdir -p "${config.xdg.configHome}/opencode"
     umask 077
+    # Provider apiKey is NOT substituted here — providers+models are
+    # merged at launch time from home/agent-models.json by the fish
+    # wrappers, which source the key themselves.
     ${pkgs.jq}/bin/jq \
-      --arg key "$OMNIROUTE_API_KEY" \
       --arg c7  "$CONTEXT7_API_KEY" \
       --arg proxy "$OMP_PROXY_KEY" \
-      '.provider.omniroute.options.apiKey = $key
-       | .mcp.context7.headers["X-Context7-API-Key"] = $c7
+      '.mcp.context7.headers["X-Context7-API-Key"] = $c7
        | .mcp.omniroute.headers["X-Proxy-Key"] = $proxy' \
       ${opencodeJsonTemplate} \
       > "$OUT.tmp"

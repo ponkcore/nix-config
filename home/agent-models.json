@@ -1,0 +1,68 @@
+{
+  "$schema-comment": "Single source of truth for custom LLM providers and models across all local agents (opencode/omo, omp, letta). NO secrets here — apiKeyEnv names an environment variable that holds the key at runtime (from /run/agenix/tokens or `gh auth token`). Edit this file and the next agent launch picks it up — NO nixos-rebuild needed. Context/output for the *-tier combos are intentionally set by hand (SSS=1M/128K, SS/S/A=200K/64K, B=200K/32K); tweak freely.",
+  "providers": {
+    "omniroute": {
+      "baseUrl": "https://omniroute.infinitycore.space:8443",
+      "api": "openai-completions",
+      "authHeader": true,
+      "apiKeyEnv": "OMNIROUTE_API_KEY"
+    }
+  },
+  "models": {
+    "SSS-tier": {
+      "provider": "omniroute",
+      "remoteId": "SSS-tier",
+      "name": "SSS — Premium Flagship",
+      "contextWindow": 1000000,
+      "maxTokens": 128000,
+      "reasoning": true,
+      "input": ["text"],
+      "temperature": true,
+      "toolCall": true
+    },
+    "SS-tier": {
+      "provider": "omniroute",
+      "remoteId": "SS-tier",
+      "name": "SS — GPT Reasoning",
+      "contextWindow": 200000,
+      "maxTokens": 64000,
+      "reasoning": true,
+      "input": ["text", "image"],
+      "temperature": true,
+      "toolCall": true
+    },
+    "S-tier": {
+      "provider": "omniroute",
+      "remoteId": "S-tier",
+      "name": "S — Mid Flagship",
+      "contextWindow": 200000,
+      "maxTokens": 64000,
+      "reasoning": true,
+      "input": ["text", "image"],
+      "temperature": true,
+      "toolCall": true
+    },
+    "A-tier": {
+      "provider": "omniroute",
+      "remoteId": "A-tier",
+      "name": "A — Mixed (Opus + GPT + Kimi)",
+      "contextWindow": 200000,
+      "maxTokens": 64000,
+      "reasoning": true,
+      "input": ["text", "image"],
+      "temperature": true,
+      "toolCall": true
+    },
+    "B-tier": {
+      "provider": "omniroute",
+      "remoteId": "B-tier",
+      "name": "B — Nano Fallback",
+      "contextWindow": 200000,
+      "maxTokens": 32000,
+      "reasoning": false,
+      "input": ["text", "image"],
+      "temperature": true,
+      "toolCall": true
+    }
+  }
+}
