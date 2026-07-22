@@ -7,6 +7,7 @@
 {
   config,
   inputs,
+  lib,
   pkgs,
   ...
 }: let
@@ -29,15 +30,24 @@ in {
     github-mcp-server
   ];
 
+  # Letta provider mod — registers custom providers/models from the shared
+  # catalogue home/agent-models.json. Source of truth: home/letta-mods/
+  # talos-providers.mjs. Edit the CATALOGUE (agent-models.json) to change
+  # models (no rebuild); edit the mod source only to change logic.
+  #
+  # Deployed as a REAL FILE (not a symlink) via the activation script below:
+  # Letta's mod loader scans ~/.letta/mods with readdirSync({withFileTypes})
+  # and keeps only entries where Dirent.isFile() is true. A symlink's Dirent
+  # is isSymbolicLink() (isFile()==false), so a home.file symlink target is
+  # silently dropped ("loaded 0 mod(s)"). Copying avoids that.
+  home.activation.letta-mod-talos-providers = lib.hm.dag.entryAfter ["writeBoundary"] ''
+    set -eu
+    install -Dm0644 \
+      ${./letta-mods/talos-providers.mjs} \
+      "${config.home.homeDirectory}/.letta/mods/talos-providers.mjs"
+  '';
+
   home.file = {
-    # Letta provider mod — registers custom providers/models from the shared
-    # catalogue home/agent-models.json. Managed declaratively: the source of
-    # truth lives in the repo at home/letta-mods/talos-providers.mjs and is
-    # deployed to ~/.letta/mods/. Edit the CATALOGUE (agent-models.json) to
-    # change models (no rebuild); edit this mod source only to change logic.
-    ".letta/mods/talos-providers.mjs" = {
-      source = ./letta-mods/talos-providers.mjs;
-    };
     ".letta/skills/nixos-options/SKILL.md" = {
       source = ../skills/nixos-options/SKILL.md;
     };
