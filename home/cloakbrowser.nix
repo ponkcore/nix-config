@@ -87,25 +87,69 @@
           load_profiles
         }
 
+        # validate_name <name> — prints error to stderr, returns 1 on failure
+        validate_name() {
+          local name="$1"
+          case "$name" in
+            *[!a-zA-Z0-9_-]*)
+              printf 'invalid name: only a-z, 0-9, -, _, no spaces\n' >&2
+              return 1
+              ;;
+            -*|_*)
+              printf 'invalid name: must start with a letter or digit\n' >&2
+              return 1
+              ;;
+          esac
+          if [ -z "$name" ]; then
+            printf 'invalid name: empty\n' >&2
+            return 1
+          fi
+          if [ -n "$(get_profile "$name")" ]; then
+            printf 'profile "%s" already exists\n' "$name" >&2
+            return 1
+          fi
+          return 0
+        }
+
         cmd_create() {
+          # Non-interactive mode: cb-profile create --name <n> --platform <p>
+          # Used by the Caelestia shell picker. stdout = name, exit 0/1.
+          local arg_name="" arg_platform=""
+          while [ "$#" -gt 0 ]; do
+            case "$1" in
+              --name)     arg_name="$2"; shift 2 ;;
+              --platform) arg_platform="$2"; shift 2 ;;
+              *) printf 'usage: cb-profile create [--name <n> --platform <windows|macos|linux>]\n' >&2; exit 64 ;;
+            esac
+          done
+
+          if [ -n "$arg_name" ] || [ -n "$arg_platform" ]; then
+            [ -n "$arg_name" ] && [ -n "$arg_platform" ] || {
+              printf 'both --name and --platform are required\n' >&2
+              exit 64
+            }
+            case "$arg_platform" in
+              windows|macos|linux) ;;
+              *) printf 'invalid platform: %s (want windows|macos|linux)\n' "$arg_platform" >&2; exit 64 ;;
+            esac
+            validate_name "$arg_name" || exit 1
+            local seed
+            seed=$(random_seed)
+            save_profile "$arg_name" "$seed" "$arg_platform" "Chrome" "UTC" "en-US" "en-US,en" "light"
+            mkdir -p "$DATA_ROOT/$arg_name"
+            printf '%s\n' "$arg_name"
+            return 0
+          fi
+
+          # Interactive rofi mode (fallback)
+          local name platform name_err
           while true; do
             name=$($ROFI -dmenu -i -p 'profile name' -theme palette -mesg "letters, digits, hyphens, underscores")
             [ -n "$name" ] || exit 1
-            case "$name" in
-              *[!a-zA-Z0-9_-]*)
-                $ROFI -e "only a-z, 0-9, -, _, no spaces" -theme palette
-                continue
-                ;;
-              -*|_*)
-                $ROFI -e "must start with a letter or digit" -theme palette
-                continue
-                ;;
-            esac
-            if [ -n "$(get_profile "$name")" ]; then
-              $ROFI -e "profile '$name' already exists" -theme palette
-              continue
+            if name_err=$(validate_name "$name" 2>&1); then
+              break
             fi
-            break
+            $ROFI -e "$name_err" -theme palette
           done
 
           platform=$(printf 'windows\nmacos\nlinux' | $ROFI -dmenu -i -p "platform" -theme palette -mesg "select OS fingerprint type")
