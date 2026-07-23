@@ -28,7 +28,6 @@
         PROFILES_FILE="${profileJson}"
         DATA_ROOT="${dataRoot}"
         BROWSER="${pkgs.cloakbrowser}/bin/cloakbrowser"
-        ROFI="${pkgs.rofi}/bin/rofi"
 
         # ── helpers ────────────────────────────────────────────────────────
         load_profiles() {
@@ -141,25 +140,13 @@
             return 0
           fi
 
-          # Interactive rofi mode (fallback)
-          local name platform name_err
-          while true; do
-            name=$($ROFI -dmenu -i -p 'profile name' -theme palette -mesg "letters, digits, hyphens, underscores")
-            [ -n "$name" ] || exit 1
-            if name_err=$(validate_name "$name" 2>&1); then
-              break
-            fi
-            $ROFI -e "$name_err" -theme palette
-          done
-
-          platform=$(printf 'windows\nmacos\nlinux' | $ROFI -dmenu -i -p "platform" -theme palette -mesg "select OS fingerprint type")
-          [ -n "$platform" ] || exit 1
-
-          seed=$(random_seed)
-          save_profile "$name" "$seed" "$platform" "Chrome" "UTC" "en-US" "en-US,en" "light"
-          mkdir -p "$DATA_ROOT/$name"
-          printf 'created profile "%s" (seed=%s platform=%s)\n' "$name" "$seed" "$platform" >&2
-          printf '%s\n' "$name"
+          # Interactive rofi mode removed (2026-07-23): profile picking,
+          # creation, and deletion now live in the Caelestia shell picker
+          # (click the CloakBrowser app entry). Bare `cb-profile create`
+          # stays only as a hard error pointing at the flags.
+          printf 'usage: cb-profile create --name <n> --platform <windows|macos|linux>\n' >&2
+          printf '(interactive creation moved to the Caelestia shell picker)\n' >&2
+          exit 64
         }
 
         cmd_delete() {
@@ -426,51 +413,6 @@
         esac
   '';
 
-  # ── rofi picker: list + create + delete ─────────────────────────────
-  cbRofi = pkgs.writeShellScriptBin "cloakbrowser-profiles" ''
-    set -eu
-
-    choices=$(mktemp)
-    trap 'rm -f "$choices"' EXIT
-
-    while true; do
-      (
-        printf '➕ Create profile...\n'
-        printf '🗑 Delete profile...\n'
-        ${cbProfile}/bin/cb-profile list
-      ) > "$choices"
-
-      selection=$(${pkgs.rofi}/bin/rofi -dmenu -i -p 'cloakbrowser' -theme palette < "$choices")
-      [ -n "$selection" ] || exit 0
-
-      case "$selection" in
-        "➕ Create profile...")
-          new_name=$(${cbProfile}/bin/cb-profile create)
-          [ -n "$new_name" ] || continue
-          exec ${cbProfile}/bin/cb-profile launch "$new_name"
-          ;;
-        "🗑 Delete profile...")
-          del_choices=$(mktemp)
-          ${cbProfile}/bin/cb-profile list > "$del_choices"
-          if [ ! -s "$del_choices" ]; then
-            ${pkgs.rofi}/bin/rofi -e "no profiles to delete" -theme palette
-            rm -f "$del_choices"
-            continue
-          fi
-          to_delete=$(${pkgs.rofi}/bin/rofi -dmenu -i -p 'delete' -theme palette < "$del_choices")
-          rm -f "$del_choices"
-          [ -n "$to_delete" ] || continue
-          ${cbProfile}/bin/cb-profile delete "$to_delete"
-          ${pkgs.rofi}/bin/rofi -e "deleted: $to_delete" -theme palette
-          continue
-          ;;
-        *)
-          exec ${cbProfile}/bin/cb-profile launch "$selection"
-          ;;
-      esac
-    done
-  '';
-
   # ── alias for shell convenience ─────────────────────────────────────
   cbAlias = pkgs.writeShellScriptBin "cb" ''
     exec ${cbProfile}/bin/cb-profile "$@"
@@ -479,21 +421,24 @@ in {
   home.packages = [
     pkgs.cloakbrowser
     cbProfile
-    cbRofi
     cbAlias
   ];
 
+  # The desktop entry is a placeholder: the Caelestia shell launcher
+  # intercepts clicks on cloakbrowser.desktop and opens its in-shell
+  # profile picker instead of executing this (see ponkcore/shell
+  # commit "CloakBrowser profile picker in the shell launcher").
   xdg.desktopEntries.cloakbrowser = {
     name = "CloakBrowser";
     genericName = "Stealth anti-detect browser profile picker";
     comment = "Pick, create, or delete a CloakBrowser profile";
-    exec = "${cbRofi}/bin/cloakbrowser-profiles";
+    exec = "${cbProfile}/bin/cb-profile list";
     icon = "cloakbrowser";
     terminal = false;
     categories = ["Network" "WebBrowser"];
     startupNotify = false;
     settings = {
-      Keywords = "browser;chromium;cloak;stealth;antidetect;fingerprint;profile;rofi;";
+      Keywords = "browser;chromium;cloak;stealth;antidetect;fingerprint;profile;";
     };
   };
 }
