@@ -99,8 +99,10 @@
     background-opacity = 0.75
     window-decoration = false
 
-    # Scroll
-    scrollback-limit = 10000
+    # Scroll — bytes, not lines (includes the active screen). 100 MiB
+    # per surface ≈ 120-150k lines at ~200 columns; allocated lazily,
+    # so idle surfaces do not consume it. Ghostty default: 10 MiB.
+    scrollback-limit = 104857600
 
     # Confirm close — Ghostty uses confirm-close-surface, not confirm-close
     confirm-close-surface = false
