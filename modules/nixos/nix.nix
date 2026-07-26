@@ -11,6 +11,7 @@
   nixpkgs.config.allowUnfreePredicate = pkg:
     builtins.elem (lib.getName pkg) [
       "antigravity-cli"
+      "claude-code"
       "obsidian"
       "oh-my-openagent"
       "spotify"

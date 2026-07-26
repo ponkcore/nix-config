@@ -49,6 +49,7 @@ in {
       ./neovim.nix
       ./opencode.nix
       ./oh-my-pi.nix
+      ./claude-code.nix
       ./qt.nix
       ./cloakbrowser.nix
       ./chromium.nix

@@ -635,6 +635,7 @@ tokens-edit     edit /etc/nixos/secrets/tokens.age via agenix
 keys            abbreviation for tokens-edit
 omo             opencode + Nix-store oh-my-openagent plugin (`omo update` updates package)
 omp             oh-my-pi standalone coding agent (`omp update` updates package)
+claude          Claude Code (authentication and sessions are user-owned)
 flu             nix flake update
 fls             nix flake show
 flc             nix flake check
