@@ -263,6 +263,17 @@ Rules:
 - Agent routing (which agent uses which tier) stays per-agent:
   `oh-my-openagent.json` agents/categories, omp `config.yml` modelRoles.
 
+### Claude Code MCP
+
+Claude Code keeps its user-scoped MCP registrations in mutable user state
+(`~/.claude.json`). Nix owns the installed server binaries and the `claude`
+fish wrapper. The wrapper sources `/run/agenix/tokens` and obtains the GitHub
+token with `gh auth token`, then exports credentials only to the Claude process.
+MCP entries reference `${CONTEXT7_API_KEY}`, `${OMP_PROXY_KEY}`, and
+`${GITHUB_PERSONAL_ACCESS_TOKEN}`; secret values never enter the Nix store or
+command arguments. The registered stack is Context7, GitHub MCP, mcp-nixos,
+OmniRoute, Repomix, and Semgrep. Manage registrations with `claude mcp`.
+
 ## Desktop stack (Hyprland session, current)
 
 ```

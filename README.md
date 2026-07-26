@@ -53,7 +53,9 @@ hardware profiles to import, run `nixos-install`. That's it.
   route refusal, strict rp_filter, log_martians, tcp_rfc1337, etc.
 - **AI agent stack** — Letta Code (`talos`), opencode, OMO
   (`opencode` + oh-my-openagent), Claude Code, and Antigravity CLI,
-  with shared API keys managed declaratively via agenix.
+  with shared API keys managed declaratively via agenix. Claude Code's
+  user-scoped MCP stack includes Context7, GitHub, NixOS options,
+  OmniRoute, Repomix, and Semgrep.
 
 ## Stack
 
