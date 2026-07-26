@@ -10,7 +10,9 @@
 # The old hypridle configuration is retained for reference below. If
 # Caelestia IdleMonitors ever needs to be rolled back, re-enable this
 # module deliberately and repin the shell to a known-good revision.
-{on-battery, ...}: let
+# NOTE: re-enabling the commented listener below requires adding
+# `on-battery` back to the module arguments.
+{...}: let
   # Flag file polled by lid-monitor. On battery only — on AC the
   # on-battery helper exits 1 and the flag is never created, so
   # lid-monitor never sees an idle state on AC.

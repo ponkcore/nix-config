@@ -23,6 +23,8 @@
       url = "github:ryantm/agenix";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.home-manager.follows = "home-manager";
+      # No macOS hosts — drop the (stale) nix-darwin transitive input.
+      inputs.darwin.follows = "";
     };
 
     # llm-agents pins its own nixpkgs because the npm packages it ships
@@ -49,11 +51,17 @@
     caelestia-shell = {
       url = "github:ponkcore/shell/main";
       inputs.nixpkgs.follows = "nixpkgs";
+      # Mutual follows with caelestia-cli below — dedupes the shell's
+      # own (lagging) cli input in favour of our pinned fork.
+      inputs.caelestia-cli.follows = "caelestia-cli";
     };
 
     caelestia-cli = {
       url = "github:ponkcore/cli/main";
       inputs.nixpkgs.follows = "nixpkgs";
+      # Use our pinned shell fork instead of the CLI's own (lagging)
+      # caelestia-shell input — dedupes shell/quickshell/m3shapes nodes.
+      inputs.caelestia-shell.follows = "caelestia-shell";
     };
   };
 

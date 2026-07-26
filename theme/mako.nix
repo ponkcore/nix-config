@@ -1,8 +1,4 @@
-{
-  p,
-  theme, # reserved for future per-theme structural overrides
-  ...
-}: {
+{p, ...}: {
   # mako is disabled. Caelestia shell owns org.freedesktop.Notifications
   # via its built-in notification service (Quickshell.Services.Notifications).
   # Notification rendering, DND, and history live in the shell.
