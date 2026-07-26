@@ -190,11 +190,11 @@
         "quickshell": "quickshell_2"
       },
       "locked": {
-        "lastModified": 1784836546,
-        "narHash": "sha256-duOPYMpPZDluC2CjdHxNTwBQ9fX6cX1DZuJoPlLSY5Y=",
+        "lastModified": 1785087202,
+        "narHash": "sha256-R78Svus8UyPMRC2a0cl9ZGY4iqihTYm2grBLOo/cTt0=",
         "owner": "ponkcore",
         "repo": "shell",
-        "rev": "00868d18552153ee048bd27690ebf19da13d87e0",
+        "rev": "c58612a620e10012702338f01d82b2cf7ded2b3a",
         "type": "github"
       },
       "original": {
