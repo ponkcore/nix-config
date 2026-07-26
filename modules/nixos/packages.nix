@@ -103,5 +103,11 @@
 
     # ── File manager ──
     nautilus
+
+    # ── Qt image formats (webp, tiff, etc.) ──
+    # Required for QImageReader to decode webp in Quickshell/Caelestia
+    # wallpaper picker. Without this, .webp files are silently filtered
+    # out by FileSystemModel.Images.
+    kdePackages.qtimageformats
   ];
 }
