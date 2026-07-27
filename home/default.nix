@@ -50,6 +50,7 @@ in {
       ./opencode.nix
       ./oh-my-pi.nix
       ./claude-code.nix
+      ./codex.nix
       ./qt.nix
       ./cloakbrowser.nix
       ./chromium.nix

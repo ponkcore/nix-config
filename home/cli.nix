@@ -1,5 +1,5 @@
-# cli.nix — modern CLI replacements (bat, eza, zoxide, gh, Node.js LTS).
-# Provides bat (cat), eza (ls), zoxide (cd), gh (GitHub CLI), Node.js LTS.
+# cli.nix — modern CLI replacements and development runtimes.
+# Provides bat, eza, zoxide, gh, Node.js LTS, and Python 3.
 # The git pager (`delta`) lives in home/git.nix because that is where it is
 # wired into the git config. MANPAGER is set in env.nix; fish aliases
 # live in fish.nix.

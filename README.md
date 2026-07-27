@@ -52,10 +52,11 @@ hardware profiles to import, run `nixos-install`. That's it.
 - **Sysctl hardening pass** — `kexec_load_disabled`, redirect/source-
   route refusal, strict rp_filter, log_martians, tcp_rfc1337, etc.
 - **AI agent stack** — Letta Code (`talos`), opencode, OMO
-  (`opencode` + oh-my-openagent), Claude Code, and Antigravity CLI,
-  with shared API keys managed declaratively via agenix. Claude Code's
-  user-scoped MCP stack includes Context7, GitHub, NixOS options,
-  OmniRoute, Repomix, and Semgrep.
+  (`opencode` + oh-my-openagent), Claude Code, Codex CLI, and
+  Antigravity CLI, with shared API keys managed declaratively via agenix.
+  Claude Code and Codex share the Context7, GitHub, NixOS options, OmniRoute,
+  Repomix, and Semgrep MCP stack; Codex receives it from `/etc/codex/config.toml`
+  while keeping model choice, trust, authentication, and sessions mutable.
 
 ## Stack
 
@@ -86,7 +87,7 @@ hardware profiles to import, run `nixos-install`. That's it.
 | Secrets | agenix |
 | Password vault | KeePassXC + Syncthing |
 | Sysadmin agent | Letta Code (`talos`) |
-| Coding agents | opencode, OMO (`omo`), Claude Code, Antigravity CLI |
+| Coding agents | opencode, OMO (`omo`), Claude Code, Codex CLI, Antigravity CLI |
 
 ## Repository layout
 
@@ -161,6 +162,7 @@ talos                    # Letta Code sysadmin agent in talos-brain
 talos system <prompt>    # Letta Code sysadmin agent in /etc/nixos
 omo                      # opencode with oh-my-openagent plugin
 claude                   # Claude Code
+codex                    # OpenAI Codex CLI
 ```
 
 ```sh

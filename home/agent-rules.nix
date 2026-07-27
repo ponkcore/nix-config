@@ -9,6 +9,7 @@
 #   opencode  → ~/.config/opencode/AGENTS.md  (xdg.configFile)
 #   omp       → ~/.omp/agent/AGENTS.md        (home.file)
 #   agy       → ~/.gemini/GEMINI.md           (home.file)
+#   codex     → ~/.codex/AGENTS.md             (home.file)
 # ~/.agents/AGENTS.md — NOT deployed (not read by opencode or agy;
 #   omp reads it only as priority-70 fallback, shadowed by native
 #   priority 100 at ~/.omp/agent/AGENTS.md).
@@ -27,6 +28,9 @@ in {
 
   # omp: ~/.omp/agent/AGENTS.md (native provider, priority 100)
   home.file.".omp/agent/AGENTS.md".source = sharedRules;
+
+  # codex: ~/.codex/AGENTS.md (global instructions under CODEX_HOME)
+  home.file.".codex/AGENTS.md".source = sharedRules;
 
   # agy: ~/.gemini/GEMINI.md
   # NOTE: agy's /memory add command writes to this file at runtime.

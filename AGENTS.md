@@ -53,6 +53,7 @@ modules/
     audio.nix                PipeWire + WirePlumber
     bluetooth.nix            BlueZ (scoped patched via hardware.bluetooth.package)
     containers.nix           Docker (on-demand, eco-aware)
+    codex.nix                System Codex MCP layer (/etc/codex/config.toml)
     firmware.nix             fwupd, smartd
     secrets.nix              agenix wiring + secret declarations
     storage.nix              udisks2 + gvfs + NTFS via ntfs-3g
@@ -75,10 +76,11 @@ modules/
                              state + idle flag from Caelestia IdleMonitors)
 home/                        Home Manager modules (per-user config)
   agent-instructions/       Global NixOS rules for AI coding agents
-    AGENTS.md               Shared rules (deployed to opencode/omp/agy)
+    AGENTS.md               Shared rules (deployed to opencode/omp/agy/codex)
     templates/              DevShell flake.nix templates (Python/Node/Rust/Go/Polyglot)
     nixos-constraints/      On-demand skill for opencode error recovery
   agent-rules.nix           HM module: deploys agent-instructions/ to agent paths
+  codex.nix                 Codex package + runtime credential launcher
   desktop/sessions/hyprland/
     session.nix             Hyprland config (keybinds, window rules, animations)
     caelestia.nix           Caelestia shell + CLI (forked HM module, writable shell.json)

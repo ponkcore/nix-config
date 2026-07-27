@@ -24,6 +24,7 @@
     ./audio.nix
     ./bluetooth.nix
     ./containers.nix
+    ./codex.nix
     ./firmware.nix
     ./services.nix
     ./secrets.nix
