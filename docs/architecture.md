@@ -249,7 +249,8 @@ home/agent-models.json          ← providers + models (NO secrets; apiKeyEnv na
         ├─ opencode/omo  fish wrappers (home/fish.nix) merge providers+models
         │                into the config at launch via OPENCODE_CONFIG_CONTENT
         ├─ omp           fish wrapper renders ~/.omp/agent/models.yml from the
-        │                catalogue at every launch (regular file, not a symlink)
+        │                catalogue at every launch; Home Manager seeds writable
+        │                ~/.omp/agent/config.yml once, then OMP owns its settings
         └─ letta (talos) mod home/letta-mods/talos-providers.mjs reads the
                          catalogue via fs.readFileSync at process start
 ```
@@ -261,7 +262,9 @@ Rules:
   agent. No rebuild. Commit the file to keep the repo clean.
 - Currently only the OmniRoute combo tiers (`SSS/SS/S/A/B`) are catalogued.
 - Agent routing (which agent uses which tier) stays per-agent:
-  `oh-my-openagent.json` agents/categories, omp `config.yml` modelRoles.
+  `oh-my-openagent.json` agents/categories and OMP's writable `config.yml`.
+  Home Manager seeds OMP's initial model roles only when this file is absent;
+  `/settings` and `/models` own subsequent preferences and persist them directly.
 
 ### Codex CLI
 

@@ -1,14 +1,21 @@
 # oh-my-pi — standalone coding agent.
-# Binary packaged from a pinned upstream release asset. Declarative config:
-#   - models.yml : omniroute provider + 5 tier models (env-var apiKey)
-#   - config.yml : model roles and settings
-#   - mcp.json   : omniroute (sse) + context7 (http), no lazyweb
-#   - .env       : API keys from /run/agenix/tokens (activation script)
+# Nix owns the package, provider catalogue, MCP wiring, and secret injection.
+# OMP owns writable config.yml state, seeded once with model-role defaults.
 {
   pkgs,
   lib,
   ...
-}: {
+}: let
+  ompConfigSeed = (pkgs.formats.yaml {}).generate "omp-config.yml" {
+    modelRoles = {
+      default = "omniroute/SSS-tier";
+      smol = "omniroute/B-tier";
+      slow = "omniroute/SSS-tier:high";
+      plan = "omniroute/SSS-tier:high";
+    };
+    modelProviderOrder = ["omniroute"];
+  };
+in {
   home.packages = [
     pkgs.oh-my-pi
     pkgs.repomix
@@ -26,15 +33,15 @@
   # script below) sourced from /run/agenix/tokens.
 
   # --- Model roles + settings -------------------------------------------
-  home.file.".omp/agent/config.yml".text = ''
-    modelRoles:
-      default: omniroute/SSS-tier
-      smol: omniroute/B-tier
-      slow: omniroute/SSS-tier:high
-      plan: omniroute/SSS-tier:high
-
-    modelProviderOrder:
-      - omniroute
+  # config.yml must remain writable: /settings and /models persist preferences
+  # there. Home Manager seeds defaults only when the file does not exist; after
+  # that OMP is the sole owner and rebuilds preserve its changes.
+  home.activation.omp-config = lib.hm.dag.entryAfter ["linkGeneration"] ''
+    config="$HOME/.omp/agent/config.yml"
+    $DRY_RUN_CMD mkdir -p "$HOME/.omp/agent"
+    if [ ! -e "$config" ]; then
+      $DRY_RUN_CMD install -m 0644 ${ompConfigSeed} "$config"
+    fi
   '';
 
   # --- MCP servers ------------------------------------------------------
