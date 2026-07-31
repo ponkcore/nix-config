@@ -272,6 +272,17 @@ _: {
         or return 1
         OPENCODE_CONFIG_CONTENT="$updated" command opencode $argv
       '';
+      # codex — run OpenAI Codex CLI. `codex update [VERSION]` updates the
+      # pinned release in home/codex.nix and rebuilds. Regular `codex ...`
+      # launches the Nix-store binary with secrets+token injected.
+      codex = ''
+        if test (count $argv) -gt 0; and test "$argv[1]" = update
+          cd /etc/nixos
+          ./pkgs/codex/update.sh $argv[2..]
+          return $status
+        end
+        command codex $argv
+      '';
       # ── Tailscale helpers ───────────────────────────────────────────
       # Tailscaled and a proxy TUN cannot run together (DNS hijacking +
       # default-route conflict — see modules/nixos/tailscale.nix). The

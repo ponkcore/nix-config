@@ -70,4 +70,9 @@ sed -i -E "s|npmDepsHash = lib.fakeHash;|npmDepsHash = \"${DEPS_HASH}\";|" "$DEF
 
 echo "src hash:  ${SRC_HASH}"
 echo "deps hash: ${DEPS_HASH}"
-echo "Done. Verify with: nix build /etc/nixos#nixosConfigurations.lecoo.pkgs.oh-my-openagent"
+
+echo "Building and switching to oh-my-openagent v${VERSION}..."
+cd "$ROOT"
+sudo nixos-rebuild switch
+
+echo "Done. oh-my-openagent is now at v${VERSION}"
