@@ -31,4 +31,8 @@ echo "hash: $HASH_SRI"
 sed -i -E "s|version = \"[^\"]+\";|version = \"${VERSION}\";|" "$DEFAULT_NIX"
 sed -i -E "s|hash = \"sha256-[A-Za-z0-9+/=]+\";|hash = \"${HASH_SRI}\";|" "$DEFAULT_NIX"
 
-echo "Done. Verify with: nix build /etc/nixos#nixosConfigurations.lecoo.config.home-manager.users.oonishi.home.activationPackage"
+echo "Building and switching to oh-my-pi v${VERSION}..."
+cd /etc/nixos
+sudo nixos-rebuild switch
+
+echo "Done. oh-my-pi is now at $(omp --version 2>&1 | head -1)"
