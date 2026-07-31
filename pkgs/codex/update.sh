@@ -14,9 +14,8 @@ if [ $# -ge 1 ]; then
   VERSION="${1#v}"
   VERSION="${VERSION#rust-v}"
 else
-  VERSION="$(curl -fsSL "https://api.github.com/repos/${REPO}/releases" \
-    | jq -r '[.[] | select(.tag_name | startswith("rust-v"))][0].tag_name' \
-    | sed 's/^rust-v//')"
+  VERSION="$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" \
+    | jq -r .tag_name | sed 's/^rust-v//')"
 fi
 
 if [ -z "$VERSION" ] || [ "$VERSION" = "null" ]; then
