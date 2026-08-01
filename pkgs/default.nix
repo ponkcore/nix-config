@@ -43,10 +43,10 @@
     });
   })
 
-  # 26.05 migration: throne, gruvbox-kvantum, Qt ABI overlay chain
-  # removed — 26.05 ships throne 1.0.13 (with corrected v2 NixOS
-  # patches), qtbase 6.11.1, and gruvbox-kvantum natively. No more
-  # ABI mismatch between Throne and system Qt packages.
+  # 26.05 migration: the Qt ABI overlay chain and gruvbox-kvantum
+  # packaging hacks were removed — 26.05 ships qtbase 6.11.1 and
+  # gruvbox-kvantum natively. No more ABI mismatch between Qt apps
+  # and system Qt packages.
 
   # bun2nix overlay — required by pkgs/letta-code for fetchBunDeps
   # and the bun2nix build hook. Sourced from the letta-code flake's

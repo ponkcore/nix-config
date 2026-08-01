@@ -1,7 +1,8 @@
 # tailscale.nix — mesh VPN (manual start).
 #
-# Conflicts with throne's TUN mode over DNS hijacking, so the daemon is
-# installed but `wantedBy=[]`. Run by hand only when needed:
+# Conflicts with the Clash Verge (mihomo) TUN mode over DNS hijacking,
+# so the daemon is installed but `wantedBy=[]`. Run by hand only when
+# needed:
 #   sudo tailscale up --accept-routes
 # tailscale0 is added to firewall trustedInterfaces so tailnet traffic
 # is allowed without firewall rules.
@@ -27,11 +28,11 @@
   # if asked. `--accept-routes` makes it consume routes that subnet
   # routers in the tailnet advertise.
   #
-  # Autostart DISABLED — Tailscale conflicts with throne's TUN mode
-  # (`programs.throne.tunMode.enable` in modules/nixos/desktop/common.nix):
-  # both grab the system DNS and a TUN-style default route, so running
-  # them simultaneously breaks resolution and outgoing connectivity.
-  # Bring tailscaled up manually only when throne is down:
+  # Autostart DISABLED — Tailscale conflicts with the Clash Verge
+  # (mihomo) TUN mode: both grab the system DNS and a TUN-style
+  # default route, so running them simultaneously breaks resolution
+  # and outgoing connectivity. Bring tailscaled up manually only when
+  # the proxy TUN is down:
   #   sudo systemctl start tailscaled
   #   sudo tailscale up --accept-routes
   services.tailscale = {
@@ -43,7 +44,7 @@
 
   # Do not start tailscaled automatically — only manually via
   # `sudo tailscale up --accept-routes`. Prevents the MagicDNS
-  # (100.100.100.100) collision with throne's DNS hijack.
+  # (100.100.100.100) collision with mihomo's DNS hijack.
   systemd.services.tailscaled.wantedBy = lib.mkForce [];
 
   # tailscale0 — trusted interface (tailnet traffic bypasses the firewall).

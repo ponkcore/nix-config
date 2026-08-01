@@ -48,11 +48,11 @@
     }; # compact utility popup family
     app = {
       # Roughly 1.5× smaller than the previous 70%×80% — Spotify
-      # and Throne both fit the calmer footprint without horizontal
-      # scrolling on their primary panes.
+      # and Clash Verge both fit the calmer footprint without
+      # horizontal scrolling on their primary panes.
       width = "50%";
       height = "55%";
-    }; # spotify, throne, other client apps
+    }; # spotify, clash-verge, other client apps
     tool = {
       width = "80%";
       height = "65%";
@@ -220,8 +220,7 @@ in {
         "$mainMod, S, exec, spotify-toggle"
         "$mainMod, Ы, exec, spotify-toggle"
         # Clash Verge Rev (mihomo GUI) — primary proxy. O for Open
-        # (EN) / Щ (RU). Throne remains available as `throne-toggle`
-        # command for manual fallback.
+        # (EN) / Щ (RU).
         "$mainMod, O, exec, clash-verge-toggle"
         "$mainMod, Щ, exec, clash-verge-toggle"
         # Nautilus — E for Explorer (Windows / GNOME / KDE convention
@@ -533,17 +532,8 @@ in {
           # but disable it for this specific photo viewer.
           "no_vrr on, match:class com.ayugram.desktop, match:title Media viewer"
         ]
-        # Throne (Xray/sing-box GUI) — popup.app sizing matches the
-        # spotify / pwvucontrol slot family (70%×80%). The class is
-        # bare `Throne` (capital T), verified at runtime against
-        # `hyprctl clients`. The toggle script (throne-toggle)
-        # parks the window on special:throne when hidden.
-        ++ (mkPopup {
-          class = "Throne";
-          category = popup.app;
-        })
         # Clash Verge Rev (mihomo GUI) — primary proxy popup. Same
-        # `app` size category as Throne/Spotify (50%×55%). The class
+        # `app` size category as Spotify (50%×55%). The class
         # is the lowercase string `clash-verge`, verified at runtime
         # via `hyprctl clients -j | jq -r '.[].class'`. The toggle
         # script (clash-verge-toggle) parks the window on
@@ -560,7 +550,7 @@ in {
           class = "spotify";
           category = popup.app;
         })
-        # KeePassXC — same `app` size category as Spotify/Throne
+        # KeePassXC — same `app` size category as Spotify/Clash Verge
         # (50%×55%). Class is the lowercase reverse-DNS form
         # `org.keepassxc.KeePassXC`, verified at runtime against
         # `hyprctl clients`. The toggle script (keepassxc-toggle)

@@ -80,7 +80,7 @@ hardware profiles to import, run `nixos-install`. That's it.
 | Anti-detect browser | CloakBrowser (stealth Chromium, C++ patches) |
 | Audio | PipeWire + WirePlumber |
 | Power | power-profiles-daemon + amd_pmf + lecoo-ec-daemon |
-| Proxy | Throne (sing-box TUN mode) |
+| Proxy | Clash Verge Rev (mihomo TUN mode) |
 | Container | Docker (on-demand) |
 | Virtualisation | libvirt + qemu_kvm |
 | Mesh VPN | Tailscale (manual start) |

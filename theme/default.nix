@@ -58,7 +58,6 @@ in {
   imports = [
     ./scripts.nix
     ./ghostty.nix
-    ./mako.nix
     ./rofi.nix
   ];
   # rofi.nix no longer takes `p` and `c` arguments — palette is

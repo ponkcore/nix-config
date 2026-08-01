@@ -10,11 +10,6 @@
 # package or option only makes sense for one compositor, it belongs
 # in that compositor's session file, not here.
 {pkgs, ...}: {
-  # Throne 1.0.13 ships with the ThroneCore binary. The 26.05
-  # throne module creates security.wrappers."ThroneCore" (CamelCase)
-  # pointing at share/throne/ThroneCore — correct key, correct binary.
-  # TUN mode works out of the box; no wrapper workarounds needed.
-
   # Polkit — required by polkit-gnome-authentication-agent regardless
   # of compositor. The agent itself is launched per-session.
   security.polkit.enable = true;
@@ -51,7 +46,7 @@
   # System-wide Wayland tooling. None of these are compositor-specific;
   # they are used identically by Hyprland, niri, GNOME, Sway, etc.
   # User-level desktop apps (Caelestia shell, rofi, etc.) live
-  # in HM because their configs are managed there. mako/hyprlock/
+  # in HM because their configs are managed there. hyprlock/
   # hypridle/hyprpaper are also in HM but disabled — Caelestia owns
   # notifications, lock, idle, and wallpaper.
   environment.systemPackages = with pkgs; [
@@ -63,39 +58,20 @@
     polkit_gnome
     papirus-icon-theme
     adwaita-icon-theme
-    # nftables CLI — sing-box creates native nftables rules (table inet
-    # sing-box) for TUN transparent proxy. Without the nft binary in
-    # PATH, these rules are invisible to diagnostics, leading to false
-    # conclusions about TUN state.
+    # nftables CLI — mihomo creates native nftables rules for TUN
+    # transparent proxy. Without the nft binary in PATH, these rules
+    # are invisible to diagnostics, leading to false conclusions
+    # about TUN state.
     nftables
   ];
 
-  # Proxy stack — Clash Verge Rev (mihomo) is the PRIMARY proxy on
+  # Proxy stack — Clash Verge Rev (mihomo) is the only proxy on
   # lecoo (enabled host-scoped in hosts/lecoo/default.nix via
-  # modules/nixos/clash-verge.nix). Throne (ex-Nekoray) remains
-  # installed here as a manual fallback. Both TUN modes are enabled;
-  # only one TUN/DNS owner may be active at a time.
+  # modules/nixos/clash-verge.nix).
   #
   # Clash Verge Rev: service mode supervises the IPC layer; the GUI
   # starts `verge-mihomo` (the core). Restarting the service requires
   # the GUI to re-activate the core — an accepted trade-off for better
   # GUI UX. The TUN stack must be `system` for CloakBrowser transparent
   # routing to work. See modules/nixos/clash-verge.nix for details.
-  #
-  # Throne: Qt6 sing-box GUI for the Xray protocol matrix
-  # (VLESS/Reality/VMess/Trojan/Hysteria/AnyTLS). Its sing-box core
-  # runs as a child of the GUI under a security.wrappers binary. The
-  # TUN mode shells out to a `Core` binary that needs CAP_NET_ADMIN
-  # and CAP_NET_RAW; the setcap branch of `programs.throne` wraps it
-  # via security.wrappers (no SUID), matching the safer default. The
-  # polkit rule shipped by the NixOS module also auto-allows resolved
-  # DNS overrides for child processes carrying those caps, so DNS
-  # works without prompting.
-  #
-  # Throne 1.0.13 is shipped natively in nixpkgs 26.05 (with
-  # corrected v2 NixOS patches). No unstable overlay needed.
-  programs.throne = {
-    enable = true;
-    tunMode.enable = true; # setcap-based TUN; no sudo required at runtime
-  };
 }

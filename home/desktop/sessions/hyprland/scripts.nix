@@ -60,7 +60,7 @@
     PROCPS="${pkgs.procps}/bin"
 
     runtime="''${XDG_RUNTIME_DIR:-/tmp}/app-status"
-    classes='com.ayugram.desktop spotify Throne clash-verge'
+    classes='com.ayugram.desktop spotify clash-verge'
 
     write_status() {
       cls="$1"
@@ -120,58 +120,11 @@
     done
   '';
 
-  # ── Throne VPN status ──────────────────────────────────────────────
-  # Throne status helper. Checks the throne-tun interface
-  # first (sing-box TUN mode), then falls back to the app-status
-  # cache for the window-running state. TUN state changes don't
-  # emit Hyprland events, so this stays polling-based.
-  #
-  # Classes:
-  #   vpn-active — throne-tun interface exists (tunnel is up)
-  #   running    — Throne window is open but TUN is down
-  #   ""         — neither
-  throne-status = pkgs.writeShellScriptBin "throne-status" ''
-    IP="${pkgs.iproute2}/bin/ip"
-    GREP="${pkgs.gnugrep}/bin/grep"
-    COREUTILS="${pkgs.coreutils}/bin"
-
-    # Check TUN interface first — takes priority. TUN devices report
-    # state UNKNOWN (no link layer), so we check for the interface's
-    # existence + UP flag in the angle-bracket flags, not "state UP".
-    if $IP link show throne-tun 2>/dev/null | $GREP -q '<.*UP.*>'; then
-      # Power-state-aware class so CSS can render different visuals:
-      #   battery → static yellow (subtle, power-conscious)
-      #   AC      → animated gradient shimmer (yellow ↔ magenta)
-      # Detect AC state via the on-battery helper (provided by the
-      # laptop hardware profile), falling back to a heuristic that
-      # scans /sys/class/power_supply/*/online. No hardcoded adapter
-      # names — portable across hosts with different AC adapter sysfs
-      # naming (ADP1, ACAD, AC, etc.).
-      if on-battery 2>/dev/null; then
-        echo '{"text":"","class":"vpn-active-battery"}'
-      else
-        echo '{"text":"","class":"vpn-active-ac"}'
-      fi
-      exit 0
-    fi
-
-    # Fall back to app-status cache for window-running state.
-    cls="Throne"
-    key=$(printf '%s' "$cls" | "$COREUTILS/tr" -c 'A-Za-z0-9_.-' '_')
-    cache="''${XDG_RUNTIME_DIR:-/tmp}/app-status/$key.json"
-    if [ -r "$cache" ]; then
-      "$COREUTILS/cat" "$cache"
-    else
-      echo '{"text":"","class":""}'
-    fi
-  '';
-
   # ── Clash Verge VPN status ─────────────────────────────────────────
-  # Clash Verge Rev (mihomo) is the PRIMARY proxy on lecoo. This is
+  # Clash Verge Rev (mihomo) is the only proxy on lecoo. This is
   # the Waybar/status default: it checks the `Mihomo` TUN interface
   # first (mihomo system-stack TUN), then falls back to the app-status
-  # cache for the window-running state. throne-status remains available
-  # as a manual command for fallback.
+  # cache for the window-running state.
   #
   # Classes:
   #   vpn-active — Mihomo TUN interface exists (tunnel is up)
@@ -232,43 +185,12 @@
     fi
   '';
 
-  # ── Throne toggle ───────────────────────────────────────────────────
-  # Same hide/show pattern as telegram-toggle but parked on
-  # special:throne. Mirrors the "minimize to tray" UX without a tray
-  # applet. First click
-  # launches the GUI through the throne-launch wrapper (sets
-  # QT_PLUGIN_PATH so Kvantum/qt6ct plugins from the user profile
-  # are visible to Throne 1.0.13's bundled qtbase-6.11); subsequent
-  # clicks toggle visibility. The window class is just `Throne`
-  # (capital T) — verified at runtime against `hyprctl clients`.
-  throne-toggle = pkgs.writeShellScriptBin "throne-toggle" ''
-    HYPRCTL="${pkgs.hyprland}/bin/hyprctl"
-    JQ="${pkgs.jq}/bin/jq"
-
-    win=$($HYPRCTL clients -j 2>/dev/null | $JQ -r '.[] | select(.class == "Throne") | "\(.address) \(.workspace.name)"' 2>/dev/null | head -1)
-
-    if [ -z "$win" ]; then
-      throne-launch &
-      exit 0
-    fi
-
-    addr=$(echo "$win" | cut -d' ' -f1)
-    ws=$(echo "$win" | cut -d' ' -f2-)
-
-    if [ "$ws" = "special:throne" ]; then
-      $HYPRCTL dispatch movetoworkspace "+0,address:$addr"
-    else
-      $HYPRCTL dispatch movetoworkspacesilent "special:throne,address:$addr"
-    fi
-  '';
-
   # ── Clash Verge toggle ──────────────────────────────────────────────
-  # PRIMARY proxy toggle on lecoo. Same hide/show pattern as
-  # throne-toggle but parked on special:clash. First click launches the
+  # Primary proxy toggle on lecoo. Same hide/show pattern as
+  # telegram-toggle but parked on special:clash. First click launches the
   # GUI; subsequent clicks toggle visibility. The window class is the
   # lowercase string `clash-verge` (verified at runtime via
-  # `hyprctl clients -j | jq -r '.[].class'`). `throne-toggle` remains
-  # available as a manual command for fallback.
+  # `hyprctl clients -j | jq -r '.[].class'`).
   clash-verge-toggle = pkgs.writeShellScriptBin "clash-verge-toggle" ''
     HYPRCTL="${pkgs.hyprland}/bin/hyprctl"
     JQ="${pkgs.jq}/bin/jq"
@@ -341,7 +263,7 @@
   '';
 
   # ── KeePassXC toggle ────────────────────────────────────────────────
-  # Same special-workspace pattern as throne-toggle / spotify-toggle.
+  # Same special-workspace pattern as clash-verge-toggle / spotify-toggle.
   # KeePassXC's window class on Wayland is `org.keepassxc.KeePassXC`
   # (verified at runtime against `hyprctl clients`). With
   # MinimizeOnClose=true (our seed default in home/keepassxc.nix) the
@@ -434,8 +356,6 @@ in {
       app-status
       app-status-daemon
       telegram-toggle
-      throne-toggle
-      throne-status
       clash-verge-toggle
       clash-verge-status
       spotify-toggle
@@ -464,8 +384,6 @@ in {
     app-status
     app-status-daemon
     telegram-toggle
-    throne-toggle
-    throne-status
     clash-verge-toggle
     clash-verge-status
     spotify-toggle

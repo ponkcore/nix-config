@@ -60,7 +60,7 @@ modules/
     sync.nix                 Syncthing for cross-device file sync
     security.nix             SSH, firewall, sysctl hardening, sudo
     fonts.nix                fontconfig + font packages
-    tailscale.nix            Tailscale (manual start, conflicts with throne TUN)
+    tailscale.nix            Tailscale (manual start, conflicts with mihomo TUN)
     virtualisation.nix       libvirt + qemu_kvm
     desktop/                 Wayland desktop stack
       default.nix            Session/greeter dispatcher

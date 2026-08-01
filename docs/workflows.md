@@ -35,11 +35,11 @@ activation if the automatic HM hook did not already do it:
 systemctl --user restart caelestia.service
 ```
 
-Before a full `nixos-rebuild test` or `switch`, turn off Throne/TUN mode.
-A controlled rebuild with Throne off kept Wi-Fi, route, DNS, and ping stable
-for 166 consecutive samples; previous long-lived "internet down" incidents
-occurred with `throne-tun` active. Re-enable Throne after the rebuild if
-needed.
+Before a full `nixos-rebuild test` or `switch`, turn off the Clash Verge
+TUN mode. A controlled rebuild with the proxy TUN down kept Wi-Fi, route,
+DNS, and ping stable for 166 consecutive samples; previous long-lived
+"internet down" incidents occurred with a proxy TUN active. Re-enable the
+TUN after the rebuild if needed.
 
 ### Failure modes
 
@@ -84,7 +84,7 @@ Acceptance checks:
 6. BrowserScan bot detection: NORMAL (4/4 checks passed).
 
 The launcher auto-detects VPN routing: TUN transparent proxy
-(throne-tun active) is preferred, SOCKS5 (127.0.0.1:2080) is the
+(Mihomo TUN active) is preferred, SOCKS5 (127.0.0.1:2080) is the
 fallback. No manual configuration needed when the VPN is running.
 For a custom proxy, put the runtime value in an agenix-owned env
 file and launch with:

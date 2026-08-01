@@ -193,10 +193,8 @@
           fi
 
           # ── VPN routing strategy ───────────────────────────────────────
-          # Prefer transparent TUN routing: Clash Verge's `Mihomo` TUN
-          # first, then Throne's `throne-tun` fallback. SOCKS5 is used
-          # only when neither TUN exists. Exactly one TUN/DNS owner must
-          # be active at a time.
+          # Prefer transparent TUN routing via Clash Verge's `Mihomo`
+          # TUN. SOCKS5 is used only when no TUN exists.
           local use_socks=0
 
           if [ -n "''${CLOAKBROWSER_PROXY_SERVER:-}" ]; then
@@ -204,8 +202,6 @@
           elif [ -z "''${CLOAKBROWSER_NO_PROXY:-}" ]; then
             if ip link show Mihomo >/dev/null 2>&1; then
               printf 'TUN active (Mihomo) — transparent routing\n' >&2
-            elif ip link show throne-tun >/dev/null 2>&1; then
-              printf 'TUN active (throne-tun) — transparent routing\n' >&2
             else
               local socks_port="''${CLOAKBROWSER_SOCKS_PORT:-2080}"
               if ${pkgs.coreutils}/bin/timeout 1 \

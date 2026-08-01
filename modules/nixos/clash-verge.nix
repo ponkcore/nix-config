@@ -1,6 +1,5 @@
-# clash-verge.nix — Clash Verge Rev (mihomo) as the primary desktop
-# proxy on lecoo. Throne remains installed and launchable as a manual
-# fallback; exactly one TUN/DNS owner may be active at a time.
+# clash-verge.nix — Clash Verge Rev (mihomo) as the only desktop
+# proxy on lecoo.
 #
 # `clash-verge.service` supervises the service IPC process, but the GUI
 # starts `verge-mihomo` — it is NOT a standalone core supervisor.
@@ -29,6 +28,5 @@
   # (generic) depending on the configured TUN stack. Only the
   # `system` stack is used in practice here, but all three are
   # trusted so a stack switch does not silently break connectivity.
-  # `throne-tun` is trusted separately in security.nix.
   networking.firewall.trustedInterfaces = ["Mihomo" "Meta" "utun"];
 }

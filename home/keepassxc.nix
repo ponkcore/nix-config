@@ -80,7 +80,7 @@ in {
   home.packages = [
     # ── KeePassXC wrapper: neutralise Qt6 platform theme for Qt5 app ─
     # KeePassXC is Qt5. The global session sets QT_QPA_PLATFORMTHEME=qt6ct
-    # (to serve Qt6 apps like Throne). Qt5 cannot load the qt6ct plugin,
+    # (to serve Qt6 apps like AyuGram). Qt5 cannot load the qt6ct plugin,
     # which makes the platformtheme fall back on Qt5 defaults (Fusion)
     # most of the time — but single-instance D-Bus restore / startup timing
     # makes Kvantum styling flaky. This per-app wrapper keeps the

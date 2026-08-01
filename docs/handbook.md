@@ -393,9 +393,9 @@ Additional CloakBrowser-specific flags: `--fingerprint-storage-quota`
 
 The launcher auto-detects the VPN routing mode in priority order:
 
-1. **TUN transparent proxy** (preferred): when Throne's `throne-tun`
-   interface is active, sing-box's nftables rules (`table inet
-   sing-box`) redirect TCP to a local tproxy port and fwmark-mark
+1. **TUN transparent proxy** (preferred): when the Clash Verge
+   (mihomo) `Mihomo` TUN interface is active, mihomo's nftables
+   rules redirect TCP to a local tproxy port and fwmark-mark
    UDP for TUN table routing. The browser is unaware of the VPN —
    no proxy fingerprint.
 2. **SOCKS5 fallback**: when TUN is inactive, the launcher falls
@@ -710,7 +710,7 @@ SUPER+Tab          next group tab
 SUPER+`            Caelestia control center
 SUPER+T            Telegram toggle
 SUPER+S            Spotify toggle
-SUPER+N            Throne toggle
+SUPER+O            Clash Verge toggle
 SUPER+E            Nautilus (new window)
 SUPER+\            KeePassXC toggle
 SUPER+1..9         switch workspace

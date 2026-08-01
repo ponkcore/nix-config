@@ -7,7 +7,7 @@
 # Ownership:
 #   wallpaper  — Caelestia (Phase 3A, hyprpaper disabled)
 #   launcher   — Caelestia (Phase 3B, rofi -show drun replaced)
-#   notifs     — Caelestia (Phase 3D, mako disabled)
+#   notifs     — Caelestia (Phase 3D, owns org.freedesktop.Notifications)
 #   lock/idle  — Caelestia (Phase 3E, hyprlock + hypridle disabled).
 #                Validated stable 2026-07-09: 15 min observation,
 #                4 lock/unlock cycles (IPC + loginctl), 0 crashes,
