@@ -75,4 +75,8 @@ echo "Building and switching to oh-my-openagent v${VERSION}..."
 cd "$ROOT"
 sudo nixos-rebuild switch
 
+git add pkgs/oh-my-openagent/default.nix pkgs/oh-my-openagent/package.json pkgs/oh-my-openagent/package-lock.json
+git commit -m "chore(oh-my-openagent): bump to v${VERSION}"
+git push
+
 echo "Done. oh-my-openagent is now at v${VERSION}"

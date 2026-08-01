@@ -8,11 +8,11 @@
   fetchurl,
 }: let
   pname = "oh-my-pi";
-  version = "17.2.1";
+  version = "17.2.2";
 
   src = fetchurl {
     url = "https://github.com/can1357/oh-my-pi/releases/download/v${version}/omp-linux-x64";
-    hash = "sha256-rAKFpXGqecWNWUglYaOHG+/nMz26OjvcLpBoJlPuM7I=";
+    hash = "sha256-MG9VVjfWPc7YDP+y/pCNp+BUOJ+FjAcfMEvBfj7WIt4=";
   };
 
   inherit (stdenv.cc.bintools) dynamicLinker;

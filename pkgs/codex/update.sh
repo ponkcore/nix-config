@@ -42,4 +42,8 @@ echo "Building and switching to codex v${VERSION}..."
 cd "$ROOT"
 sudo nixos-rebuild switch
 
+git add home/codex.nix
+git commit -m "chore(codex): bump to v${VERSION}"
+git push
+
 echo "Done. codex is now at $(codex --version 2>&1 | head -1)"

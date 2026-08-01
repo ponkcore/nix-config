@@ -35,4 +35,8 @@ echo "Building and switching to oh-my-pi v${VERSION}..."
 cd /etc/nixos
 sudo nixos-rebuild switch
 
+git add pkgs/oh-my-pi/default.nix
+git commit -m "chore(oh-my-pi): bump to v${VERSION}"
+git push
+
 echo "Done. oh-my-pi is now at $(omp --version 2>&1 | head -1)"
