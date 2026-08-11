@@ -10,8 +10,8 @@ filters the upstream OmniRoute MCP server to exactly two tools:
 `web_search` and `web_fetch`. The real OmniRoute API key lives on
 the VPS; laptop clients authenticate to the proxy with `X-Proxy-Key`.
 
-- URL: `https://mcp.infinitycore.space:8443/omp/sse`
-- Auth: `X-Proxy-Key` header from `OMP_PROXY_KEY` env var
+- URL: `https://mcp.infinitycore.space/omp/sse`
+- Auth: `X-API-Key` (Caddy gate, `HEXSTRIKE_API_KEY` env var) + `X-Proxy-Key` (tool-filter, `OMP_PROXY_KEY` env var)
 - Transport: Streamable HTTP (SSE) through `mcp-bridge --url`
 - Available tools: `web_search`, `web_fetch` (proxy-filtered)
 
@@ -51,8 +51,9 @@ List tools:
 
 ```bash
 mcp-bridge \
-  --url 'https://mcp.infinitycore.space:8443/omp/sse' \
+  --url 'https://mcp.infinitycore.space/omp/sse' \
   --transport sse \
+  --header-env 'X-API-Key=HEXSTRIKE_API_KEY' \
   --header-env 'X-Proxy-Key=OMP_PROXY_KEY' \
   --timeout 90 \
   --list
@@ -62,8 +63,9 @@ Call web_search:
 
 ```bash
 mcp-bridge \
-  --url 'https://mcp.infinitycore.space:8443/omp/sse' \
+  --url 'https://mcp.infinitycore.space/omp/sse' \
   --transport sse \
+  --header-env 'X-API-Key=HEXSTRIKE_API_KEY' \
   --header-env 'X-Proxy-Key=OMP_PROXY_KEY' \
   --timeout 90 \
   --tool 'web_search' \
@@ -74,8 +76,9 @@ Call web_fetch:
 
 ```bash
 mcp-bridge \
-  --url 'https://mcp.infinitycore.space:8443/omp/sse' \
+  --url 'https://mcp.infinitycore.space/omp/sse' \
   --transport sse \
+  --header-env 'X-API-Key=HEXSTRIKE_API_KEY' \
   --header-env 'X-Proxy-Key=OMP_PROXY_KEY' \
   --timeout 90 \
   --tool 'web_fetch' \

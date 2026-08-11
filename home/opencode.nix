@@ -98,9 +98,10 @@
       # only need the proxy auth key.
       omniroute = {
         type = "remote";
-        url = "https://mcp.infinitycore.space:8443/omp/sse";
+        url = "https://mcp.infinitycore.space/omp/sse";
         enabled = true;
         headers = {
+          X-API-Key = "REPLACE_HEXSTRIKE_API_KEY";
           X-Proxy-Key = "REPLACE_OMP_PROXY_KEY";
         };
       };
@@ -337,6 +338,10 @@ in {
       echo "ERROR: OMP_PROXY_KEY missing in $SECRETS" >&2
       exit 1
     fi
+    if [ -z "''${HEXSTRIKE_API_KEY:-}" ]; then
+      echo "ERROR: HEXSTRIKE_API_KEY missing in $SECRETS" >&2
+      exit 1
+    fi
     mkdir -p "${config.xdg.configHome}/opencode"
     umask 077
     # Provider apiKey is NOT substituted here — providers+models are
@@ -345,7 +350,9 @@ in {
     ${pkgs.jq}/bin/jq \
       --arg c7  "$CONTEXT7_API_KEY" \
       --arg proxy "$OMP_PROXY_KEY" \
+      --arg hex "$HEXSTRIKE_API_KEY" \
       '.mcp.context7.headers["X-Context7-API-Key"] = $c7
+       | .mcp.omniroute.headers["X-API-Key"] = $hex
        | .mcp.omniroute.headers["X-Proxy-Key"] = $proxy' \
       ${opencodeJsonTemplate} \
       > "$OUT.tmp"
