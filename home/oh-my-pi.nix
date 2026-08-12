@@ -68,6 +68,7 @@
         headers = {
           "X-API-Key" = "PLACEHOLDER_HEXSTRIKE_API_KEY";
         };
+        timeout = 1200000;
       };
     };
     disabledServers = ["hexstrike"];
