@@ -32,6 +32,7 @@ _: {
       sizeof = "du -sh";
       md = "mkdir -p";
       keys = "tokens-edit";
+      models = "$EDITOR /etc/nixos/home/agent-models.json";
     };
 
     interactiveShellInit = ''

@@ -3,7 +3,7 @@
 # Primary talos agent runtime.
 #
 # Phase 3 (providers): fish wrapper with agenix secrets,
-# environment variables for omniroute + fireworks.
+# environment variables for omniroute.
 {
   config,
   inputs,
@@ -99,7 +99,7 @@ in {
     end
 
     # Source agenix secrets (OMNIROUTE_API_KEY, CONTEXT7_API_KEY,
-    # LAZYWEB_MCP_TOKEN, OMNIROUTE_MCP_API_KEY) into the letta process
+    # LAZYWEB_MCP_TOKEN) into the letta process
     # environment. The keys live in /run/agenix/tokens (decrypted at
     # boot, mode 400, owner=oonishi) and are never written to /nix/store.
     # NOTE: FIREWORKS_API_KEY was removed from tokens.age entirely (fireworks
