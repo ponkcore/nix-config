@@ -2,7 +2,7 @@
 #
 # Deploys a shared AGENTS.md to each agent's global instruction path,
 # devShell templates as read-only references, and a nixos-constraints
-# skill for opencode/omo.
+# skill for opencode/omo and omp.
 #
 # Research: 2026-07-04-agent-global-instructions-verification.result.md
 # Path verification (22 sources):
@@ -39,12 +39,15 @@ in {
   # home.activation guard (write only if file does not exist).
   home.file.".gemini/GEMINI.md".source = sharedRules;
 
-  # ── nixos-constraints skill (opencode/omo only) ─────────────
+  # ── nixos-constraints skill ─────────────────────────────────
   # On-demand error recovery procedures. Invoked when agents hit
   # NixOS-specific failures (pip, npm -g, binary EROFS, etc.).
-  # omp/agy have no confirmed skill-trigger mechanism — error
-  # procedures live in the global AGENTS.md for those agents.
+  # Deployed to opencode/omo and omp (both support native skill
+  # loading at their respective canonical paths).
   xdg.configFile."opencode/skill/nixos-constraints/SKILL.md".source =
+    ./agent-instructions/nixos-constraints/SKILL.md;
+
+  home.file.".omp/agent/skills/nixos-constraints/SKILL.md".source =
     ./agent-instructions/nixos-constraints/SKILL.md;
 
   # ── DevShell templates (read-only references) ────────────────

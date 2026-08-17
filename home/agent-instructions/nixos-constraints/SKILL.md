@@ -4,8 +4,9 @@ description: >
   NixOS 26.05 development constraints and error recovery procedures.
   Invoke when: pip install fails, npm install -g fails, a downloaded
   binary produces "No such file or directory", gcc/make/node/python is
-  not found, or any command fails with a path not found under /usr/bin
-  or /lib.
+  not found, cargo linker fails, direnv trust is unclear, flake lock
+  vs update is ambiguous, garbage collection is considered, or any
+  command fails with a path not found under /usr/bin or /lib.
 allowed-tools:
   - Bash
   - Read
@@ -28,89 +29,145 @@ Invoke this skill when you encounter ANY of the following:
 - `bad interpreter: /bin/bash: no such file or directory`
 - `Package <X> not found` from pkg-config
 - Any attempt to use `apt`, `brew`, `pacman`, `yum`
+- Uncertainty about whether to run `direnv allow`
+- Uncertainty about `nix flake lock` vs `nix flake update`
+- Consideration of `nix-collect-garbage` or `nix-collect-garbage -d`
+- Uncertainty about whether to create a `flake.nix`
 
 ## Diagnostic procedure
 
 ### Step 1: Identify the error category
 
 ```bash
-# Check if you are on NixOS
-cat /etc/os-release | grep -i nix
-# Expected: NAME="NixOS"
+cat /etc/os-release | grep -i nix   # Expected: NAME="NixOS"
 ```
 
 ### Step 2: Check for devShell
 
 ```bash
-# Is there a flake.nix?
 ls flake.nix 2>/dev/null && echo "flake.nix found" || echo "no flake.nix"
-
-# Is direnv active?
-echo "$DIRENV_DIR"
-
-# Is a devShell active?
-echo "$IN_NIX_SHELL"
+echo "$DIRENV_DIR"    # direnv active?
+echo "$IN_NIX_SHELL"  # devShell active?
 ```
 
 ### Step 3: Enter the devShell
 
 ```bash
-# If flake.nix exists and .envrc exists:
+# If flake.nix + .envrc exist: READ .envrc FIRST, then:
 direnv allow
 
 # If flake.nix exists but no .envrc:
 nix develop
 
-# If neither exists, use nix shell for the specific tool:
-# nix shell nixpkgs#<package>
+# If neither exists:
+nix shell nixpkgs#<package>
 ```
 
-### Step 4: Error-specific fixes
+## direnv trust procedure
 
-#### pip install fails
+`.envrc` is executable code from the repository. Before running
+`direnv allow`:
+
+1. **Read** the `.envrc` file.
+2. **Evaluate**: does it only set up a Nix devShell (`use flake`,
+   `use nix`, `eval "$(nix ...)"`) or does it run unexpected commands?
+3. **Allow** only if the content is trusted:
+   ```bash
+   direnv allow
+   ```
+4. If untrusted: do not allow. Use `nix develop` instead.
+
+## flake lock vs flake update
+
+These are NOT the same operation:
+
+- `nix flake lock` — creates `flake.lock` if absent; does NOT
+  update existing locked inputs. Safe to run.
+- `nix flake update` — updates ALL inputs to latest. Changes
+  `flake.lock`. Treat as a dependency-update task, not a
+  diagnostic step.
+- `nix flake update --input <name>` — updates one input. Still
+  modifies lock graph.
+
+Never run `nix flake update` as a troubleshooting step.
+
+## garbage collection warning
+
+`nix-collect-garbage -d` destroys:
+- Old system generations (rollback capability lost)
+- Unreferenced store paths (old package versions)
+
+Never run without explicit user approval. For safe cleanup:
+
+```bash
+# Remove only unreferenced paths older than 30 days:
+nix-collect-garbage --delete-older-than 30d
+```
+
+## flake.nix creation guidance
+
+Create `flake.nix` only when the project genuinely needs a
+reproducible devShell with multiple dependencies. Alternatives:
+
+- `shell.nix` — simpler, no flake overhead
+- `nix shell nixpkgs#<pkg>` — ad-hoc, no file needed
+- `npins` — alternative pinning without flakes
+
+If creating `flake.nix` from a template, copy from
+`~/.local/share/nixos-templates/` and modify the copy.
+
+## Error-specific fixes
+
+### pip install fails
 
 ```bash
 # Inside devShell:
 python -m venv .venv
 source .venv/bin/activate
 pip install <pkg>
-# OR use uv:
-uv pip install <pkg>
+# OR: uv pip install <pkg>
 ```
 
-#### npm install -g fails
+Never run pip outside an activated venv on NixOS.
+
+### npm install -g fails
 
 ```bash
-# Use npx instead:
-npx <pkg>
-# OR set a writable prefix:
-export npm_config_prefix="$HOME/.npm-global"
-export PATH="$HOME/.npm-global/bin:$PATH"
-npm install -g <pkg>
+# Use npx (no global install needed):
+npx <tool>
+
+# Or use nix shell for repeated access:
+nix shell nixpkgs#nodePackages.<pkg>
 ```
 
-#### Downloaded binary won't run
+Do NOT set a global npm prefix (`npm_config_prefix`). That is an
+imperative install and breaks reproducibility.
 
+### Downloaded binary won't run (FHS triage)
+
+First determine: is this a temporary dev tool or a permanent tool?
+
+**Temporary binary** (one-off use):
 ```bash
-# Option 1: nix-ld is enabled system-wide — the binary should just work.
-# If it does not, proceed to Option 2.
-
+# Option 1: nix-ld is enabled system-wide — may just work.
 # Option 2: steam-run
 steam-run ./binary
-
-# Option 3: patchelf
-patchelf --set-interpreter "$(patchelf --print-interpreter "$(which ls)")" ./binary
-./binary
 ```
 
-#### gcc / make not found
+**Permanent tool** (repeated use): package it in Nix instead of
+patching indefinitely. Use `patchelf` only as a bridge:
+```bash
+patchelf --set-interpreter "$(patchelf --print-interpreter "$(which ls)")" ./binary
+```
+
+### gcc / make not found
 
 ```bash
 nix shell nixpkgs#gcc nixpkgs#gnumake --command make
-# OR add to devShell buildInputs: pkgs.gcc pkgs.gnumake
+# OR add to devShell: pkgs.gcc pkgs.gnumake
 ```
 
-#### pkg-config: Package not found
+### pkg-config: Package not found
 
 The package's `.dev` output must be in the devShell:
 
@@ -118,35 +175,50 @@ The package's `.dev` output must be in the devShell:
 buildInputs = [ pkgs.openssl.dev pkgs.zlib.dev ];
 ```
 
-#### cargo: linker 'cc' not found
+### cargo: linker 'cc' not found
 
 The devShell is missing `pkgs.gcc`. Add it to `buildInputs`.
 
-## Universal fallback
+### Rust procedure
 
-When you need any tool not in PATH:
+```bash
+nix develop    # devShell must have cargo, rustc, gcc
+cargo build
+cargo test
+```
+
+### Go procedure
+
+```bash
+nix develop    # devShell must have go, gcc (for CGO)
+go build ./...
+go test ./...
+```
+
+### C/C++ procedure
+
+```bash
+nix develop    # devShell with gcc, gnumake, pkg-config
+./configure
+make
+```
+
+## Universal fallback
 
 ```bash
 nix shell nixpkgs#<package-name> --command <tool> <args>
 ```
 
-Search for package names:
-
-```bash
-nix search nixpkgs <keyword>
-```
+Search: `nix search nixpkgs <keyword>`
 
 ## Writing scripts on NixOS
 
-Always use:
-
-- `#!/usr/bin/env bash` (not `#!/bin/bash`)
-- `#!/usr/bin/env python3` (not `#!/usr/bin/python3`)
-- `#!/usr/bin/env node` (not `#!/usr/bin/node`)
+Always use `#!/usr/bin/env bash` (not `#!/bin/bash`),
+`#!/usr/bin/env python3`, `#!/usr/bin/env node`.
 
 ## Writing CI pipelines
 
-Target `ubuntu-latest` runners. Use Nix in CI:
+Target `ubuntu-latest` runners:
 
 ```yaml
 - uses: cachix/install-nix-action@v27
