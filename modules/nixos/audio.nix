@@ -4,7 +4,7 @@
 # routing for ALSA / PulseAudio / JACK clients. RTKit gives the audio
 # threads realtime priority — without it, low-latency capture (e.g.
 # JACK at 64 frames) has audible xruns.
-{pkgs, ...}: {
+{...}: {
   # Audio codec power saving — enter D3 after 1 second of idle
   # (default was 10s). The AMD ACP codec draws ~0.3 W when powered;
   # faster D3 entry saves a small but measurable amount on battery.

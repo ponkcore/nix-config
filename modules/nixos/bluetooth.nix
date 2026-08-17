@@ -27,11 +27,7 @@
 # Upstream: unfixed in BlueZ 5.86. Issue #752 closed "not planned".
 # See researches/2026-07-02-bluez-rpa-addresstype-bug.result.md.
 # Remove this patch when upstream merges the fix.
-{
-  config,
-  pkgs,
-  ...
-}: {
+{pkgs, ...}: {
   hardware.bluetooth = {
     enable = true;
     # Scoped patched BlueZ — only the bluetooth service uses this

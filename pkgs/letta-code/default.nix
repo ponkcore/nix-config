@@ -32,8 +32,13 @@ in
 
     preBuild = ''
       export HOME="$TMPDIR"
+      # build.js runs tsc to generate type declarations, then
+      # rewriteDeclarationAliases() walks dist/types/. We skip both:
+      # tsc is unnecessary for the bundled output (letta.js), and
+      # dist/types doesn't exist without it.
       substituteInPlace build.js \
-        --replace-fail 'await Bun.$`bunx tsc -p tsconfig.types.json`' 'true'
+        --replace-fail 'await Bun.$`bunx tsc -p tsconfig.types.json`' 'true' \
+        --replace-fail 'rewriteDeclarationAliases(join(__dirname, "dist/types"));' '/* skip: no dist/types without tsc */'
     '';
 
     buildPhase = ''

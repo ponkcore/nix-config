@@ -33,11 +33,13 @@
     llm-agents.url = "github:numtide/llm-agents.nix";
 
     # letta-code — memory-first coding agent (letta-ai/letta-code).
-    # Pinned to v0.27.23. MemFS is now mandatory (since v0.27.21).
+    # Pinned to v0.30.24. Compaction for mod-provided models fixed
+    # (v0.30.20), context_window race fixed (v0.28.8/v0.29.4),
+    # auth.json base_url override fixed (v0.28.9).
     # The upstream bun.nix is stale; our overlay pkgs/letta-code/
     # provides a regenerated bun.nix.
     letta-code = {
-      url = "github:letta-ai/letta-code/v0.27.23";
+      url = "github:letta-ai/letta-code/v0.30.24";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 

@@ -119,8 +119,6 @@ in {
       end
     end
 
-    set -gx LETTA_LOCAL_BACKEND_EXPERIMENTAL 1
-
     # GitHub MCP: source token from gh CLI (already auth'd via
     # gh auth login). Not stored in agenix — same pattern as
     # omo/omp. GITHUB_PERSONAL_ACCESS_TOKEN is consumed by
