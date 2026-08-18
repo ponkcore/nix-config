@@ -118,11 +118,11 @@
         "quickshell": "quickshell"
       },
       "locked": {
-        "lastModified": 1785116811,
-        "narHash": "sha256-Vql+vOI89+fFDfquerVZvoOYcekMSfmfJhYzGzA+KL4=",
+        "lastModified": 1787082790,
+        "narHash": "sha256-USnIo+tVd1/oIAcA2cf4SCP/qTsJ3VwDc3wER84RKuM=",
         "owner": "ponkcore",
         "repo": "shell",
-        "rev": "220741ec70a2530eebae37b8fa8ac8ee6e7f5d19",
+        "rev": "19251056cdce5e2398a90311b01d9c302020861e",
         "type": "github"
       },
       "original": {
@@ -357,15 +357,15 @@
       "locked": {
         "lastModified": 1784799776,
         "narHash": "sha256-6AM0doj8hSNav9qkX4dOHOp1LSjegdQ+VmzDz9MnWAs=",
-        "ref": "refs/heads/master",
+        "owner": "outfoxxed",
+        "repo": "quickshell",
         "rev": "10b439fc6e3fd65c15fe1c486271b31da05ed023",
-        "revCount": 833,
-        "type": "git",
-        "url": "https://git.outfoxxed.me/outfoxxed/quickshell"
+        "type": "github"
       },
       "original": {
-        "type": "git",
-        "url": "https://git.outfoxxed.me/outfoxxed/quickshell"
+        "owner": "outfoxxed",
+        "repo": "quickshell",
+        "type": "github"
       }
     },
     "root": {
