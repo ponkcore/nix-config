@@ -48,6 +48,20 @@
   # gruvbox-kvantum natively. No more ABI mismatch between Qt apps
   # and system Qt packages.
 
+  # AyuGram Desktop 7.x (rich messages, WebAuthn/passkey, thanos
+  # collapse gaps) is not in nixpkgs 26.05 yet (still 6.7.8 there;
+  # 7.0.9 released 2026-08-08). Pull only this package from unstable
+  # so the rest of the system stays on the stable channel.
+  # Drop this overlay once ayugram-desktop >= 7 reaches nixpkgs 26.05.
+  (_final: prev: {
+    ayugram-desktop =
+      (import inputs.nixpkgs-unstable {
+        system = prev.stdenv.system;
+        config = prev.config;
+      })
+      .ayugram-desktop;
+  })
+
   # bun2nix overlay — required by pkgs/letta-code for fetchBunDeps
   # and the bun2nix build hook. Sourced from the letta-code flake's
   # transitive bun2nix input so the version stays in sync.
