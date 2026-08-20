@@ -512,8 +512,10 @@ in {
           # ── Fullscreen: no rounding (shell removes border on FS) ──────
           "rounding 0, match:fullscreen true"
           # ── Large apps: auto-maximize (fill workspace) ──────────────────
-          "maximize on, match:class firefox"
-          "maximize on, match:class chromium-browser"
+          # Browsers are intentionally excluded: `maximize on` maps to a
+          # pseudo-fullscreen Hyprland state that drops shell rounding and
+          # needs a double Win+V toggle to settle. A single tiled window
+          # already fills the workspace thanks to smart gaps below.
           "maximize on, match:class virt-manager"
         ]
         # ── Categorised popup panels ──────────────────────────────────────
