@@ -547,12 +547,6 @@ in {
           class = "org.gnome.Nautilus";
           category = popup.app;
         })
-        # Floating TUI terminals. `tool` is sized to clear the 80×24
-        # character floor on this panel.
-        ++ (mkPopup {
-          class = "com.mitchellh.ghostty-term";
-          category = popup.tool;
-        })
         # nvim — own ghostty class so the editor floats at the same
         # 80%×65% TUI footprint as term, instead of
         # tiling under the dwindle layout. Spawn with

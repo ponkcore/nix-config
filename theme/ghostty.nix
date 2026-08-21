@@ -43,15 +43,6 @@
     Categories=System;TerminalEmulator;
     NoDisplay=true
   '';
-  xdg.dataFile."applications/com.mitchellh.ghostty-term.desktop".text = ''
-    [Desktop Entry]
-    Name=Ghostty (Term)
-    Type=Application
-    Icon=com.mitchellh.ghostty
-    StartupWMClass=com.mitchellh.ghostty-term
-    Categories=System;TerminalEmulator;
-    NoDisplay=true
-  '';
   xdg.dataFile."applications/com.mitchellh.ghostty-nvim.desktop".text = ''
     [Desktop Entry]
     Name=Ghostty (nvim)
