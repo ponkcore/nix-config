@@ -522,10 +522,6 @@ in {
         # Each call expands to three rules (float / size / center). See the
         # `popup` and `mkPopup` definitions at the top of this file for the
         # category sizes and the override mechanism.
-        ++ (mkPopup {
-          class = "com.ayugram.desktop";
-          category = popup.chat;
-        })
         ++ [
           # AyuGram media viewer is a native Wayland fullscreen Qt
           # window. With fullscreen-only VRR (`misc:vrr = 2`), mouse
@@ -534,23 +530,9 @@ in {
           # but disable it for this specific photo viewer.
           "no_vrr on, match:class com.ayugram.desktop, match:title Media viewer"
         ]
-        # Clash Verge Rev (mihomo GUI) — primary proxy popup. Same
-        # `app` size category as Spotify (50%×55%). The class
-        # is the lowercase string `clash-verge`, verified at runtime
-        # via `hyprctl clients -j | jq -r '.[].class'`. The toggle
-        # script (clash-verge-toggle) parks the window on
-        # special:clash when hidden.
-        ++ (mkPopup {
-          class = "clash-verge";
-          category = popup.app;
-        })
         ++ (mkPopup {
           class = "com.saivert.pwvucontrol";
           category = popup.tray;
-        })
-        ++ (mkPopup {
-          class = "spotify";
-          category = popup.app;
         })
         # KeePassXC — same `app` size category as Spotify/Clash Verge
         # (50%×55%). Class is the lowercase reverse-DNS form
@@ -565,22 +547,14 @@ in {
           class = "org.gnome.Nautilus";
           category = popup.app;
         })
-        # btop and friends are TUI: `tool` is sized to clear the 80×24
+        # Floating TUI terminals. `tool` is sized to clear the 80×24
         # character floor on this panel.
-        ++ (mkPopup {
-          class = "com.mitchellh.ghostty-btop";
-          category = popup.tool;
-        })
-        ++ (mkPopup {
-          class = "com.mitchellh.ghostty-rebuild";
-          category = popup.tool;
-        })
         ++ (mkPopup {
           class = "com.mitchellh.ghostty-term";
           category = popup.tool;
         })
         # nvim — own ghostty class so the editor floats at the same
-        # 80%×65% TUI footprint as btop / rebuild / term, instead of
+        # 80%×65% TUI footprint as term, instead of
         # tiling under the dwindle layout. Spawn with
         # `ghostty --class=com.mitchellh.ghostty-nvim -e nvim` (no
         # keybind yet — invoked manually or wired into a launcher
