@@ -118,11 +118,11 @@
         "quickshell": "quickshell"
       },
       "locked": {
-        "lastModified": 1787082790,
-        "narHash": "sha256-USnIo+tVd1/oIAcA2cf4SCP/qTsJ3VwDc3wER84RKuM=",
+        "lastModified": 1787373389,
+        "narHash": "sha256-CRvE0vHE7ORUz8ORAcImOOcxAPLeEGVWyugVj6dLfSA=",
         "owner": "ponkcore",
         "repo": "shell",
-        "rev": "19251056cdce5e2398a90311b01d9c302020861e",
+        "rev": "0e1ce3340fa63a57aa8c1bbe9073f1b3c821109a",
         "type": "github"
       },
       "original": {
@@ -355,11 +355,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1784799776,
-        "narHash": "sha256-6AM0doj8hSNav9qkX4dOHOp1LSjegdQ+VmzDz9MnWAs=",
+        "lastModified": 1786864924,
+        "narHash": "sha256-9nqIJWuSlAwy4Vs98N9ffoVeU2dmsWcAJ7/DyIDihqM=",
         "owner": "outfoxxed",
         "repo": "quickshell",
-        "rev": "10b439fc6e3fd65c15fe1c486271b31da05ed023",
+        "rev": "532a0606cafb05851a203e65be22c9a057447ee2",
         "type": "github"
       },
       "original": {
