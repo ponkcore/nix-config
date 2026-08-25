@@ -530,6 +530,19 @@ in {
           # but disable it for this specific photo viewer.
           "no_vrr on, match:class com.ayugram.desktop, match:title Media viewer"
         ]
+        ++ [
+          # Clash Verge is a Tauri app with a window-state plugin: it
+          # remembers "maximized" from the last session and requests
+          # set_maximized at map time (verified 2026-08-25: opens with
+          # hyprctl fullscreen=1, fullscreenClient=1). Maximized state
+          # matches `match:fullscreen true` (Hyprland source:
+          # m_fullscreenState.internal != 0), which strips rounding via
+          # the rule above and ignores gaps — the "pseudo-fullscreen"
+          # look. Suppress the client maximize event so the window opens
+          # as a normal tile; dwindle + smart gaps fill the workspace
+          # anyway when it is the only window.
+          "suppress_event maximize, match:class clash-verge"
+        ]
         ++ (mkPopup {
           class = "com.saivert.pwvucontrol";
           category = popup.tray;
