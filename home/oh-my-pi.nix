@@ -48,8 +48,12 @@
         type = "stdio";
         command = "${pkgs.github-mcp-server}/bin/github-mcp-server";
         args = ["stdio" "--toolsets=default,code_security,secret_protection"];
+        # ${GITHUB_TOKEN} is expanded by omp from the process environment
+        # when spawning the server (the `omp` fish wrapper exports it from
+        # `gh auth token` — see home/fish.nix). Deliberately NOT a
+        # PLACEHOLDER_*: the gh token lives in the keyring, not in agenix.
         env = {
-          GITHUB_PERSONAL_ACCESS_TOKEN = "PLACEHOLDER_GITHUB_TOKEN";
+          GITHUB_PERSONAL_ACCESS_TOKEN = "\${GITHUB_TOKEN}";
         };
       };
       semgrep = {
@@ -104,16 +108,20 @@ in {
 
   # --- MCP servers ------------------------------------------------------
   # omp-native mcp.json takes priority over auto-discovered opencode.json.
-  # Unlike the old approach (home.file symlink with ${VAR} placeholders),
-  # the template lives in /nix/store with PLACEHOLDER_* strings and is
-  # rendered at activation time with real keys from /run/agenix/tokens.
+  # The template lives in /nix/store with PLACEHOLDER_* strings; the
+  # activation script substitutes real keys from /run/agenix/tokens via
+  # jq, writing the result to ~/.omp/agent/mcp.json (chmod 600).
   # This is necessary because omp does NOT expand ${VAR} from .env in
   # http headers — it only works with stdio env blocks AND requires the
   # var to be in the process environment. The activation script writes
   # the final mcp.json with real key values (chmod 600, owner-only).
   #
-  # GITHUB_TOKEN is NOT substituted here — it is injected at runtime by
-  # the `omp` fish wrapper from `gh auth token` (env var expansion).
+  # GITHUB_TOKEN is NOT substituted here — mcp.json keeps the literal
+  # ${GITHUB_TOKEN} in the github env block; omp expands it at spawn
+  # time from the process environment (the `omp` fish wrapper exports
+  # it from `gh auth token`). Do NOT "fix" this by substituting a real
+  # value here: gh tokens live in the keyring and rotate independently
+  # of rebuilds.
   home.activation.omp-mcp = lib.hm.dag.entryAfter ["writeBoundary"] ''
     set -eu
     SECRETS="/run/agenix/tokens"
@@ -135,21 +143,16 @@ in {
       echo "ERROR: HEXSTRIKE_API_KEY missing in $SECRETS" >&2
       exit 1
     fi
-    if [ -z "''${GITHUB_TOKEN:-}" ]; then
-      GITHUB_TOKEN="PLACEHOLDER_GITHUB_TOKEN"
-    fi
     mkdir -p "$HOME/.omp/agent"
     umask 077
     ${pkgs.jq}/bin/jq \
       --arg proxy   "$OMP_PROXY_KEY" \
       --arg c7      "$CONTEXT7_API_KEY" \
       --arg hex     "$HEXSTRIKE_API_KEY" \
-      --arg gh      "$GITHUB_TOKEN" \
       '.mcpServers.omniroute.headers["X-API-Key"] = $hex
        | .mcpServers.omniroute.headers["X-Proxy-Key"] = $proxy
        | .mcpServers.context7.headers["X-Context7-API-Key"] = $c7
-       | .mcpServers.hexstrike.headers["X-API-Key"] = $hex
-       | .mcpServers.github.env.GITHUB_PERSONAL_ACCESS_TOKEN = $gh' \
+       | .mcpServers.hexstrike.headers["X-API-Key"] = $hex' \
       ${ompMcpTemplate} \
       > "$OUT.tmp"
     chmod 600 "$OUT.tmp"
