@@ -124,9 +124,14 @@ _: {
         # GitHub token: injected at runtime (moved from HM activation
         # to avoid gh auth token in the boot path). omp expands
         # ''${GITHUB_TOKEN} in mcp.json from the process environment.
+        # NOTE: `set -x`, NOT `set -lx` — a `-l` (local) set inside an
+        # if-block is block-scoped in fish 4.7 and evaporates at `end`,
+        # so the token never reached the spawned process (github MCP
+        # 401s). Verified empirically: -l in if → gone, -x in if →
+        # exported.
         set -l gh_token (gh auth token 2>/dev/null)
         if test -n "$gh_token"
-          set -lx GITHUB_TOKEN "$gh_token"
+          set -x GITHUB_TOKEN "$gh_token"
         else
           echo "omp: gh auth token returned empty — GitHub MCP will fail." >&2
         end
