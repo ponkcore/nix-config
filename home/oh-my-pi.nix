@@ -24,8 +24,15 @@
   ompMcpTemplate = pkgs.writeText "omp-mcp-template.json" (builtins.toJSON {
     "$schema" = "https://raw.githubusercontent.com/can1357/oh-my-pi/main/packages/coding-agent/src/config/mcp-schema.json";
     mcpServers = {
+      # type "sse" (legacy SSE), NOT "http" (streamable): the VPS proxy
+      # implements the legacy dialect on this URL — POSTs get inline JSON
+      # responses, but the GET stream always emits a legacy `event:
+      # endpoint` handshake first. omp's streamable listener fails to
+      # parse it, dies instantly, and reconnect-loops forever (the
+      # stuck "Still connecting: omniroute" banner). LegacySseTransport
+      # speaks exactly the dialect the proxy implements.
       omniroute = {
-        type = "http";
+        type = "sse";
         url = "https://mcp.infinitycore.space/omp/sse";
         headers = {
           "X-API-Key" = "PLACEHOLDER_HEXSTRIKE_API_KEY";
