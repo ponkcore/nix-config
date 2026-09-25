@@ -36,6 +36,23 @@
     virtiofsd # virtio-fs daemon (also pulled by vhostUserPackages, explicit for CLI access)
   ];
 
+  # virtio-win ISO — virtio drivers for Windows guests (disk/net/balloon/
+  # SCSI). Windows has NO virtio drivers in its kernel or installer, so the
+  # Win11 installer cannot see a virtio disk until this ISO is attached as a
+  # second CD-ROM and the driver is loaded manually during setup.
+  #
+  # `pkgs.virtio-win.src` IS the ready-to-boot ISO (volume 'virtio-win', 754 MB,
+  # in the binary cache — no source build).
+  #
+  # Exposed via `environment.etc`, NOT `environment.systemPackages`: the NixOS
+  # system.path buildEnv merges `share/` through a fixed pathsToLink whitelist
+  # that does not include arbitrary subdirs, so a package providing only
+  # share/virtio-win would be silently dropped (no symlink, no GC protection).
+  # `environment.etc` links directly into /etc during activation and keeps the
+  # ISO in the system closure (GC-safe). Result path:
+  #   /etc/virtio-win/virtio-win.iso
+  environment.etc."virtio-win/virtio-win.iso".source = pkgs.virtio-win.src;
+
   # Disable libvirt-guests service — no VMs to save/restore, eliminates shutdown errors
   systemd.services.libvirt-guests.enable = false;
 
