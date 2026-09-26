@@ -260,6 +260,12 @@ in {
         "$mainMod, 7, workspace, 7"
         "$mainMod, 8, workspace, 8"
         "$mainMod, 9, workspace, 9"
+        # Workspace 10 on the zero key — digits run out at 9, so `0` is
+        # the natural tenth slot. Keysym `0` is layout-independent
+        # (shared by RU/US), so no RU duplicate bind is needed, unlike
+        # the letter binds above. Free at runtime (no other bind on
+        # key 0).
+        "$mainMod, 0, workspace, 10"
         "$mainMod SHIFT, 1, movetoworkspace, 1"
         "$mainMod SHIFT, 2, movetoworkspace, 2"
         "$mainMod SHIFT, 3, movetoworkspace, 3"
@@ -269,6 +275,9 @@ in {
         "$mainMod SHIFT, 7, movetoworkspace, 7"
         "$mainMod SHIFT, 8, movetoworkspace, 8"
         "$mainMod SHIFT, 9, movetoworkspace, 9"
+        # Same zero-key logic for the move variant: without it there
+        # would be no keyboard way to send a window to workspace 10.
+        "$mainMod SHIFT, 0, movetoworkspace, 10"
         "$mainMod, R, exec, $menu"
         "$mainMod, К, exec, $menu"
         "$mainMod, grave, exec, ${toggleControlCenter}/bin/toggle-control-center"
