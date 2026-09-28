@@ -31,9 +31,28 @@
   # find nothing to do and cause a periodic I/O spike for no benefit.
   nix.settings.auto-optimise-store = true;
 
-  # nix-direnv — keep derivations so GC doesn't break dev shells
+  # GC retention policy. Both keys default to true in Nix, and leaving
+  # them there silently disabled garbage collection: the weekly nix-gc
+  # freed 1.7 GiB out of an 85 GB store, because every build output
+  # reachable from a retained .drv counted as live.
+  #
+  # keep-derivations = true — retain .drv metadata for live paths.
+  # Costs ~0.26 GB and buys `nix log`, `nix derivation show` and rebuild
+  # tracing for anything currently installed.
+  #
+  # keep-outputs = false — do NOT retain build outputs of dead
+  # derivations. This is the flag that was pinning ~51 GB of stale
+  # outputs (7056 paths, measured with du, hard-link aware).
+  #
+  # The previous comment here claimed keep-derivations protects
+  # nix-direnv dev shells. That was wrong: nix-direnv registers its own
+  # GC roots (`.direnv/flake-profile-*` symlinks under
+  # /nix/var/nix/gcroots/auto/), which keep dev-shell closures live
+  # regardless of these settings. Verified before the change: the
+  # intersection of both live dev-shell closures with the GC dead set
+  # was zero.
   nix.settings.keep-derivations = true;
-  nix.settings.keep-outputs = true;
+  nix.settings.keep-outputs = false;
 
   # Automatic garbage collection.
   # 14d gives enough breathing room to roll back ~2 weeks of generations
