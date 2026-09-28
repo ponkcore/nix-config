@@ -105,7 +105,6 @@
 in {
   home.packages = [
     pkgs.hyprshot
-    pkgs.blueman
     # hyprctl wrapper — unsets LD_LIBRARY_PATH before calling the real
     # hyprctl. The Hyprland flake builds hyprctl with gcc-15 (needs
     # GLIBCXX_3.4.34), but some wrappers (e.g. letta-code) set
@@ -118,6 +117,17 @@ in {
       exec ${pkgs.hyprland}/bin/hyprctl "$@"
     ''))
   ];
+
+  # NOTE: pkgs.blueman deliberately NOT listed here. The system-side
+  # services.blueman.enable (modules/nixos/bluetooth.nix) already puts
+  # blueman into environment.systemPackages and services.dbus.packages,
+  # so a second copy in home.packages landed the same store path in two
+  # XDG_DATA_DIRS entries and emitted three
+  # "Ignoring duplicate name 'org.blueman.*'" warnings at every boot.
+  # It also fed etc/xdg/autostart/blueman.desktop into the per-user
+  # profile, which shadowed the system copy for
+  # systemd-xdg-autostart-generator and raced the Home Manager unit.
+  # See home/blueman-applet.nix for the resulting single-owner setup.
 
   wayland.windowManager.hyprland = {
     enable = true;
