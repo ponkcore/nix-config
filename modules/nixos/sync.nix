@@ -44,10 +44,47 @@
   phoneDeviceId = "CGUAONQ-5Z6GRBL-FQLWTSB-NTLOTJI-S6SW6PT-2XENWZ4-X7I3MP4-SRHAMAJ";
 
   # Trashcan defaults — cheap safety net against an "rm -rf" on
-  # either side. 30 days is plenty for a single-operator vault.
+  # either side. 30 days is plenty for the Obsidian folders, which
+  # already have a second history layer (Obsidian Git on brain, the
+  # VPS side for hermes).
   trashcan30d = {
     type = "trashcan";
     params.cleanoutDays = "30";
+  };
+
+  # `simple` for the KeePass vault, and deliberately NOT `staggered`.
+  #
+  # Why versioning matters more here than anywhere else: vault.kdbx is a
+  # single binary blob with two independent writers (KeePassXC on this
+  # host, KeePassDX on the phone). Syncthing cannot merge it, so the
+  # model is last-writer-wins. Each side keeps the database in memory
+  # and only re-reads the file on open — so a client holding a stale
+  # snapshot silently overwrites the other side's newer work. There is
+  # no conflict file in that case: Syncthing sees an ordinary edit.
+  # Versioning is the only layer that catches it, because it triggers
+  # inside Syncthing at replacement time and does not care which
+  # application misbehaved.
+  #
+  # Why not trashcan: it keeps exactly ONE displaced version per file,
+  # so each new overwrite destroys the previous archive. Observed
+  # 2026-09-30: two phone displacements 24 seconds apart
+  # (14:14:18 / 14:14:42) — the desktop version archived at 14:14:18
+  # was erased by the second one, unrecoverably (ext4, no snapshots).
+  #
+  # Why not staggered: its retention is interval-bucketed — for the
+  # first hour it keeps "the oldest version in every 30-seconds
+  # interval" (docs.syncthing.net/users/versioning.html). Two
+  # overwrites inside one bucket collapse into a single survivor, so
+  # burst protection depends on bucket alignment. A rapid burst of
+  # phone saves is exactly the scenario we need to survive.
+  #
+  # `simple` keeps the last N versions per file with no thinning, which
+  # is deterministic under bursts. Cost is negligible: the vault is
+  # ~85 KB and displaced ~8 times per 40 days, so keep=25 is a few MB
+  # and months of depth.
+  simpleVersions = {
+    type = "simple";
+    params.keep = "25";
   };
 in {
   services.syncthing = {
@@ -84,11 +121,16 @@ in {
         # KeePass vault — shared with Android for KeePassDX.
         # Contains ~/Documents/secrets/vault.kdbx; keep the folder
         # narrow so only password-vault material is shared to mobile.
+        #
+        # Versioning: `simple` (see the simpleVersions binding above).
+        # This folder has NO second history layer — unlike brain
+        # (Obsidian Git) — so Syncthing's .stversions is the only
+        # rollback path for the vault. Do not downgrade it to trashcan.
         "keepass-vault" = {
           label = "keepass";
           path = "/home/${username}/Documents/secrets";
           devices = ["phone"];
-          versioning = trashcan30d;
+          versioning = simpleVersions;
         };
 
         # Obsidian vault — primary knowledge base, two-layer sync

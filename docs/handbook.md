@@ -278,10 +278,14 @@ For the .kdbx file itself, plus `~/Documents`, `~/Pictures` etc.
 4. Laptop side prompts to accept the new device — accept.
 5. Define a folder to share. For the password vault:
    - Path on laptop: `~/Documents/secrets/`
-   - Folder ID: `secrets-vault`
+   - Folder ID: `keepass-vault`
    - Share with: the Android device.
 6. Android side prompts to accept the folder — accept and pick a local
    path. KeePassDX opens the .kdbx from that path.
+
+Topology is declared in `modules/nixos/sync.nix`, not in the Web UI —
+`overrideDevices` / `overrideFolders` are both `true`, so GUI edits are
+silently reverted on the next service restart.
 
 **What gets synced** (default plan):
 - `~/Documents/secrets/` → laptop ↔ Android ↔ (future devices)
@@ -292,6 +296,55 @@ For the .kdbx file itself, plus `~/Documents`, `~/Pictures` etc.
 
 **Conflict handling:** Syncthing renames the loser to `<file>.sync-conflict-…`
 when two devices change the same file simultaneously. Investigate manually.
+
+`.kdbx` is a binary blob, so Syncthing cannot merge it — the model is
+last-writer-wins, and the loser becomes a `sync-conflict-<date>-<time>-<deviceID>.kdbx`
+file. The trailing ID identifies which device lost (`CGUAONQ` = phone,
+`DVCYB6U` = laptop). Such a file is a complete database that opens with
+the same passphrase, and it is often the only remaining copy of the
+losing branch.
+
+**The failure mode this hides.** Both KeePassXC and KeePassDX keep the
+database in memory and re-read the file only on open. A client holding a
+stale snapshot writes it back over the other side's newer work — and
+Syncthing records that as an ordinary edit, with **no** conflict file.
+This is how entries silently disappear. To recover: open the
+`sync-conflict-…` copy read-only as a second KeePassXC tab (File → Open),
+copy the missing entry/field into the live vault, close the conflict tab
+without saving. Or merge wholesale:
+
+```sh
+keepassxc-cli merge -d vault.kdbx vault.sync-conflict-<…>.kdbx   # dry run
+keepassxc-cli merge    vault.kdbx vault.sync-conflict-<…>.kdbx   # real
+```
+
+The first argument is the target, the second the source; merge writes
+into the first. Always `cp -p vault.kdbx vault.premere.kdbx` first.
+
+**Rollback path:** `keepass-vault` uses `simple` versioning
+(`params.keep = 25`) — every displaced version lands in
+`~/Documents/secrets/.stversions/` and the last 25 are retained with no
+thinning. It is deliberately NOT `trashcan` (keeps only one version, so
+each overwrite destroys the previous archive) and NOT `staggered`
+(interval-bucketed: it keeps the oldest version per 30-second bucket for
+the first hour, so a rapid burst collapses into a single survivor). The
+vault has no second history layer — unlike `brain-vault`, which is also
+covered by Obsidian Git — so `.stversions` is the only way back.
+
+**Defences against the stale-snapshot overwrite** (all three matter):
+- `AutoReloadOnChange=true` in KeePassXC (`~/.config/keepassxc/keepassxc.ini`,
+  `[General]`) — re-reads the file when Syncthing replaces it and merges
+  with unsaved in-memory edits instead of blindly overwriting. This fixes
+  the cause on the laptop side; it cannot govern KeePassDX on the phone.
+- `BackupBeforeSave=true` with
+  `BackupFilePathPattern=/home/oonishi/Documents/backups/keepassxc/{DB_FILENAME}_{TIME}.kdbx`
+  — a timestamped copy before each save, outside Syncthing. The `{TIME}`
+  placeholder is what makes this a history; a fixed name would keep only
+  one step back.
+- `simple` versioning (above) — the only layer that catches a blind
+  overwrite arriving *from the phone*, because it triggers inside
+  Syncthing at replacement time and does not depend on either
+  application behaving correctly.
 
 ### Layer ∞ — Emergency recovery
 
