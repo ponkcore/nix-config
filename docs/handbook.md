@@ -294,24 +294,39 @@ silently reverted on the next service restart.
 - Bigger folders (Pictures, code) — add only if Syncthing storage on
   the partner allows.
 
-**Conflict handling:** Syncthing renames the loser to `<file>.sync-conflict-…`
-when two devices change the same file simultaneously. Investigate manually.
+**Conflict handling.** `.kdbx` is a binary blob, so Syncthing cannot merge
+it. When it detects that both sides diverged, it keeps the *incoming*
+version as `<file>.kdbx` and renames the **local** file out of the way to
+`<file>.sync-conflict-<date>-<time>-<deviceID>.kdbx`.
 
-`.kdbx` is a binary blob, so Syncthing cannot merge it — the model is
-last-writer-wins, and the loser becomes a `sync-conflict-<date>-<time>-<deviceID>.kdbx`
-file. The trailing ID identifies which device lost (`CGUAONQ` = phone,
-`DVCYB6U` = laptop). Such a file is a complete database that opens with
-the same passphrase, and it is often the only remaining copy of the
-losing branch.
+Read the name carefully — it is counter-intuitive:
 
-**The failure mode this hides.** Both KeePassXC and KeePassDX keep the
-database in memory and re-read the file only on open. A client holding a
-stale snapshot writes it back over the other side's newer work — and
-Syncthing records that as an ordinary edit, with **no** conflict file.
-This is how entries silently disappear. To recover: open the
-`sync-conflict-…` copy read-only as a second KeePassXC tab (File → Open),
-copy the missing entry/field into the live vault, close the conflict tab
-without saving. Or merge wholesale:
+- the **conflict file contains this host's local content** (the side that
+  lost and got moved aside);
+- the trailing **ID names the device that authored the WINNING version**
+  (`moveForConflict(name, file.ModifiedBy.String())` →
+  `Rename(localName, conflictName)` in `lib/model/folder_sendrecv.go`).
+  On this host `CGUAONQ` = phone, `DVCYB6U` = laptop, `7TYSH4F` = VPS.
+
+So `vault.sync-conflict-…-CGUAONQ.kdbx` means "the phone's version won;
+this file is what the laptop had". Verify with sizes: a conflict copy
+whose size never appears as a `blocks.download=1` event in the journal is
+a local write, not something received from a peer.
+
+Such a file is a complete database that opens with the same passphrase,
+and it is often the only remaining copy of the losing branch — never
+delete it casually.
+
+**The failure mode that leaves no trace at all.** Both KeePassXC and
+KeePassDX keep the database in memory and re-read the file only on open.
+If a client holding a stale snapshot saves while the peer has *already*
+been acknowledged as current, Syncthing sees an ordinary sequential edit,
+not a divergence — so **no conflict file is created** and the newer work
+is simply gone. This is why versioning (below) is not optional.
+
+To recover from a conflict copy: open it read-only as a second KeePassXC
+tab (File → Open), copy the missing entry/field into the live vault,
+close the conflict tab without saving. Or merge wholesale:
 
 ```sh
 keepassxc-cli merge -d vault.kdbx vault.sync-conflict-<…>.kdbx   # dry run
@@ -331,20 +346,32 @@ the first hour, so a rapid burst collapses into a single survivor). The
 vault has no second history layer — unlike `brain-vault`, which is also
 covered by Obsidian Git — so `.stversions` is the only way back.
 
-**Defences against the stale-snapshot overwrite** (all three matter):
+**Defences against the stale-snapshot overwrite** (all four matter):
 - `AutoReloadOnChange=true` in KeePassXC (`~/.config/keepassxc/keepassxc.ini`,
   `[General]`) — re-reads the file when Syncthing replaces it and merges
-  with unsaved in-memory edits instead of blindly overwriting. This fixes
-  the cause on the laptop side; it cannot govern KeePassDX on the phone.
+  with unsaved in-memory edits instead of blindly overwriting. Fixes the
+  cause on the laptop side only.
+- KeePassDX shows a **"The information contained in your database has been
+  modified outside the app"** dialog when it detects the file changed
+  underneath it. The dialog offers *Merge the data, overwrite the external
+  modifications by saving the database, or reload it with the latest
+  changes* — **choose Merge**. Choosing "overwrite" reproduces the exact
+  bug that lost the field on 2026-09-23. Note this dialog only appears if
+  KeePassDX re-checks the file; it is not a guarantee.
 - `BackupBeforeSave=true` with
   `BackupFilePathPattern=/home/oonishi/Documents/backups/keepassxc/{DB_FILENAME}_{TIME}.kdbx`
   — a timestamped copy before each save, outside Syncthing. The `{TIME}`
   placeholder is what makes this a history; a fixed name would keep only
-  one step back.
-- `simple` versioning (above) — the only layer that catches a blind
-  overwrite arriving *from the phone*, because it triggers inside
-  Syncthing at replacement time and does not depend on either
-  application behaving correctly.
+  one step back. Accumulates — prune periodically.
+- `simple` versioning (above) — the only layer that is independent of
+  both applications' behaviour, because it triggers inside Syncthing at
+  replacement time. This is the backstop when a client silently
+  overwrites without anyone detecting a divergence.
+
+**Operating discipline** (the real fix; tooling only limits the damage):
+never edit the vault on both devices without closing it on the other one
+first. One writer at a time. Before editing on a device that has been
+idle, lock and re-open the database so it re-reads from disk.
 
 ### Layer ∞ — Emergency recovery
 
