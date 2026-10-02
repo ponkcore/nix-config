@@ -18,15 +18,24 @@
   # for IdleMonitors (inhibitWhenCharging) and BatteryMonitor.
   services.upower.enable = true;
 
-  # XDG portals — gtk portal is the universal fallback used by GTK and
-  # Electron apps. Compositor-specific portals (xdg-desktop-portal-hyprland,
-  # xdg-desktop-portal-gnome) extend this list from sessions/<name>.nix.
-  xdg.portal = {
-    enable = true;
-    extraPortals = with pkgs; [
-      xdg-desktop-portal-gtk
-    ];
-  };
+  # XDG portals. The gtk portal (universal fallback for GTK and Electron
+  # apps) is NOT listed here on purpose: nixpkgs already contributes it
+  # via programs/wayland/wayland-session.nix (enableGtkPortal defaults to
+  # true, and hyprland.nix imports that module), so listing it again
+  # produced a duplicate in xdg.portal.extraPortals — which then landed
+  # twice in services.dbus.packages and emitted
+  # "Ignoring duplicate name 'org.freedesktop.impl.portal.desktop.gtk'"
+  # at every login.
+  #
+  # Compositor-specific portals still belong in sessions/<name>.nix
+  # (hyprland.nix sets programs.hyprland.portalPackage, which the NixOS
+  # module turns into an extraPortals entry).
+  #
+  # Safety for a future compositor that imports none of the above:
+  # nixpkgs asserts extraPortals != [], so evaluation fails loudly with a
+  # message naming the option rather than silently booting without any
+  # portal implementation. No edit here is needed to get that guarantee.
+  xdg.portal.enable = true;
 
   # Portal user-services log to stdout/stderr by default; on session
   # bootstrap (between greeter exit and compositor screen-take-over)
