@@ -92,11 +92,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1783566793,
-        "narHash": "sha256-Z8keX0Dtsu1eYNoxpKfmA5cPBTXwwb3oMyegFD+iF+8=",
+        "lastModified": 1790683523,
+        "narHash": "sha256-Y0ief3Jbt6eK2aK56dzgOJT7NKE12mtZDPiiCHPGQ6I=",
         "owner": "ponkcore",
         "repo": "cli",
-        "rev": "d53677052a52cccb6d5b05e77d06d6f781f4ed84",
+        "rev": "f820282b7df8f87010743f0f8eb771a83b9bb56d",
         "type": "github"
       },
       "original": {
@@ -118,11 +118,11 @@
         "quickshell": "quickshell"
       },
       "locked": {
-        "lastModified": 1787373389,
-        "narHash": "sha256-CRvE0vHE7ORUz8ORAcImOOcxAPLeEGVWyugVj6dLfSA=",
+        "lastModified": 1790662785,
+        "narHash": "sha256-fjUgBYYJJQfruJF0W8LLLB75a6KePooCDpe6hIPsXxA=",
         "owner": "ponkcore",
         "repo": "shell",
-        "rev": "0e1ce3340fa63a57aa8c1bbe9073f1b3c821109a",
+        "rev": "7a721f66b67c4c580b53345f8e4fdada727d945b",
         "type": "github"
       },
       "original": {
