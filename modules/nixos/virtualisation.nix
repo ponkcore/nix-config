@@ -14,6 +14,24 @@
     onShutdown = "shutdown";
     qemu = {
       package = pkgs.qemu_kvm;
+      # Run QEMU as the unprivileged qemu-libvirtd user (uid 301) instead
+      # of root. The nixpkgs default is runAsRoot = true, which left every
+      # domain "tainted: high-privileges" and meant a guest escape would
+      # land on uid 0 with no namespace isolation.
+      #
+      # Writing user/group into qemu.conf is all that is needed: libvirt's
+      # dynamic DAC seclabel (type='dynamic' model='dac' relabel='yes', the
+      # default on this host) chowns disk images, nvram and TPM state to
+      # the QEMU user at domain start, and the qemu driver exposes
+      # dynamic_ownership plus swtpm_user/swtpm_group for the TPM socket.
+      # All three strings verified present in libvirt_driver_qemu.so for
+      # libvirt 12.2.0.
+      #
+      # ORDERING CONSTRAINT: flip this while no guest exists. Migrating a
+      # live domain would mean chowning sealed TPM state, where a mistake
+      # loses keys sealed inside the guest. This was applied on
+      # 2026-10-02 with both previous VMs (win, ubuntu) already undefined.
+      runAsRoot = false;
       # Virtual TPM 2.0 — required for Windows 11, useful for
       # guest secure boot / disk encryption with TPM pin.
       swtpm.enable = true;
