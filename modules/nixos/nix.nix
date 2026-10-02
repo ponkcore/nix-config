@@ -65,6 +65,45 @@
     persistent = true;
   };
 
+  # Boot entries are written only by activation, but GC deletes profiles
+  # on its own schedule — so between a GC run and the next rebuild the
+  # loader keeps entries whose `init=` points at a deleted store path.
+  # That happened with generation 635 (removed by GC on 2026-09-28, entry
+  # survived until the next switch): selecting it at boot would have
+  # failed to load.
+  #
+  # `switch-to-configuration boot` rewrites /boot/loader/entries from the
+  # profiles that still exist. systemd-boot-builder.py's
+  # remove_old_entries() unlinks any entry whose generation is not in the
+  # live profile list. The `boot` action only installs the bootloader —
+  # it does NOT activate, so it never restarts units or touches the
+  # running system.
+  #
+  # Verified before enabling: merging ExecStartPost onto the nixpkgs unit
+  # preserves ExecStart and nix.gc.options; the command is idempotent
+  # (repeated runs leave entries byte-identical); and a decisive test —
+  # dropping in a synthetic entry for nonexistent generation 999 with a
+  # broken init path — was removed by one run, with all real entries
+  # restored 1:1.
+  #
+  # Why not lower boot.loader.systemd-boot.configurationLimit instead:
+  # that trims entries during activation too, so it narrows the window
+  # but does not close it. At 9 rebuilds per 14 days against a limit of
+  # 7 the window is live on this host.
+  #
+  # The path is the runtime /run/current-system, deliberately NOT
+  # ${config.system.build.toplevel}: referencing toplevel from inside a
+  # unit that is itself part of toplevel is self-referential and fails
+  # evaluation with "infinite recursion encountered". Going through
+  # /run/current-system is also the semantically right choice — the GC
+  # runs against the active generation, and its switch-to-configuration
+  # wrapper has that generation's bootloader settings (configurationLimit
+  # and friends) baked in, which is exactly what the entries should
+  # reflect.
+  systemd.services.nix-gc.serviceConfig.ExecStartPost = [
+    "/run/current-system/bin/switch-to-configuration boot"
+  ];
+
   # zram-swap — 30% of physical RAM, zstd-compressed. Defaults to
   # priority 5; deliberately not overridden here so the kernel applies
   # its own swap-priority arithmetic without manual interference.
