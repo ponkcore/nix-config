@@ -1,0 +1,34 @@
+--- a/profiles/input/hog.c
++++ b/profiles/input/hog.c
+@@ -189,6 +189,16 @@
+ 		if (!bt_gatt_client_set_security(client,
+ 						BT_ATT_SECURITY_MEDIUM))
+ 			return -ECONNREFUSED;
++	} else {
++		/* A bonded HOGP device needs an encrypted link as well: the
++		 * Report Map characteristic requires authentication.  Without
++		 * requesting the security level here the read races with the
++		 * kernel LE encryption procedure and fails with Insufficient
++		 * Authentication, which leaves the device without a uHID
++		 * instance until bluetoothd is restarted.
++		 */
++		bt_gatt_client_set_security(btd_device_get_gatt_client(device),
++						BT_ATT_SECURITY_MEDIUM);
+ 	}
+ 
+ 	/* TODO: Replace GAttrib with bt_gatt_client */
+--- a/profiles/input/hog-lib.c
++++ b/profiles/input/hog-lib.c
+@@ -1040,6 +1040,12 @@
+ 
+ 	if (status != 0) {
+ 		error("Report Map read failed: %s", att_ecode2str(status));
++		/* Clear the request id so the next attach retries the read.
++		 * read_report_map() skips the read while report_map_id is
++		 * set, and nothing else ever resets it, so a single failed
++		 * read would permanently leave this device without uHID.
++		 */
++		hog->report_map_id = 0;
+ 		return;
+ 	}
+ 
