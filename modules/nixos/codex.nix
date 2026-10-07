@@ -30,7 +30,10 @@
 
       omniroute = {
         url = "https://mcp.infinitycore.space/omp/sse";
-        env_http_headers.X-API-Key = "HEXSTRIKE_API_KEY";
+        # env var NAME resolved at runtime (codex launcher sources
+        # /run/agenix/tokens with allexport). OMP_GATE_KEY gates /omp/* only —
+        # separate from HEXSTRIKE_API_KEY (/hex/* gate).
+        env_http_headers.X-API-Key = "OMP_GATE_KEY";
         env_http_headers.X-Proxy-Key = "OMP_PROXY_KEY";
         enabled_tools = ["web_search" "web_fetch"];
         startup_timeout_sec = 90;

@@ -11,9 +11,13 @@ filters the upstream OmniRoute MCP server to exactly two tools:
 the VPS; laptop clients authenticate to the proxy with `X-Proxy-Key`.
 
 - URL: `https://mcp.infinitycore.space/omp/sse`
-- Auth: `X-API-Key` (Caddy gate, `HEXSTRIKE_API_KEY` env var) + `X-Proxy-Key` (tool-filter, `OMP_PROXY_KEY` env var)
+- Auth: `X-API-Key` (Caddy gate for `/omp/*`, `OMP_GATE_KEY` env var) + `X-Proxy-Key` (tool-filter, `OMP_PROXY_KEY` env var)
 - Transport: Streamable HTTP (SSE) through `mcp-bridge --url`
 - Available tools: `web_search`, `web_fetch` (proxy-filtered)
+
+The gate is per-route: `OMP_GATE_KEY` opens only `/omp/*` and does NOT
+grant access to `/hex/*` (HexStrike), which uses the separate
+`HEXSTRIKE_API_KEY`. The two gate keys are not interchangeable.
 
 The proxy key comes from agenix (`/run/agenix/tokens`) and is
 exported into the environment. Never put it on the command line
@@ -53,7 +57,7 @@ List tools:
 mcp-bridge \
   --url 'https://mcp.infinitycore.space/omp/sse' \
   --transport sse \
-  --header-env 'X-API-Key=HEXSTRIKE_API_KEY' \
+  --header-env 'X-API-Key=OMP_GATE_KEY' \
   --header-env 'X-Proxy-Key=OMP_PROXY_KEY' \
   --timeout 90 \
   --list
@@ -65,7 +69,7 @@ Call web_search:
 mcp-bridge \
   --url 'https://mcp.infinitycore.space/omp/sse' \
   --transport sse \
-  --header-env 'X-API-Key=HEXSTRIKE_API_KEY' \
+  --header-env 'X-API-Key=OMP_GATE_KEY' \
   --header-env 'X-Proxy-Key=OMP_PROXY_KEY' \
   --timeout 90 \
   --tool 'web_search' \
@@ -78,7 +82,7 @@ Call web_fetch:
 mcp-bridge \
   --url 'https://mcp.infinitycore.space/omp/sse' \
   --transport sse \
-  --header-env 'X-API-Key=HEXSTRIKE_API_KEY' \
+  --header-env 'X-API-Key=OMP_GATE_KEY' \
   --header-env 'X-Proxy-Key=OMP_PROXY_KEY' \
   --timeout 90 \
   --tool 'web_fetch' \

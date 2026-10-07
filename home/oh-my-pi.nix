@@ -35,7 +35,12 @@
         type = "sse";
         url = "https://mcp.infinitycore.space/omp/sse";
         headers = {
-          "X-API-Key" = "PLACEHOLDER_HEXSTRIKE_API_KEY";
+          # Caddy gate for the /omp/* route only. Deliberately a SEPARATE key
+          # from HEXSTRIKE_API_KEY: the gate is per-route (OMP_GATE_KEY opens
+          # /omp/*, HEXSTRIKE_API_KEY opens /hex/*), so an omp-only key does
+          # NOT grant access to the HexStrike pentest tools. See
+          # reference/mcp-proxy-architecture.md.
+          "X-API-Key" = "PLACEHOLDER_OMP_GATE_KEY";
           "X-Proxy-Key" = "PLACEHOLDER_OMP_PROXY_KEY";
         };
       };
@@ -150,13 +155,18 @@ in {
       echo "ERROR: HEXSTRIKE_API_KEY missing in $SECRETS" >&2
       exit 1
     fi
+    if [ -z "''${OMP_GATE_KEY:-}" ]; then
+      echo "ERROR: OMP_GATE_KEY missing in $SECRETS" >&2
+      exit 1
+    fi
     mkdir -p "$HOME/.omp/agent"
     umask 077
     ${pkgs.jq}/bin/jq \
       --arg proxy   "$OMP_PROXY_KEY" \
       --arg c7      "$CONTEXT7_API_KEY" \
       --arg hex     "$HEXSTRIKE_API_KEY" \
-      '.mcpServers.omniroute.headers["X-API-Key"] = $hex
+      --arg gate    "$OMP_GATE_KEY" \
+      '.mcpServers.omniroute.headers["X-API-Key"] = $gate
        | .mcpServers.omniroute.headers["X-Proxy-Key"] = $proxy
        | .mcpServers.context7.headers["X-Context7-API-Key"] = $c7
        | .mcpServers.hexstrike.headers["X-API-Key"] = $hex' \
@@ -173,9 +183,13 @@ in {
   #
   # Keys used by omp:
   #   OMNIROUTE_API_KEY  — provider apiKey (models.yml)
-  #   OMP_PROXY_KEY      — VPS MCP proxy auth (mcp.json X-Proxy-Key)
+  #   OMP_PROXY_KEY      — VPS MCP proxy tool-filter (mcp.json X-Proxy-Key)
   #   CONTEXT7_API_KEY   — context7 MCP (mcp.json X-Context7-API-Key)
-  #   HEXSTRIKE_API_KEY  — hexstrike MCP (mcp.json X-API-Key)
+  #   HEXSTRIKE_API_KEY  — hexstrike MCP Caddy gate (mcp.json hexstrike X-API-Key)
+  #   OMP_GATE_KEY       — omniroute proxy Caddy gate (mcp.json omniroute X-API-Key)
+  # The two gate keys are per-route and non-interchangeable: OMP_GATE_KEY
+  # opens only /omp/* (web_search + web_fetch), HEXSTRIKE_API_KEY opens only
+  # /hex/* (HexStrike). Sharing them was the reason for this split.
   # GITHUB_TOKEN is NOT written here — it is injected at runtime by
   # the `omp` fish wrapper from `gh auth token` (env var expansion).
   home.activation.omp-env = lib.hm.dag.entryAfter ["writeBoundary"] ''
@@ -204,6 +218,10 @@ in {
       echo "ERROR: HEXSTRIKE_API_KEY missing in $SECRETS" >&2
       exit 1
     fi
+    if [ -z "''${OMP_GATE_KEY:-}" ]; then
+      echo "ERROR: OMP_GATE_KEY missing in $SECRETS" >&2
+      exit 1
+    fi
     mkdir -p "$HOME/.omp/agent"
     umask 077
     cat > "$OUT" <<EOF
@@ -211,6 +229,7 @@ in {
     OMP_PROXY_KEY=$OMP_PROXY_KEY
     CONTEXT7_API_KEY=$CONTEXT7_API_KEY
     HEXSTRIKE_API_KEY=$HEXSTRIKE_API_KEY
+    OMP_GATE_KEY=$OMP_GATE_KEY
     EOF
   '';
 }

@@ -101,7 +101,9 @@
         url = "https://mcp.infinitycore.space/omp/sse";
         enabled = true;
         headers = {
-          X-API-Key = "REPLACE_HEXSTRIKE_API_KEY";
+          # Caddy gate for /omp/* only (separate from HEXSTRIKE_API_KEY, which
+          # gates /hex/*). This key grants web_search + web_fetch, NOT HexStrike.
+          X-API-Key = "REPLACE_OMP_GATE_KEY";
           X-Proxy-Key = "REPLACE_OMP_PROXY_KEY";
         };
       };
@@ -308,7 +310,8 @@ in {
   # The .age file bundles:
   #   OMNIROUTE_API_KEY  — opencode omniroute provider apiKey
   #   CONTEXT7_API_KEY   — X-Context7-API-Key header for context7 MCP
-  #   OMP_PROXY_KEY      — X-Proxy-Key header for VPS MCP proxy
+  #   OMP_PROXY_KEY      — X-Proxy-Key header for VPS MCP proxy (tool filter)
+  #   OMP_GATE_KEY       — X-API-Key header for VPS MCP proxy (/omp/* Caddy gate)
   #
   # GITHUB_PERSONAL_ACCESS_TOKEN is NOT in tokens.age — it is injected
   # at runtime by the `omo`/`opencode` fish wrappers from `gh auth token`.
@@ -338,8 +341,8 @@ in {
       echo "ERROR: OMP_PROXY_KEY missing in $SECRETS" >&2
       exit 1
     fi
-    if [ -z "''${HEXSTRIKE_API_KEY:-}" ]; then
-      echo "ERROR: HEXSTRIKE_API_KEY missing in $SECRETS" >&2
+    if [ -z "''${OMP_GATE_KEY:-}" ]; then
+      echo "ERROR: OMP_GATE_KEY missing in $SECRETS" >&2
       exit 1
     fi
     mkdir -p "${config.xdg.configHome}/opencode"
@@ -350,9 +353,9 @@ in {
     ${pkgs.jq}/bin/jq \
       --arg c7  "$CONTEXT7_API_KEY" \
       --arg proxy "$OMP_PROXY_KEY" \
-      --arg hex "$HEXSTRIKE_API_KEY" \
+      --arg gate "$OMP_GATE_KEY" \
       '.mcp.context7.headers["X-Context7-API-Key"] = $c7
-       | .mcp.omniroute.headers["X-API-Key"] = $hex
+       | .mcp.omniroute.headers["X-API-Key"] = $gate
        | .mcp.omniroute.headers["X-Proxy-Key"] = $proxy' \
       ${opencodeJsonTemplate} \
       > "$OUT.tmp"
