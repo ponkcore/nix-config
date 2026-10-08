@@ -203,4 +203,33 @@
     Service.ExecStart = lib.mkForce "${pkgs.coreutils}/bin/true";
     Install.WantedBy = lib.mkForce [];
   };
+
+  # Restart policy for the shell. The fork's HM module hardcodes
+  # Restart=on-failure (a literal, not mkDefault), which only revives a
+  # *crash*. A desktop shell must always be present, so override to
+  # always: systemd then restarts it on ANY exit except an explicit
+  # `systemctl stop` / target teardown. mkForce is required because the
+  # module sets the value as a bare literal — merging two literals would
+  # otherwise be a conflicting-definition error.
+  #
+  # Motivating incident (2026-10-08 18:01): a host-wide D-Bus/GUI disruption
+  # sent the shell a clean SIGTERM (ExecMainStatus=15, Result=success), so
+  # on-failure classified it as success and left the desktop with no bar /
+  # wallpaper / notifications for 21 minutes until a manual restart. always
+  # closes that gap.
+  #
+  # StartLimit* are the crash-loop damper: with RestartSec=3s, five rapid
+  # deaths inside 30s make systemd stop trying instead of hot-looping forever
+  # on a shell that cannot start (e.g. before Wayland is up). These are [Unit]
+  # directives the module does not set, so they merge without conflict.
+  systemd.user.services.caelestia = {
+    Service = {
+      Restart = lib.mkForce "always";
+      RestartSec = lib.mkForce "3s";
+    };
+    Unit = {
+      StartLimitIntervalSec = "30";
+      StartLimitBurst = "5";
+    };
+  };
 }
