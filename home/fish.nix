@@ -148,22 +148,40 @@ _: {
         mkdir -p "$HOME/.omp/agent"
         jq -r '
           def inp: "[" + (.input | join(", ")) + "]";
-          "providers:",
-          (.providers | to_entries[] |
-            "  \(.key):",
-            "    baseUrl: \(.value.baseUrl)/v1",
-            "    apiKey: \(.value.apiKeyEnv)",
-            "    api: \(.value.api)",
-            "    auth: apiKey",
-            "    authHeader: \(.value.authHeader)",
-            "    models:"),
-          (.models | to_entries[] |
-            "      - id: \(.value.remoteId)",
-            "        name: \(.value.name)",
-            "        reasoning: \(.value.reasoning)",
-            "        input: \(.value | inp)",
-            "        contextWindow: \(.value.contextWindow)",
-            "        maxTokens: \(.value.maxTokens)")
+          def thinking:
+            if .thinking then
+              "        thinking:\n          mode: \(.thinking.mode)\n          efforts: [\(.thinking.efforts | join(", "))]"
+            else empty end;
+          # Emit each provider WITH its own models nested underneath. The old
+          # form printed all providers first and then one flat model list, so
+          # every model landed under the LAST provider — invisible with a single
+          # provider, wrong as soon as there are two.
+          .models as $all
+          | "providers:"
+          , (
+              .providers | to_entries[] | .key as $p |
+              "  \($p):",
+              # baseUrl is used VERBATIM — the catalogue already carries the /v1
+              # suffix. Appending it here produced the doubled `…/v1/v1` (debt
+              # item 12), which omniroute only tolerated by accident and which
+              # clip rejects with 404.
+              "    baseUrl: \(.value.baseUrl)",
+              "    apiKey: \(.value.apiKeyEnv)",
+              "    api: \(.value.api)",
+              "    auth: apiKey",
+              "    authHeader: \(.value.authHeader)",
+              "    models:",
+              (
+                [ $all | to_entries[] | select(.value.provider == $p) | .value ] | .[] |
+                "      - id: \(.remoteId)",
+                "        name: \(.name)",
+                "        reasoning: \(.reasoning)",
+                "        input: \(. | inp)",
+                "        contextWindow: \(.contextWindow)",
+                "        maxTokens: \(.maxTokens)",
+                thinking
+              )
+            )
         ' "$catalog" > "$out.tmp"
         or begin
           echo "omp: failed to render models.yml — check JSON syntax in $catalog." >&2
@@ -220,7 +238,11 @@ _: {
                 .key as $p | .value as $pv |
                 .value = ({
                   npm: "@ai-sdk/openai-compatible",
-                  options: ({ baseURL: ($pv.baseUrl + "/v1"), apiKey: (env[$pv.apiKeyEnv] // "") }
+                  # baseURL is used VERBATIM — the catalogue already carries the
+                  # /v1 suffix. Appending it produced the doubled `…/v1/v1`
+                  # (debt item 12), which omniroute tolerated only by accident
+                  # and which clip rejects with 404.
+                  options: ({ baseURL: $pv.baseUrl, apiKey: (env[$pv.apiKeyEnv] // "") }
                             + (if $pv.api then {api: $pv.api} else {} end)),
                   models: ($cat.models | to_entries
                            | map(select(.value.provider == $p))

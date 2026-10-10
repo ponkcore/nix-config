@@ -34,11 +34,14 @@ in {
   # owner=oonishi). Read by home/letta.nix at runtime and home/opencode.nix
   # when rendering its config file.
   #
-  # Current contents:
-  #   OMNIROUTE_API_KEY     — opencode omniroute provider, letta provider env
+  # Current contents (7 keys, verified against /run/agenix/tokens 2026-10-10):
+  #   OMNIROUTE_API_KEY     — omniroute provider apiKey (opencode/omp/letta)
+  #   CLIPROXY_API_KEY      — clip provider apiKey (opencode/omp/letta); Gemini
+  #                           via ClipProxy on the VPS
   #   LAZYWEB_MCP_TOKEN     — opencode lazyweb MCP server (Bearer header)
   #   CONTEXT7_API_KEY      — context7 MCP server (X-Context7-API-Key header)
-  #   OMNIROUTE_MCP_API_KEY — OmniRoute MCP server (X-API-Key header)
-  # (FIREWORKS_API_KEY removed 2026-07-22 — fireworks unused across all agents.)
+  #   OMP_PROXY_KEY         — VPS MCP proxy tool-filter (X-Proxy-Key header)
+  #   OMP_GATE_KEY          — VPS MCP Caddy gate for /omp/* (X-API-Key header)
+  #   HEXSTRIKE_API_KEY     — VPS MCP Caddy gate for /hex/* (X-API-Key header)
   "tokens.age".publicKeys = all;
 }

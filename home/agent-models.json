@@ -1,11 +1,19 @@
 {
-  "$schema-comment": "Single source of truth for custom LLM providers and models across all local agents (opencode/omo, omp, letta). NO secrets here — apiKeyEnv names an environment variable that holds the key at runtime (from /run/agenix/tokens or `gh auth token`). Edit this file and the next agent launch picks it up — NO nixos-rebuild needed. Context/output for the *-tier combos are intentionally set by hand (SSS=1M/128K, SS/S/A=200K/64K, B=200K/32K); tweak freely.",
+  "$schema-comment": "Single source of truth for custom LLM providers and models across all local agents (opencode/omo, omp, letta). NO secrets here — apiKeyEnv names an environment variable that holds the key at runtime (from /run/agenix/tokens or `gh auth token`). Edit this file and the next agent launch picks it up — NO nixos-rebuild needed. baseUrl MUST include the /v1 suffix: all three consumers (omp renderer, opencode modelmap, letta mod) use it verbatim and do NOT append anything (the old double-/v1 bug was fixed 2026-10-10).",
+  "$data-provenance": "omniroute combo tiers: context_length / max_output_tokens / input_modalities / capabilities were re-read from GET https://omni.infinitycore.space/v1/models on 2026-10-10. A-tier reports null for every field, so its contextWindow (128000) comes from the server's own rejection text: 'Input exceeds context window for alibaba/deepseek-v4.1-flash: limit 128000'. A-tier maxTokens (65536) is a CONSERVATIVE GUESS — neither the tier nor its backend publishes a ceiling. The six tiers are combos that route to a pool of backends (observed: R→qwen3.8-max-0902, SSS→kimi-k3, SS→deepseek-v4-pro-0813 + deepseek-v4-flash-0731, S→glm-5.3-prime / glm-5.2-fast-preview, A→deepseek-v4.1-flash, B→glm-5.1), so vision and context are only as good as the pool. Vision was tested empirically with a solid-red 64x64 PNG, 3 runs per tier: R/SS/S/A/B answered 'Red'; SSS (routed to a bare kimi-k3 route) claimed it could not see the image, so SSS is declared text-only. clip models: see $clip-provenance.",
+  "$clip-provenance": "clip = ClipProxy on the same VPS (https://clip.infinitycore.space/v1), reached via a different API key. Its /v1/models lists 32 ids but carries NO context_length / max_output_tokens / capabilities, and its management API is 404 even with a valid key — so the context window (1048576) was extracted from the server's own rejection of an oversized prompt ('maximum number of tokens allowed (1048576)'). max_tokens is NOT validated by this endpoint at all (2000000 accepted silently), so maxTokens 65536 is a CONSERVATIVE GUESS, not a measured ceiling. reasoning_effort IS validated and accepts ONLY low/medium/high — no minimal, xhigh or max (a bogus value returns 'valid levels: low, medium, high'); the thinking blocks below declare exactly that, which also stops omp from clamping. Both models accept images (verified with a PNG in an image_url block) and tool calls (verified by a real `read` of README.md in ~/Projects/course-platform on asus). All claude/anthropic ids on clip return 503 auth_unavailable (broken upstream) and are deliberately NOT included.",
   "providers": {
     "omniroute": {
       "baseUrl": "https://omni.infinitycore.space/v1",
       "api": "openai-completions",
       "authHeader": true,
       "apiKeyEnv": "OMNIROUTE_API_KEY"
+    },
+    "clip": {
+      "baseUrl": "https://clip.infinitycore.space/v1",
+      "api": "openai-completions",
+      "authHeader": true,
+      "apiKeyEnv": "CLIPROXY_API_KEY"
     }
   },
   "models": {
@@ -14,66 +22,120 @@
       "remoteId": "R-tier",
       "name": "R — Reasoning Flagship",
       "contextWindow": 1000000,
-      "maxTokens": 128000,
+      "maxTokens": 1048576,
       "reasoning": true,
-      "input": ["text"],
+      "input": ["text", "image"],
       "temperature": true,
-      "toolCall": true
+      "toolCall": true,
+      "thinking": { "mode": "effort", "efforts": ["minimal", "low", "medium", "high", "xhigh", "max"] }
     },
     "SSS-tier": {
       "provider": "omniroute",
       "remoteId": "SSS-tier",
       "name": "SSS — Premium Flagship",
       "contextWindow": 1000000,
-      "maxTokens": 128000,
+      "maxTokens": 131072,
       "reasoning": true,
       "input": ["text"],
       "temperature": true,
-      "toolCall": true
+      "toolCall": true,
+      "thinking": { "mode": "effort", "efforts": ["minimal", "low", "medium", "high", "xhigh", "max"] }
     },
     "SS-tier": {
       "provider": "omniroute",
       "remoteId": "SS-tier",
       "name": "SS — GPT Reasoning",
-      "contextWindow": 400000,
-      "maxTokens": 64000,
+      "contextWindow": 1000000,
+      "maxTokens": 384000,
       "reasoning": true,
       "input": ["text", "image"],
       "temperature": true,
-      "toolCall": true
+      "toolCall": true,
+      "thinking": { "mode": "effort", "efforts": ["minimal", "low", "medium", "high", "xhigh", "max"] }
     },
     "S-tier": {
       "provider": "omniroute",
       "remoteId": "S-tier",
       "name": "S — Mid Flagship",
       "contextWindow": 1000000,
-      "maxTokens": 64000,
+      "maxTokens": 131072,
       "reasoning": true,
       "input": ["text", "image"],
       "temperature": true,
-      "toolCall": true
+      "toolCall": true,
+      "thinking": { "mode": "effort", "efforts": ["minimal", "low", "medium", "high", "xhigh", "max"] }
     },
     "A-tier": {
       "provider": "omniroute",
       "remoteId": "A-tier",
-      "name": "A — Mixed)",
-      "contextWindow": 200000,
-      "maxTokens": 64000,
+      "name": "A — Mixed",
+      "contextWindow": 128000,
+      "maxTokens": 65536,
       "reasoning": true,
       "input": ["text", "image"],
       "temperature": true,
-      "toolCall": true
+      "toolCall": true,
+      "thinking": { "mode": "effort", "efforts": ["minimal", "low", "medium", "high", "xhigh", "max"] }
     },
     "B-tier": {
       "provider": "omniroute",
       "remoteId": "B-tier",
       "name": "B — Small",
       "contextWindow": 200000,
-      "maxTokens": 64000,
+      "maxTokens": 128000,
       "reasoning": true,
       "input": ["text", "image"],
       "temperature": true,
-      "toolCall": true
+      "toolCall": true,
+      "thinking": { "mode": "effort", "efforts": ["minimal", "low", "medium", "high", "xhigh", "max"] }
+    },
+    "zai-glm-5.3": {
+      "provider": "omniroute",
+      "remoteId": "zai/glm-5.3",
+      "name": "GLM 5.3 (direct)",
+      "contextWindow": 1000000,
+      "maxTokens": 131072,
+      "reasoning": true,
+      "input": ["text"],
+      "temperature": true,
+      "toolCall": true,
+      "thinking": { "mode": "effort", "efforts": ["low", "high", "max"] }
+    },
+    "zai-glm-5.3-flash": {
+      "provider": "omniroute",
+      "remoteId": "zai/glm-5.3-flash",
+      "name": "GLM 5.3 Flash (direct)",
+      "contextWindow": 1000000,
+      "maxTokens": 131072,
+      "reasoning": true,
+      "input": ["text", "image"],
+      "temperature": true,
+      "toolCall": true,
+      "thinking": { "mode": "effort", "efforts": ["low", "high", "max"] }
+    },
+    "gemini-3.8-flash-high": {
+      "provider": "clip",
+      "remoteId": "gemini-3.8-flash-high",
+      "name": "Gemini 3.8 Flash High",
+      "contextWindow": 1048576,
+      "maxTokens": 65536,
+      "reasoning": true,
+      "input": ["text", "image"],
+      "temperature": true,
+      "toolCall": true,
+      "thinking": { "mode": "effort", "efforts": ["low", "medium", "high"] }
+    },
+    "gemini-pro-agent": {
+      "provider": "clip",
+      "remoteId": "gemini-pro-agent",
+      "name": "Gemini Pro Agent (top pro)",
+      "contextWindow": 1048576,
+      "maxTokens": 65536,
+      "reasoning": true,
+      "input": ["text", "image"],
+      "temperature": true,
+      "toolCall": true,
+      "thinking": { "mode": "effort", "efforts": ["low", "medium", "high"] }
     }
   }
 }

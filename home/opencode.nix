@@ -333,6 +333,14 @@ in {
     fi
     # shellcheck disable=SC1090
     . "$SECRETS"
+    if [ -z "''${CLIPROXY_API_KEY:-}" ]; then
+      echo "ERROR: CLIPROXY_API_KEY missing in $SECRETS" >&2
+      echo "       The clip provider in home/agent-models.json needs it, and the" >&2
+      echo "       modelmap renderer substitutes env[apiKeyEnv] // \"\" — so a" >&2
+      echo "       missing key would silently produce an empty apiKey." >&2
+      echo "       Add it via: keys → agenix -e tokens.age → CLIPROXY_API_KEY=..." >&2
+      exit 1
+    fi
     if [ -z "''${CONTEXT7_API_KEY:-}" ]; then
       echo "ERROR: CONTEXT7_API_KEY missing in $SECRETS" >&2
       exit 1

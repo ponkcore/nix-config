@@ -183,6 +183,7 @@ in {
   #
   # Keys used by omp:
   #   OMNIROUTE_API_KEY  — provider apiKey (models.yml)
+  #   CLIPROXY_API_KEY   — clip provider apiKey (models.yml), Gemini via ClipProxy
   #   OMP_PROXY_KEY      — VPS MCP proxy tool-filter (mcp.json X-Proxy-Key)
   #   CONTEXT7_API_KEY   — context7 MCP (mcp.json X-Context7-API-Key)
   #   HEXSTRIKE_API_KEY  — hexstrike MCP Caddy gate (mcp.json hexstrike X-API-Key)
@@ -203,6 +204,11 @@ in {
     . "$SECRETS"
     if [ -z "''${OMNIROUTE_API_KEY:-}" ]; then
       echo "ERROR: OMNIROUTE_API_KEY missing in $SECRETS" >&2
+      exit 1
+    fi
+    if [ -z "''${CLIPROXY_API_KEY:-}" ]; then
+      echo "ERROR: CLIPROXY_API_KEY missing in $SECRETS" >&2
+      echo "       Add it via: keys → agenix -e tokens.age → CLIPROXY_API_KEY=..." >&2
       exit 1
     fi
     if [ -z "''${OMP_PROXY_KEY:-}" ]; then
@@ -226,6 +232,7 @@ in {
     umask 077
     cat > "$OUT" <<EOF
     OMNIROUTE_API_KEY=$OMNIROUTE_API_KEY
+    CLIPROXY_API_KEY=$CLIPROXY_API_KEY
     OMP_PROXY_KEY=$OMP_PROXY_KEY
     CONTEXT7_API_KEY=$CONTEXT7_API_KEY
     HEXSTRIKE_API_KEY=$HEXSTRIKE_API_KEY
