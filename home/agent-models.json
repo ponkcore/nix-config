@@ -1,6 +1,6 @@
 {
   "$schema-comment": "Single source of truth for custom LLM providers and models across all local agents (opencode/omo, omp, letta). NO secrets here — apiKeyEnv names an environment variable that holds the key at runtime (from /run/agenix/tokens or `gh auth token`). Edit this file and the next agent launch picks it up — NO nixos-rebuild needed. baseUrl MUST include the /v1 suffix: all three consumers (omp renderer, opencode modelmap, letta mod) use it verbatim and do NOT append anything (the old double-/v1 bug was fixed 2026-10-10).",
-  "$data-provenance": "omniroute combo tiers: figures below are USER-SET policy limits (2026-10-10 evening correction), NOT raw API metadata — earlier values re-read from GET https://omni.infinitycore.space/v1/models the same day overstated what the pool delivers, so the user capped output/context down and switched all six tiers to text-only (vision off, image dropped from input). Per the 2026-10-10 morning probe the tier backends were: R→qwen3.8-max-0902, SSS→kimi-k3, SS→deepseek-v4-pro-0813 + deepseek-v4-flash-0731, S→glm-5.3-prime / glm-5.2-fast-preview, A→deepseek-v4.1-flash (null metadata; context 128000 from server rejection text, maxTokens 65536 was a conservative guess), B→glm-5.1. Vision had tested positive with a solid-red 64x64 PNG on R/SS/S/A/B (3 runs each) and negative on SSS — it is now declared off for ALL tiers by policy regardless of pool capability. clip models: see $clip-provenance.",
+  "$data-provenance": "omniroute combo tiers: figures below are USER-SET policy limits (2026-10-10 evening correction), NOT raw API metadata — earlier values re-read from GET https://omni.infinitycore.space/v1/models the same day overstated what the pool delivers, so the user capped output/context down and switched all six tiers to text-only (vision off, image dropped from input). Per the 2026-10-10 morning probe the tier backends were: R→qwen3.8-max-0902, SSS→kimi-k3, SS→deepseek-v4-pro-0813 + deepseek-v4-flash-0731, S→glm-5.3-prime / glm-5.2-fast-preview, A→deepseek-v4.1-flash (null metadata; context 128000 from server rejection text, maxTokens 65536 was a conservative guess), B→glm-5.1. Vision had tested positive with a solid-red 64x64 PNG on R/SS/S/A/B (3 runs each) and negative on SSS — it is now declared off for ALL tiers by policy regardless of pool capability. The five ali/* direct routes (glm-5.3-prime, deepseek-v4.1-flash, qwen3.8-max-0902, kimi-k3, deepseek-v4-pro-0813) were adopted 2026-10-10 from the user-verified asus reference (ssh user@192.168.10.145 cat ~/.omp/agent/models.yml), context/output/vision/efforts values as-is. clip models: see $clip-provenance.",
   "$clip-provenance": "clip = ClipProxy on the same VPS (https://clip.infinitycore.space/v1), reached via a different API key. Its /v1/models lists 32 ids but carries NO context_length / max_output_tokens / capabilities, and its management API is 404 even with a valid key — so the context window (1048576) was extracted from the server's own rejection of an oversized prompt ('maximum number of tokens allowed (1048576)'). max_tokens is NOT validated by this endpoint at all (2000000 accepted silently), so maxTokens 65536 is a CONSERVATIVE GUESS, not a measured ceiling. reasoning_effort IS validated and accepts ONLY low/medium/high — no minimal, xhigh or max (a bogus value returns 'valid levels: low, medium, high'); the thinking blocks below declare exactly that, which also stops omp from clamping. Both models accept images (verified with a PNG in an image_url block) and tool calls (verified by a real `read` of README.md in ~/Projects/course-platform on asus). All claude/anthropic ids on clip return 503 auth_unavailable (broken upstream) and are deliberately NOT included.",
   "providers": {
     "omniroute": {
@@ -112,6 +112,63 @@
       "temperature": true,
       "toolCall": true,
       "thinking": { "mode": "effort", "efforts": ["low", "high", "max"] }
+    },
+    "ali-glm-5.3-prime": {
+      "provider": "omniroute",
+      "remoteId": "ali/glm-5.3-prime",
+      "name": "GLM 5.3 Prime (direct)",
+      "contextWindow": 1000000,
+      "maxTokens": 131072,
+      "reasoning": true,
+      "input": ["text"],
+      "temperature": true,
+      "toolCall": true,
+      "thinking": { "mode": "effort", "efforts": ["low", "high", "max"] }
+    },
+    "ali-deepseek-v4.1-flash": {
+      "provider": "omniroute",
+      "remoteId": "ali/deepseek-v4.1-flash",
+      "name": "DeepSeek V4.1 Flash (direct)",
+      "contextWindow": 128000,
+      "maxTokens": 65536,
+      "reasoning": true,
+      "input": ["text"],
+      "temperature": true,
+      "toolCall": true
+    },
+    "ali-qwen3.8-max-0902": {
+      "provider": "omniroute",
+      "remoteId": "ali/qwen3.8-max-0902",
+      "name": "Qwen3.8 Max 0902 (direct)",
+      "contextWindow": 1000000,
+      "maxTokens": 131072,
+      "reasoning": true,
+      "input": ["text", "image"],
+      "temperature": true,
+      "toolCall": true,
+      "thinking": { "mode": "effort", "efforts": ["low", "medium", "high", "max"] }
+    },
+    "ali-kimi-k3": {
+      "provider": "omniroute",
+      "remoteId": "ali/kimi-k3",
+      "name": "Kimi K3 (direct)",
+      "contextWindow": 1000000,
+      "maxTokens": 1048576,
+      "reasoning": true,
+      "input": ["text", "image"],
+      "temperature": true,
+      "toolCall": true
+    },
+    "ali-deepseek-v4-pro-0813": {
+      "provider": "omniroute",
+      "remoteId": "ali/deepseek-v4-pro-0813",
+      "name": "DeepSeek V4 Pro 0813 (direct)",
+      "contextWindow": 1000000,
+      "maxTokens": 384000,
+      "reasoning": true,
+      "input": ["text"],
+      "temperature": true,
+      "toolCall": true
     },
     "gemini-3.8-flash-high": {
       "provider": "clip",
