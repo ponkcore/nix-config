@@ -225,16 +225,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1786923043,
-        "narHash": "sha256-LVOAf48q+XoytKxqq7nsvBFowTw0Us/MfY7FUWLVQLQ=",
+        "lastModified": 1791585195,
+        "narHash": "sha256-a2xGnD3lzx+xH68UywuaxZdKEiPz8q+Px419VEGZVkc=",
         "owner": "letta-ai",
         "repo": "letta-code",
-        "rev": "4a568a56dd4934f6e24d211aaa2f49a3d3f85f30",
+        "rev": "a01203c209a3dd1a69af5dcf166336b8eaaaa80a",
         "type": "github"
       },
       "original": {
         "owner": "letta-ai",
-        "ref": "v0.30.24",
+        "ref": "v0.34.10",
         "repo": "letta-code",
         "type": "github"
       }
