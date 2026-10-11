@@ -20,12 +20,19 @@ function loadCatalog() {
   }
 }
 
-// letta rejects model ids containing "/" — the catalogue keys are already
-// slash-free, and remoteId carries the real upstream id. Combo tiers have
-// remoteId == key (no slash), so this is a safe identity for them.
+// letta validates static `models` ids: "id must be unprefixed and cannot
+// contain '/'" (validateModel, still true in v0.34.10). But `listModels`
+// results bypass that validator (listRegisteredPiProviderModels does NOT
+// re-validate), so slashed upstream ids are served through `listModels`
+// instead. pi-ai sends model.id on the wire verbatim, and letta's handle
+// parsing is first-slash based (handle.split("/").slice(1).join("/")), so
+// handle "omniroute/zai/glm-5.3" resolves to model id "zai/glm-5.3" and
+// omniroute gets the prefixed id it needs to route. Combo tiers keep
+// slash-free ids and stay in the static list as well.
 function toLettaModel(key, m) {
+  const id = m.remoteId || key;
   return {
-    id: key,
+    id,
     name: m.name || key,
     reasoning: !!m.reasoning,
     input: Array.isArray(m.input) ? m.input : ["text"],
@@ -40,12 +47,19 @@ export default (letta) => {
   if (!catalog || !catalog.providers) return;
 
   for (const [provName, prov] of Object.entries(catalog.providers)) {
-    // Models that belong to this provider, keyed by their catalogue key.
-    const models = Object.entries(catalog.models || {})
+    // ALL models of this provider, with remoteId as the id (slashed for
+    // direct routes, key otherwise).
+    const all = Object.entries(catalog.models || {})
       .filter(([, m]) => m.provider === provName)
       .map(([key, m]) => toLettaModel(key, m));
 
-    if (models.length === 0) continue;
+    if (all.length === 0) continue;
+
+    // Static list carries only slash-free ids (validator constraint);
+    // listModels returns the full set (tiers + slashed direct routes) and
+    // overrides statics by id at merge time, so callers that only consult
+    // listModels still see everything.
+    const staticModels = all.filter((m) => !m.id.includes("/"));
 
     letta.providers.register(provName, {
       name: provName,
@@ -55,7 +69,8 @@ export default (letta) => {
       authHeader: prov.authHeader !== false,
       api: prov.api || "openai-completions",
       connect: false,
-      models,
+      models: staticModels,
+      listModels: () => all,
     });
   }
 };
