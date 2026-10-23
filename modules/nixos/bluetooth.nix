@@ -43,9 +43,23 @@
 #      while that id is non-zero, so one lost race permanently leaves the
 #      device without a uHID instance — no /sys/bus/hid/devices/0005:*
 #      entry, while the mouse keeps sending HID reports into the void.
+#   3. (2026-10-23) Fix 1 narrows but does not close the race. On the
+#      cached-DB attach path (GATT cache restored from disk, no Report
+#      Map VALUE in it — true for this mouse) the read queue drains in
+#      milliseconds while kernel LE encryption is still in flight, so
+#      the first connect after a reboot can still lose it: measured once
+#      in ~25 attaches (boot 2026-10-23 10:59:25, ATT 0x05 "Attribute
+#      requires authentication", mouse dead while Connected: yes). The
+#      attach-level self-heal from fix 2 needs a reconnect to fire, and
+#      nothing re-triggers one while the link stays up. The patch now
+#      also retries the read IN-CONNECTION: on failure it resets
+#      report_map_id and schedules a 1 s retry via
+#      g_timeout_add_seconds — bounded at 5 retries per attach, reset in
+#      bt_hog_attach, cancelled in bt_hog_detach (no use-after-free),
+#      deferred while the GATT queue is non-empty so the "Report Map is
+#      read last" invariant from remove_gatt_req() holds.
 #
-# Fix 1 removes the race, fix 2 makes a lost race self-healing on the
-# next attach. Both are in bluez-hog-report-map-race.patch.
+# All three fixes are in bluez-hog-report-map-race.patch.
 #
 # Upstream: Issue #752 (AddressType) closed "not planned".
 # See researches/2026-07-02-bluez-rpa-addresstype-bug.result.md.

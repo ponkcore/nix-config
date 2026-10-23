@@ -19,7 +19,46 @@
  	/* TODO: Replace GAttrib with bt_gatt_client */
 --- a/profiles/input/hog-lib.c
 +++ b/profiles/input/hog-lib.c
-@@ -1040,6 +1040,12 @@
+@@ -91,6 +91,8 @@
+ 	unsigned int		setrep_att;
+ 	uint32_t		setrep_id;
+ 	unsigned int		report_map_id;
++	guint			report_map_retry_id;
++	uint8_t			report_map_retry_count;
+ 	struct bt_scpp		*scpp;
+ 	struct bt_dis		*dis;
+ 	struct queue		*bas;
+@@ -1028,6 +1030,29 @@
+ 		error("Error writing report map value to gatt db");
+ }
+ 
++static gboolean report_map_retry_cb(gpointer user_data)
++{
++	struct bt_hog *hog = user_data;
++
++	/* Keep the "Report Map is read last" invariant from
++	 * remove_gatt_req(): wait for the GATT queue to drain before
++	 * retrying, otherwise uhid_create() could run while report
++	 * attributes are still being resolved.
++	 */
++	if (!queue_isempty(hog->gatt_op)) {
++		DBG("HoG Report Map retry deferred: GATT queue busy");
++		return TRUE;
++	}
++
++	hog->report_map_retry_id = 0;
++
++	DBG("HoG retrying Report Map read");
++
++	read_report_map(hog);
++
++	return FALSE;
++}
++
+ static void report_map_read_cb(guint8 status, const guint8 *pdu, guint16 plen,
+ 							gpointer user_data)
+ {
+@@ -1040,6 +1065,25 @@
  
  	if (status != 0) {
  		error("Report Map read failed: %s", att_ecode2str(status));
@@ -29,6 +68,39 @@
 +		 * read would permanently leave this device without uHID.
 +		 */
 +		hog->report_map_id = 0;
++		/* A lost race against LE encryption used to leave the
++		 * device without uHID until the next attach, and nothing
++		 * re-triggers an attach while the link stays up.  Retry the
++		 * read once per second (bounded) so the failure self-heals
++		 * within the same connection.
++		 */
++		if (!hog->report_map_retry_id &&
++				hog->report_map_retry_count < 5) {
++			hog->report_map_retry_count++;
++			hog->report_map_retry_id = g_timeout_add_seconds(1,
++							report_map_retry_cb,
++							hog);
++		}
  		return;
  	}
+ 
+@@ -1697,6 +1741,7 @@
+ 		return false;
+ 
+ 	hog->attrib = g_attrib_ref(gatt);
++	hog->report_map_retry_count = 0;
+ 
+ 	if (!hog->attr && !hog->primary) {
+ 		discover_primary(hog, hog->attrib, NULL, primary_cb, hog);
+@@ -1766,6 +1811,11 @@
+ 	if (!hog)
+ 		return;
+ 
++	if (hog->report_map_retry_id) {
++		g_source_remove(hog->report_map_retry_id);
++		hog->report_map_retry_id = 0;
++	}
++
+ 	if (!hog->attrib)
+ 		goto done;
  
