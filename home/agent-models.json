@@ -1,6 +1,7 @@
 {
   "$schema-comment": "Single source of truth for custom LLM providers and models across all local agents (opencode/omo, omp, letta). NO secrets here — apiKeyEnv names an environment variable that holds the key at runtime (from /run/agenix/tokens or `gh auth token`). Edit this file and the next agent launch picks it up — NO nixos-rebuild needed. baseUrl MUST include the /v1 suffix: all three consumers (omp renderer, opencode modelmap, letta mod) use it verbatim and do NOT append anything (the old double-/v1 bug was fixed 2026-10-10).",
   "$data-provenance": "omniroute combo tiers: figures below are USER-SET policy limits (2026-10-10 evening correction), NOT raw API metadata — earlier values re-read from GET https://omni.infinitycore.space/v1/models the same day overstated what the pool delivers, so the user capped output/context down and switched all six tiers to text-only (vision off, image dropped from input). Per the 2026-10-10 morning probe the tier backends were: R→qwen3.8-max-0902, SSS→kimi-k3, SS→deepseek-v4-pro-0813 + deepseek-v4-flash-0731, S→glm-5.3-prime / glm-5.2-fast-preview, A→deepseek-v4.1-flash (null metadata; context 128000 from server rejection text, maxTokens 65536 was a conservative guess), B→glm-5.1. Vision had tested positive with a solid-red 64x64 PNG on R/SS/S/A/B (3 runs each) and negative on SSS — it is now declared off for ALL tiers by policy regardless of pool capability. The five ali/* direct routes (glm-5.3-prime, deepseek-v4.1-flash, qwen3.8-max-0902, kimi-k3, deepseek-v4-pro-0813) were adopted 2026-10-10 from the user-verified asus reference (ssh user@192.168.10.145 cat ~/.omp/agent/models.yml), context/output/vision/efforts values as-is; the two deepseek routes were then CORRECTED against the OpenRouter canonical model metadata (openrouter.ai/api/v1/models/deepseek/…) plus live gateway probes: flash keeps contextWindow 128000 because the gateway ENFORCES it (400 'limit 128000' on a ~150K-token prompt — OpenRouter's 1M figure is its multi-provider pool, not our alibaba backend), flash maxTokens 65536→393216 and pro 384000→393216 (OpenRouter top_provider / alibaba-backend figures; the gateway does not validate max_tokens at all), flash vision ON (6/6 solid-color PNG hits), both gained thinking efforts low/high/max (OpenRouter canon; the gateway actually validates a wider set — flash accepts none..ultra, pro none..max — we declare the conservative OpenRouter intersection). clip models: see $clip-provenance.",
+  "$fw-provenance": "The four fw/* direct routes (Fireworks backend via omniroute) were verified 2026-10-26 against live probes: contextWindow 1048576 from the gateway's own GET /v1/models metadata (agrees with OpenRouter's Fireworks endpoint rows). maxTokens 943718 = the Fireworks-backend figure from openrouter.ai/api/v1/models/<vendor>/<id>/endpoints (90% of context; our gateway does NOT validate max_tokens — 5000000 was accepted silently — so this is vendor canon, not a measured ceiling; glm-5p3-fast has no canon row of its own and borrows glm-5.3's). reasoning_effort IS validated by these routes: bogus values 400, and glm-5p3/glm-5p3-fast are THINKING-ONLY (reasoning_effort='none' is rejected with 'GLM-5.3 is a thinking-only model'); deepseek-flash and kimi-k3 accept none..max (ultra rejected) — declared efforts low/high/max are the conservative OpenRouter intersection (max,high,low,none). Vision on deepseek-flash and kimi-k3 verified live with 5/5 exact solid-color PNG identifications each. glm routes declared text-only per OpenRouter canon.",
   "$clip-provenance": "clip = ClipProxy on the same VPS (https://clip.infinitycore.space/v1), reached via a different API key. Its /v1/models lists 32 ids but carries NO context_length / max_output_tokens / capabilities, and its management API is 404 even with a valid key — so the context window (1048576) was extracted from the server's own rejection of an oversized prompt ('maximum number of tokens allowed (1048576)'). max_tokens is NOT validated by this endpoint at all (2000000 accepted silently), so maxTokens 65536 is a CONSERVATIVE GUESS, not a measured ceiling. reasoning_effort IS validated and accepts ONLY low/medium/high — no minimal, xhigh or max (a bogus value returns 'valid levels: low, medium, high'); the thinking blocks below declare exactly that, which also stops omp from clamping. Both models accept images (verified with a PNG in an image_url block) and tool calls (verified by a real `read` of README.md in ~/Projects/course-platform on asus). All claude/anthropic ids on clip return 503 auth_unavailable (broken upstream) and are deliberately NOT included.",
   "providers": {
     "omniroute": {
@@ -27,7 +28,10 @@
       "input": ["text"],
       "temperature": true,
       "toolCall": true,
-      "thinking": { "mode": "effort", "efforts": ["minimal", "low", "medium", "high", "xhigh", "max"] }
+      "thinking": {
+        "mode": "effort",
+        "efforts": ["minimal", "low", "medium", "high", "xhigh", "max"]
+      }
     },
     "SSS-tier": {
       "provider": "omniroute",
@@ -39,7 +43,10 @@
       "input": ["text"],
       "temperature": true,
       "toolCall": true,
-      "thinking": { "mode": "effort", "efforts": ["minimal", "low", "medium", "high", "xhigh", "max"] }
+      "thinking": {
+        "mode": "effort",
+        "efforts": ["minimal", "low", "medium", "high", "xhigh", "max"]
+      }
     },
     "SS-tier": {
       "provider": "omniroute",
@@ -51,7 +58,10 @@
       "input": ["text"],
       "temperature": true,
       "toolCall": true,
-      "thinking": { "mode": "effort", "efforts": ["minimal", "low", "medium", "high", "xhigh", "max"] }
+      "thinking": {
+        "mode": "effort",
+        "efforts": ["minimal", "low", "medium", "high", "xhigh", "max"]
+      }
     },
     "S-tier": {
       "provider": "omniroute",
@@ -63,7 +73,10 @@
       "input": ["text"],
       "temperature": true,
       "toolCall": true,
-      "thinking": { "mode": "effort", "efforts": ["minimal", "low", "medium", "high", "xhigh", "max"] }
+      "thinking": {
+        "mode": "effort",
+        "efforts": ["minimal", "low", "medium", "high", "xhigh", "max"]
+      }
     },
     "A-tier": {
       "provider": "omniroute",
@@ -75,7 +88,10 @@
       "input": ["text"],
       "temperature": true,
       "toolCall": true,
-      "thinking": { "mode": "effort", "efforts": ["minimal", "low", "medium", "high", "xhigh", "max"] }
+      "thinking": {
+        "mode": "effort",
+        "efforts": ["minimal", "low", "medium", "high", "xhigh", "max"]
+      }
     },
     "B-tier": {
       "provider": "omniroute",
@@ -87,7 +103,10 @@
       "input": ["text"],
       "temperature": true,
       "toolCall": true,
-      "thinking": { "mode": "effort", "efforts": ["minimal", "low", "medium", "high", "xhigh", "max"] }
+      "thinking": {
+        "mode": "effort",
+        "efforts": ["minimal", "low", "medium", "high", "xhigh", "max"]
+      }
     },
     "zai-glm-5.3": {
       "provider": "omniroute",
@@ -168,6 +187,54 @@
       "maxTokens": 393216,
       "reasoning": true,
       "input": ["text"],
+      "temperature": true,
+      "toolCall": true,
+      "thinking": { "mode": "effort", "efforts": ["low", "high", "max"] }
+    },
+    "fw-glm-5.3": {
+      "provider": "omniroute",
+      "remoteId": "fireworks/accounts/fireworks/models/glm-5p3",
+      "name": "GLM 5.3 (FW)",
+      "contextWindow": 1048576,
+      "maxTokens": 943718,
+      "reasoning": true,
+      "input": ["text"],
+      "temperature": true,
+      "toolCall": true,
+      "thinking": { "mode": "effort", "efforts": ["low", "high", "max"] }
+    },
+    "fw-glm-5.3-fast": {
+      "provider": "omniroute",
+      "remoteId": "fireworks/accounts/fireworks/routers/glm-5p3-fast",
+      "name": "GLM 5.3 Fast (FW)",
+      "contextWindow": 1048576,
+      "maxTokens": 943718,
+      "reasoning": true,
+      "input": ["text"],
+      "temperature": true,
+      "toolCall": true,
+      "thinking": { "mode": "effort", "efforts": ["low", "high", "max"] }
+    },
+    "fw-deepseek-v4.1-flash-1017": {
+      "provider": "omniroute",
+      "remoteId": "fireworks/accounts/fireworks/models/deepseek-v4p1-flash-1017",
+      "name": "DeepSeek V4.1 Flash 1017 (FW)",
+      "contextWindow": 1048576,
+      "maxTokens": 943718,
+      "reasoning": true,
+      "input": ["text", "image"],
+      "temperature": true,
+      "toolCall": true,
+      "thinking": { "mode": "effort", "efforts": ["low", "high", "max"] }
+    },
+    "fw-kimi-k3": {
+      "provider": "omniroute",
+      "remoteId": "fireworks/accounts/fireworks/models/kimi-k3",
+      "name": "Kimi K3 (FW)",
+      "contextWindow": 1048576,
+      "maxTokens": 943718,
+      "reasoning": true,
+      "input": ["text", "image"],
       "temperature": true,
       "toolCall": true,
       "thinking": { "mode": "effort", "efforts": ["low", "high", "max"] }
