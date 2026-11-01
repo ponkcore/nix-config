@@ -4,14 +4,14 @@
 # definitions live in modules/nixos/codex.nix; mutable Codex state remains
 # under ~/.codex. Secrets enter only the launcher environment.
 {pkgs, ...}: let
-  version = "0.162.1";
+  version = "0.166.0";
   codexPackage = pkgs.stdenvNoCC.mkDerivation {
     pname = "codex";
     inherit version;
 
     src = pkgs.fetchurl {
       url = "https://github.com/openai/codex/releases/download/rust-v${version}/codex-package-x86_64-unknown-linux-musl.tar.gz";
-      hash = "sha256-pnb1ciquDYbL43ZDMvCOqx/didwKMAs61P+/SGEfo+M=";
+      hash = "sha256-HUSyi8SsmTfX01MiZLqmilB842SVag1Ou4VvMxze4lQ=";
     };
 
     sourceRoot = ".";
