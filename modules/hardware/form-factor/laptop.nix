@@ -171,6 +171,34 @@
     done
   '';
 
+  # AC-edge detector for the ADP1 udev rules below. Exit 0 (gate RUN)
+  # only when the AC online state actually TRANSITIONED since the last
+  # seen value. The laptop EC re-notifies ADP1 with `change` uevents
+  # every 1-3 minutes while on battery with an UNCHANGED online value
+  # (verified with udevadm monitor --property, 2026-11-03), and udev
+  # replays uevents on rules reload. Without an edge check the
+  # lecoo-ac-plug/unplug services re-fired on every re-notification and
+  # stomped a manually selected mode (e.g. balanced set on battery)
+  # back to eco within a minute or two. First ever run (no prior
+  # state) primes the file and never transitions.
+  acEdgeCheck = pkgs.writeShellScript "lecoo-ac-edge-check" ''
+    state=/var/lib/lecoo-power-mode/last-ac
+    online=$(cat /sys/class/power_supply/ADP1/online 2>/dev/null || echo "")
+    [ -z "$online" ] && exit 1
+    last=$(cat "$state" 2>/dev/null || echo "")
+    # Persist the seen state only when it changed — no pointless
+    # /var/lib disk writes on every EC re-notification while on
+    # battery.
+    if [ "$last" != "$online" ]; then
+      mkdir -p /var/lib/lecoo-power-mode
+      printf '%s\n' "$online" > "$state"
+    fi
+    # Transition only on a real 1<->0 edge; identical state (EC
+    # re-notification, udev reload replay) exits non-zero and the
+    # paired RUN+= is skipped by udev entirely.
+    [ -n "$last" ] && [ "$last" != "$online" ]
+  '';
+
   # `on-battery` — exit 0 when running on battery, exit 1 otherwise.
   # Belongs to the laptop hardware profile because the very concept of
   # an AC adapter file under /sys/class/power_supply only exists on
@@ -488,9 +516,20 @@ in {
       # on an idle plugged-in laptop. Battery defaults to `power-saver`
       # for maximum battery life.
       # Source: research 2026-06-27-battery-unsolved-deep-research-2 §4
+      #
+      # PROGRAM edge guard: the EC re-notifies ADP1 (`change` uevents,
+      # unchanged online) every 1-3 minutes on battery, and udev replays
+      # uevents on rules reload — both would re-fire these services and
+      # stomp a manually selected mode. lecoo-ac-edge-check exits 0 only
+      # on a real 1<->0 transition; otherwise RUN+= never executes.
+      # ATTR{online} is evaluated before PROGRAM, so exactly one of the
+      # two rules ever runs the checker per uevent — no double state
+      # write from the sibling rule.
       SUBSYSTEM=="power_supply", KERNEL=="ADP1", ATTR{online}=="1", \
+        PROGRAM=="${acEdgeCheck}", \
         RUN+="${pkgs.systemd}/bin/systemctl start --no-block lecoo-ac-plug.service"
       SUBSYSTEM=="power_supply", KERNEL=="ADP1", ATTR{online}=="0", \
+        PROGRAM=="${acEdgeCheck}", \
         RUN+="${pkgs.systemd}/bin/systemctl start --no-block lecoo-ac-unplug.service"
     '';
 
