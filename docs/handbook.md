@@ -306,7 +306,9 @@ Read the name carefully — it is counter-intuitive:
 - the trailing **ID names the device that authored the WINNING version**
   (`moveForConflict(name, file.ModifiedBy.String())` →
   `Rename(localName, conflictName)` in `lib/model/folder_sendrecv.go`).
-  On this host `CGUAONQ` = phone, `DVCYB6U` = laptop, `7TYSH4F` = VPS.
+  On this host `CGUAONQ` = phone, `DVCYB6U` = laptop.
+  (A `7TYSH4F` = old VPS device existed until 2026-11-04 — it is
+  gone; old conflict copies naming it are historical laptop content.)
 
 So `vault.sync-conflict-…-CGUAONQ.kdbx` means "the phone's version won;
 this file is what the laptop had". Verify with sizes: a conflict copy

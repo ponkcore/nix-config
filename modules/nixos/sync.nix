@@ -2,11 +2,17 @@
 #
 # Use cases on this system:
 #   - ~/Documents/secrets/vault.kdbx                ← Android (KeePassDX)
-#   - ~/Documents/obsidian/brain                    ← VPS (Obsidian vault)
-#   - ~/Documents/obsidian/hermes ↔ VPS ~/.hermes   ← VPS (hermes agent
-#       config: config.yaml, skills/, plugins/, memories/, lore/, .env,
-#       cron/output/. Asymmetric paths — Syncthing folder ID is the
-#       binding, not the path.)
+#   - ~/Documents/obsidian/brain                    ← Android (Obsidian vault)
+#
+# History: a `vps` device (7TYSH4F-…) was paired until 2026-11-04 —
+#   it shared `brain-vault` and the `hermes-config` folder
+#   (~/Documents/obsidian/hermes ↔ VPS ~/.hermes, agent config).
+#   The VPS has been decommissioned, so the device and the
+#   vps-only folder were removed from the topology. Local data at
+#   ~/Documents/obsidian/hermes was NOT deleted — only unshared; it
+#   stays on disk (2.9 GiB, last synced 2026-09-24). To re-pair a
+#   future VPS, restore the device entry and the folder from git
+#   history (commit before 2026-11-04) on both sides.
 #
 # Pairing model:
 #   The folder/device topology is declared here (services.syncthing.
@@ -29,18 +35,17 @@
 # Encryption: Syncthing's wire protocol is mutually-authenticated TLS
 # between paired devices — no third party sees plaintext. At-rest
 # encryption is your filesystem's job (LUKS for the laptop, app-level
-# for Android, full-disk for the VPS provider).
+# for Android).
 #
 # Ports on this host:
 #   * 8384/TCP  — GUI, bound to 127.0.0.1, never exposed.
-#   * 22000/TCP+UDP — sync. openDefaultPorts left FALSE because this
-#     host is the initiator (laptop, no inbound). The VPS side opens
-#     22000 — that's what makes the pairing work on a NAT
-#     workstation.
+#   * 22000/TCP+UDP — sync. openDefaultPorts left FALSE: the phone is
+#     reached over LAN/relays as a client; no inbound listener is
+#     needed. (The old comment said the VPS side opened 22000 to
+#     punch the NAT — obsolete since the VPS removal.)
 #
 # username injected by lib/mkHost.nix.
 {username, ...}: let
-  vpsDeviceId = "7TYSH4F-4G4BUUC-F5RVTAW-V4HHQNR-DKQR37A-BUBQBMG-TRKVKUT-2NIUFA7";
   phoneDeviceId = "CGUAONQ-5Z6GRBL-FQLWTSB-NTLOTJI-S6SW6PT-2XENWZ4-X7I3MP4-SRHAMAJ";
 
   # Trashcan defaults — cheap safety net against an "rm -rf" on
@@ -106,11 +111,6 @@ in {
 
     settings = {
       devices = {
-        vps = {
-          id = vpsDeviceId;
-          name = "vps";
-        };
-
         phone = {
           id = phoneDeviceId;
           name = "phone";
@@ -139,24 +139,13 @@ in {
         "brain-vault" = {
           label = "brain";
           path = "/home/${username}/Documents/obsidian/brain";
-          devices = ["vps" "phone"];
+          devices = ["phone"];
           versioning = trashcan30d;
         };
 
-        # hermes agent config — VPS-resident agent's mutable
-        # configuration kept editable from the workstation.
-        # Asymmetric path: VPS ~/.hermes/, workstation
-        # ~/Documents/obsidian/hermes/. Folder ID
-        # `hermes-config` is the canonical binding; the partner
-        # side ignores node/, audio_cache/, media/, sessions/,
-        # git/, *.sqlite*, *.db*, *.log, *.tmp, __pycache__/
-        # via its own .stignore.
-        "hermes-config" = {
-          label = "hermes";
-          path = "/home/${username}/Documents/obsidian/hermes";
-          devices = ["vps"];
-          versioning = trashcan30d;
-        };
+        # NOTE: the `hermes-config` folder (~/Documents/obsidian/hermes
+        # ↔ VPS ~/.hermes) was removed with the VPS device — see the
+        # header. Local data kept on disk, only unshared.
       };
     };
   };
