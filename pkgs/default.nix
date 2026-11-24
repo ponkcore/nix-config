@@ -50,8 +50,9 @@
 
   # AyuGram Desktop 7.x (rich messages, WebAuthn/passkey, thanos
   # collapse gaps) is not in nixpkgs 26.05 yet (still 6.7.8 there;
-  # 7.0.9 released 2026-08-08). Pull only this package from unstable
-  # so the rest of the system stays on the stable channel.
+  # unstable ships 7.2.9 as of the 2026-11-21 pin). Pull only this
+  # package from unstable so the rest of the system stays on the
+  # stable channel.
   # Drop this overlay once ayugram-desktop >= 7 reaches nixpkgs 26.05.
   (_final: prev: {
     ayugram-desktop =
