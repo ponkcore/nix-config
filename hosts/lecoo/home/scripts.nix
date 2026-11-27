@@ -188,7 +188,9 @@
     }
 
     leave_eco_plus() {
-      ${pkgs.hyprland}/bin/hyprctl keyword monitor "${display.internalMonitor}, ${display.internalMode}, 0x0, ${display.internalScale}" >/dev/null 2>&1 || true
+      if ${pkgs.hyprland}/bin/hyprctl -j monitors | ${pkgs.jq}/bin/jq -e '.[] | select(.name == "${display.internalMonitor}")' >/dev/null; then
+        ${pkgs.hyprland}/bin/hyprctl keyword monitor "${display.internalMonitor}, ${display.internalMode}, 0x0, ${display.internalScale}" >/dev/null 2>&1 || true
+      fi
       if [ -r "$saved_animations" ]; then
         animations=$(cat "$saved_animations")
         case "$animations" in 0|1) ${pkgs.hyprland}/bin/hyprctl keyword animations:enabled "$animations" >/dev/null 2>&1 || true ;; esac
@@ -209,7 +211,9 @@
       cat /sys/devices/system/cpu/smt/control > "$saved_smt" 2>/dev/null || true
       cat /sys/devices/system/cpu/cpufreq/policy0/boost > "$saved_boost" 2>/dev/null || true
       cat /sys/devices/system/cpu/cpufreq/policy0/amd_pstate_max_freq > "$saved_maxfreq" 2>/dev/null || true
-      ${pkgs.hyprland}/bin/hyprctl keyword monitor "${display.internalMonitor}, ${display.internalModeEco}, 0x0, ${display.internalScale}" >/dev/null 2>&1 || true
+      if ${pkgs.hyprland}/bin/hyprctl -j monitors | ${pkgs.jq}/bin/jq -e '.[] | select(.name == "${display.internalMonitor}")' >/dev/null; then
+        ${pkgs.hyprland}/bin/hyprctl keyword monitor "${display.internalMonitor}, ${display.internalModeEco}, 0x0, ${display.internalScale}" >/dev/null 2>&1 || true
+      fi
       ${pkgs.hyprland}/bin/hyprctl keyword animations:enabled 0 >/dev/null 2>&1 || true
       ${pkgs.hyprland}/bin/hyprctl keyword decoration:blur:enabled 0 >/dev/null 2>&1 || true
       ${pkgs.hyprland}/bin/hyprctl keyword decoration:shadow:enabled 0 >/dev/null 2>&1 || true

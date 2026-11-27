@@ -10,6 +10,70 @@
 }: let
   display = hostDisplay;
 
+  # Reconcile the physical output layout on startup, hotplug and config reload.
+  # Connect before the first snapshot so a hotplug cannot be missed between them.
+  monitorPolicy = pkgs.writeText "monitor-policy.py" ''
+    import json
+    import os
+    import select
+    import socket
+    import subprocess
+    import time
+
+    ctl = "${pkgs.hyprland}/bin/hyprctl"
+    internal = "${display.internalMonitor}"
+    normal = "${display.internalMode}"
+    eco = "${display.internalModeEco}"
+    scale = "${display.internalScale}"
+
+    def run(*args):
+        return subprocess.run([ctl, *args], capture_output=True, text=True, check=True).stdout
+
+    def reconcile():
+        monitors = json.loads(run("-j", "monitors", "all"))
+        external = [m for m in monitors if m["name"].startswith(("HDMI-", "DP-")) and not m["disabled"] and m["dpmsStatus"]]
+        panel = next((m for m in monitors if m["name"] == internal), None)
+        if external:
+            if panel is not None and not panel["disabled"]:
+                run("keyword", "monitor", f"{internal}, disable")
+        elif panel is None or panel["disabled"]:
+            state = os.path.join(os.environ["XDG_RUNTIME_DIR"], "ultra-economy", "state")
+            try:
+                with open(state) as f:
+                    mode = eco if f.read().strip() == "on" else normal
+            except FileNotFoundError:
+                mode = normal
+            run("reload")
+            run("keyword", "monitor", f"{internal}, {mode}, 0x0, {scale}")
+            with open("/proc/acpi/button/lid/LID0/state") as lid:
+                if "open" in lid.read():
+                    run("dispatch", "dpms", "on", internal)
+
+    path = os.path.join(os.environ["XDG_RUNTIME_DIR"], "hypr", os.environ["HYPRLAND_INSTANCE_SIGNATURE"], ".socket2.sock")
+    while True:
+        try:
+            with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as sock:
+                sock.connect(path)
+                reconcile()
+                pending = b""
+                while True:
+                    ready, _, _ = select.select([sock], [], [], 3)
+                    if not ready:
+                        reconcile()
+                        continue
+                    data = sock.recv(65536)
+                    if not data:
+                        raise OSError("Hyprland event socket closed")
+                    pending += data
+                    while b"\n" in pending:
+                        line, pending = pending.split(b"\n", 1)
+                        if line.startswith((b"monitoradded>>", b"monitorremoved>>", b"configreloaded>>")):
+                            reconcile()
+        except (OSError, subprocess.SubprocessError, ValueError) as error:
+            print(f"monitor-policy: {error}", flush=True)
+            time.sleep(1)
+  '';
+
   # Toggle the Caelestia dashboard drawer (control center) via public
   # shell IPC. Replaces the former raw `qs ipc` call — the rest of the
   # shell control surface already goes through `caelestia shell ...`.
@@ -129,6 +193,20 @@ in {
   # systemd-xdg-autostart-generator and raced the Home Manager unit.
   # See home/blueman-applet.nix for the resulting single-owner setup.
 
+  systemd.user.services.monitor-policy = {
+    Unit = {
+      Description = "Switch between internal and external monitors";
+      After = ["graphical-session.target"];
+      PartOf = ["graphical-session.target"];
+    };
+    Service = {
+      ExecStart = "${pkgs.python3}/bin/python3 -u ${monitorPolicy}";
+      Restart = "always";
+      RestartSec = 2;
+    };
+    Install.WantedBy = ["graphical-session.target"];
+  };
+
   wayland.windowManager.hyprland = {
     enable = true;
     package = null;
@@ -170,6 +248,7 @@ in {
       # scale, or `vrr, 0`), add a dedicated line ABOVE the fallback.
       monitor = [
         "${display.internalMonitor}, ${display.internalMode}, 0x0, ${display.internalScale}"
+        "desc:MKG MK-ZQ27F210L C00597S8SB7UC, 2560x1440@144, auto, 1"
         ", preferred, auto, 1"
       ];
 

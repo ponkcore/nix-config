@@ -23,6 +23,13 @@ keep going. Nothing is permanent.
 
 ---
 
+## External monitor
+
+When an active HDMI or DisplayPort monitor is connected, Hyprland disables
+the laptop panel. Disconnecting it restores the panel and its current power
+mode refresh rate. The MKG MK-ZQ27F210L uses 2560×1440 at 144 Hz. The
+`monitor-policy` user service handles hotplug and configuration reloads.
+
 ## 1. Daily operations
 
 ### Apply a change you just made

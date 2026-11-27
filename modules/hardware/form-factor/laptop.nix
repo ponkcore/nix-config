@@ -131,7 +131,11 @@
             "$BRIGHTNESSCTL" -d amdgpu_bl1 set 0 2>/dev/null || true
             ;;
           dpms)
-            "$HYPRCTL" dispatch dpms off ${display.internalMonitor} || true
+            # A disabled output is absent from Hyprland's active list. Never
+            # dispatch to a missing output: it can blank the external screen.
+            if "$HYPRCTL" -j monitors | ${pkgs.jq}/bin/jq -e '.[] | select(.name == "${display.internalMonitor}")' >/dev/null 2>&1; then
+              "$HYPRCTL" dispatch dpms off ${display.internalMonitor} || true
+            fi
             ;;
         esac
         blanked=true
@@ -149,7 +153,9 @@
             fi
             ;;
           dpms)
-            "$HYPRCTL" dispatch dpms on ${display.internalMonitor} || true
+            if "$HYPRCTL" -j monitors | ${pkgs.jq}/bin/jq -e '.[] | select(.name == "${display.internalMonitor}")' >/dev/null 2>&1; then
+              "$HYPRCTL" dispatch dpms on ${display.internalMonitor} || true
+            fi
             # Force cursor plane re-commit after DPMS-on. Hyprland
             # 0.52.1 does not re-commit the hardware cursor plane on
             # DPMS-on — the cursor becomes invisible until moved.

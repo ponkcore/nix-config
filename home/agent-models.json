@@ -108,6 +108,30 @@
         "efforts": ["minimal", "low", "medium", "high", "xhigh", "max"]
       }
     },
+    "oc-glm-5.3": {
+      "provider": "omniroute",
+      "remoteId": "opencode-go/glm-5.3",
+      "name": "GLM 5.3 (OpenCode)",
+      "contextWindow": 1000000,
+      "maxTokens": 131072,
+      "reasoning": true,
+      "input": ["text"],
+      "temperature": true,
+      "toolCall": true,
+      "thinking": { "mode": "effort", "efforts": ["low", "high", "max"] }
+    },
+    "oc-deepseek-v4.1-flash": {
+      "provider": "omniroute",
+      "remoteId": "opencode-go/deepseek-v4.1-flash",
+      "name": "DeepSeek V4.1 Flash 1017 (OpenCode)",
+      "contextWindow": 1000000,
+      "maxTokens": 384000,
+      "reasoning": true,
+      "input": ["text", "image"],
+      "temperature": true,
+      "toolCall": true,
+      "thinking": { "mode": "effort", "efforts": ["low", "high", "max"] }
+    },
     "zai-glm-5.3": {
       "provider": "omniroute",
       "remoteId": "zai/glm-5.3",
@@ -255,6 +279,18 @@
       "provider": "clip",
       "remoteId": "gemini-pro-agent",
       "name": "Gemini Pro Agent (top pro)",
+      "contextWindow": 1048576,
+      "maxTokens": 65536,
+      "reasoning": true,
+      "input": ["text", "image"],
+      "temperature": true,
+      "toolCall": true,
+      "thinking": { "mode": "effort", "efforts": ["low", "medium", "high"] }
+    },
+    "gemini-4-hydrogen-xhigh": {
+      "provider": "clip",
+      "remoteId": "gemini-4-hydrogen-xhigh",
+      "name": "Gemini 4 Hydrogen",
       "contextWindow": 1048576,
       "maxTokens": 65536,
       "reasoning": true,
